@@ -511,15 +511,124 @@ impl TryFrom<[u64; 8]> for Interface {
 }
 
 impl Interface {
+    /// Returns the function ID for the call, if it has one.
+    pub fn function_id(&self) -> Option<FuncId> {
+        match self {
+            Interface::Error { .. } => Some(FuncId::Error),
+            Interface::Success {
+                is_32bit: false, ..
+            } => Some(FuncId::Success64),
+            Interface::Success { is_32bit: true, .. } => Some(FuncId::Success32),
+            Interface::Interrupt { .. } => Some(FuncId::Interrupt),
+            Interface::Version { .. } => Some(FuncId::Version),
+            Interface::VersionOut { .. } => None,
+            Interface::Features { .. } => Some(FuncId::Features),
+            Interface::RxAcquire { .. } => Some(FuncId::RxAcquire),
+            Interface::RxRelease { .. } => Some(FuncId::RxRelease),
+            Interface::RxTxMap {
+                is_32bit: false, ..
+            } => Some(FuncId::RxTxMap64),
+            Interface::RxTxMap { is_32bit: true, .. } => Some(FuncId::RxTxMap32),
+            Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
+            Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::IdGet => Some(FuncId::IdGet),
+            Interface::SpmIdGet => Some(FuncId::SpmIdGet),
+            Interface::MsgWait => Some(FuncId::MsgWait),
+            Interface::Yield => Some(FuncId::Yield),
+            Interface::Run { .. } => Some(FuncId::Run),
+            Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
+            Interface::MsgSend2 { .. } => Some(FuncId::MsgSend2),
+            Interface::MsgSendDirectReq {
+                is_32bit: false, ..
+            } => Some(FuncId::MsgSendDirectReq64),
+            Interface::MsgSendDirectReq { is_32bit: true, .. } => Some(FuncId::MsgSendDirectReq32),
+            Interface::MsgSendDirectResp {
+                is_32bit: false, ..
+            } => Some(FuncId::MsgSendDirectResp64),
+            Interface::MsgSendDirectResp { is_32bit: true, .. } => {
+                Some(FuncId::MsgSendDirectResp32)
+            }
+            Interface::MemDonate {
+                is_32bit: false, ..
+            } => Some(FuncId::MemDonate64),
+            Interface::MemDonate { is_32bit: true, .. } => Some(FuncId::MemDonate32),
+            Interface::MemLend {
+                is_32bit: false, ..
+            } => Some(FuncId::MemLend64),
+            Interface::MemLend { is_32bit: true, .. } => Some(FuncId::MemLend32),
+            Interface::MemShare {
+                is_32bit: false, ..
+            } => Some(FuncId::MemShare64),
+            Interface::MemShare { is_32bit: true, .. } => Some(FuncId::MemShare32),
+            Interface::MemRetrieveReq {
+                is_32bit: false, ..
+            } => Some(FuncId::MemRetrieveReq64),
+            Interface::MemRetrieveReq { is_32bit: true, .. } => Some(FuncId::MemRetrieveReq32),
+            Interface::MemRetrieveResp { .. } => Some(FuncId::MemRetrieveResp),
+            Interface::MemRelinquish => Some(FuncId::MemRelinquish),
+            Interface::MemReclaim { .. } => Some(FuncId::MemReclaim),
+            Interface::MemPermGet {
+                is_32bit: false, ..
+            } => Some(FuncId::MemPermGet64),
+            Interface::MemPermGet { is_32bit: true, .. } => Some(FuncId::MemPermGet32),
+            Interface::MemPermSet {
+                is_32bit: false, ..
+            } => Some(FuncId::MemPermSet64),
+            Interface::MemPermSet { is_32bit: true, .. } => Some(FuncId::MemPermSet32),
+            Interface::ConsoleLog {
+                is_32bit: false, ..
+            } => Some(FuncId::ConsoleLog64),
+            Interface::ConsoleLog { is_32bit: true, .. } => Some(FuncId::ConsoleLog32),
+        }
+    }
+
+    /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
+    pub fn is_32bit(&self) -> bool {
+        match self {
+            Interface::Error { .. }
+            | Interface::Interrupt { .. }
+            | Interface::Version { .. }
+            | Interface::VersionOut { .. }
+            | Interface::Features { .. }
+            | Interface::RxAcquire { .. }
+            | Interface::RxRelease { .. }
+            | Interface::RxTxUnmap { .. }
+            | Interface::PartitionInfoGet { .. }
+            | Interface::IdGet
+            | Interface::SpmIdGet
+            | Interface::MsgWait
+            | Interface::Yield
+            | Interface::Run { .. }
+            | Interface::NormalWorldResume
+            | Interface::MsgSend2 { .. }
+            | Interface::MemRetrieveResp { .. }
+            | Interface::MemRelinquish
+            | Interface::MemReclaim { .. } => true,
+            Interface::Success { is_32bit, .. }
+            | Interface::RxTxMap { is_32bit, .. }
+            | Interface::MsgSendDirectReq { is_32bit, .. }
+            | Interface::MsgSendDirectResp { is_32bit, .. }
+            | Interface::MemDonate { is_32bit, .. }
+            | Interface::MemLend { is_32bit, .. }
+            | Interface::MemShare { is_32bit, .. }
+            | Interface::MemRetrieveReq { is_32bit, .. }
+            | Interface::MemPermGet { is_32bit, .. }
+            | Interface::MemPermSet { is_32bit, .. }
+            | Interface::ConsoleLog { is_32bit, .. } => *is_32bit,
+        }
+    }
+
     pub fn copy_to_array(&self, a: &mut [u64; 8]) {
         a.fill(0);
+        if let Some(function_id) = self.function_id() {
+            a[0] = function_id as u64;
+        }
 
         match *self {
             Interface::Error {
                 target_info,
                 error_code,
             } => {
-                a[0] = FuncId::Error as u64;
                 a[1] = target_info as u64;
                 a[2] = error_code as u32 as u64;
             }
@@ -530,7 +639,6 @@ impl Interface {
             } => {
                 a[1] = target_info as u64;
                 if is_32bit {
-                    a[0] = FuncId::Success32 as u64;
                     a[2] = result_regs[0] & u32::MAX as u64;
                     a[3] = result_regs[1] & u32::MAX as u64;
                     a[4] = result_regs[2] & u32::MAX as u64;
@@ -538,7 +646,6 @@ impl Interface {
                     a[6] = result_regs[4] & u32::MAX as u64;
                     a[7] = result_regs[5] & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::Success64 as u64;
                     a[2] = result_regs[0];
                     a[3] = result_regs[1];
                     a[4] = result_regs[2];
@@ -551,12 +658,10 @@ impl Interface {
                 endpoint_id,
                 interrupt_id,
             } => {
-                a[0] = FuncId::Interrupt as u64;
                 a[1] = endpoint_id as u64;
                 a[2] = interrupt_id as u64;
             }
             Interface::Version { input_version } => {
-                a[0] = FuncId::Version as u64;
                 a[1] = input_version as u64;
             }
             Interface::VersionOut { output_version } => {
@@ -566,16 +671,13 @@ impl Interface {
                 feat_id,
                 input_properties,
             } => {
-                a[0] = FuncId::Features as u64;
                 a[1] = feat_id as u64;
                 a[2] = input_properties as u64;
             }
             Interface::RxAcquire { vm_id } => {
-                a[0] = FuncId::RxAcquire as u64;
                 a[1] = vm_id as u64;
             }
             Interface::RxRelease { vm_id } => {
-                a[0] = FuncId::RxRelease as u64;
                 a[1] = vm_id as u64;
             }
             Interface::RxTxMap {
@@ -586,42 +688,33 @@ impl Interface {
             } => {
                 a[3] = page_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::RxTxMap32 as u64;
                     a[1] = tx_addr & u32::MAX as u64;
                     a[2] = rx_addr & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::RxTxMap64 as u64;
                     a[1] = tx_addr;
                     a[2] = rx_addr;
                 }
             }
             Interface::RxTxUnmap { id } => {
-                a[0] = FuncId::RxTxUnmap as u64;
                 a[1] = id as u64;
             }
             Interface::PartitionInfoGet { uuid, flags } => {
                 let bytes = uuid.to_bytes_le();
-                a[0] = FuncId::PartitionInfoGet as u64;
                 a[1] = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as u64;
                 a[2] = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]) as u64;
                 a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]) as u64;
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]) as u64;
                 a[5] = flags as u64;
             }
-            Interface::IdGet => a[0] = FuncId::IdGet as u64,
-            Interface::SpmIdGet => a[0] = FuncId::SpmIdGet as u64,
-            Interface::MsgWait => a[0] = FuncId::MsgWait as u64,
-            Interface::Yield => a[0] = FuncId::Yield as u64,
+            Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
             Interface::Run { target_info } => {
-                a[0] = FuncId::Run as u64;
                 a[1] = target_info as u64;
             }
-            Interface::NormalWorldResume => a[0] = FuncId::NormalWorldResume as u64,
+            Interface::NormalWorldResume => {}
             Interface::MsgSend2 {
                 sender_vm_id,
                 flags,
             } => {
-                a[0] = FuncId::MsgSend2 as u64;
                 a[1] = sender_vm_id as u64;
                 a[2] = flags as u64;
             }
@@ -635,14 +728,12 @@ impl Interface {
                 a[1] = (src_id as u64) << 16 | dst_id as u64;
                 a[2] = flags as u64;
                 if is_32bit {
-                    a[0] = FuncId::MsgSendDirectReq32 as u64;
                     a[3] = args[0] & u32::MAX as u64;
                     a[4] = args[1] & u32::MAX as u64;
                     a[5] = args[2] & u32::MAX as u64;
                     a[6] = args[3] & u32::MAX as u64;
                     a[7] = args[4] & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MsgSendDirectReq64 as u64;
                     a[3] = args[0];
                     a[4] = args[1];
                     a[5] = args[2];
@@ -660,14 +751,12 @@ impl Interface {
                 a[1] = (src_id as u64) << 16 | dst_id as u64;
                 a[2] = flags as u64;
                 if is_32bit {
-                    a[0] = FuncId::MsgSendDirectResp32 as u64;
                     a[3] = args[0] & u32::MAX as u64;
                     a[4] = args[1] & u32::MAX as u64;
                     a[5] = args[2] & u32::MAX as u64;
                     a[6] = args[3] & u32::MAX as u64;
                     a[7] = args[4] & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MsgSendDirectResp64 as u64;
                     a[3] = args[0];
                     a[4] = args[1];
                     a[5] = args[2];
@@ -686,10 +775,8 @@ impl Interface {
                 a[2] = frag_len as u64;
                 a[4] = page_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::MemDonate32 as u64;
                     a[3] = address & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemDonate64 as u64;
                     a[3] = address;
                 }
             }
@@ -704,10 +791,8 @@ impl Interface {
                 a[2] = frag_len as u64;
                 a[4] = page_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::MemLend32 as u64;
                     a[3] = address & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemLend64 as u64;
                     a[3] = address;
                 }
             }
@@ -722,10 +807,8 @@ impl Interface {
                 a[2] = frag_len as u64;
                 a[4] = page_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::MemShare32 as u64;
                     a[3] = address & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemShare64 as u64;
                     a[3] = address;
                 }
             }
@@ -740,10 +823,8 @@ impl Interface {
                 a[2] = frag_len as u64;
                 a[4] = page_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::MemRetrieveReq32 as u64;
                     a[3] = address & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemRetrieveReq64 as u64;
                     a[3] = address;
                 }
             }
@@ -751,14 +832,12 @@ impl Interface {
                 total_len,
                 frag_len,
             } => {
-                a[0] = FuncId::MemRetrieveResp as u64;
                 a[1] = total_len as u64;
                 a[2] = frag_len as u64;
             }
-            Interface::MemRelinquish => a[0] = FuncId::MemRelinquish as u64,
+            Interface::MemRelinquish => {}
             Interface::MemReclaim { handle, flags } => {
                 let handle_regs: [u32; 2] = handle.into();
-                a[0] = FuncId::MemReclaim as u64;
                 a[1] = handle_regs[0] as u64;
                 a[2] = handle_regs[1] as u64;
                 a[3] = flags as u64;
@@ -768,10 +847,8 @@ impl Interface {
                 is_32bit,
             } => {
                 if is_32bit {
-                    a[0] = FuncId::MemPermGet32 as u64;
                     a[1] = base_addr & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemPermGet64 as u64;
                     a[1] = base_addr;
                 }
             }
@@ -785,10 +862,8 @@ impl Interface {
                 a[3] = mem_perm as u64;
 
                 if is_32bit {
-                    a[0] = FuncId::MemPermSet32 as u64;
                     a[1] = base_addr & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::MemPermSet64 as u64;
                     a[1] = base_addr;
                 }
             }
@@ -799,7 +874,6 @@ impl Interface {
             } => {
                 a[1] = char_cnt as u64;
                 if is_32bit {
-                    a[0] = FuncId::ConsoleLog32 as u64;
                     a[2] = char_lists[0] & u32::MAX as u64;
                     a[3] = char_lists[1] & u32::MAX as u64;
                     a[4] = char_lists[2] & u32::MAX as u64;
@@ -807,7 +881,6 @@ impl Interface {
                     a[6] = char_lists[4] & u32::MAX as u64;
                     a[7] = char_lists[5] & u32::MAX as u64;
                 } else {
-                    a[0] = FuncId::ConsoleLog64 as u64;
                     a[2] = char_lists[0];
                     a[3] = char_lists[1];
                     a[4] = char_lists[2];
