@@ -6,6 +6,7 @@
 extern crate alloc;
 
 use alloc::string::String;
+use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
 use uuid::Uuid;
@@ -828,7 +829,7 @@ impl Interface {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Version(pub u16, pub u16);
 
 impl From<u32> for Version {
@@ -840,6 +841,18 @@ impl From<u32> for Version {
 impl From<Version> for u32 {
     fn from(v: Version) -> Self {
         (v.0 as u32) << 16 | v.1 as u32
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.0, self.1)
+    }
+}
+
+impl Debug for Version {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
