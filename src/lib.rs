@@ -47,8 +47,14 @@ pub enum Error {
     NoData = -9,
 }
 
+/// An integer couldn't be converted to a [`FuncId`] because it is not a recognised function.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[error("Unrecognised function ID {0} for FF-A")]
+pub struct UnrecognisedFunctionIdError(u32);
+
 /// FF-A v1.1: Function IDs
 #[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = UnrecognisedFunctionIdError, constructor = UnrecognisedFunctionIdError))]
 #[repr(u32)]
 pub enum FuncId {
     Error = 0x84000060,
@@ -218,10 +224,10 @@ pub enum Interface {
 }
 
 impl TryFrom<[u64; 8]> for Interface {
-    type Error = ();
+    type Error = UnrecognisedFunctionIdError;
 
-    fn try_from(regs: [u64; 8]) -> Result<Self, ()> {
-        let fid = FuncId::try_from(regs[0] as u32).unwrap();
+    fn try_from(regs: [u64; 8]) -> Result<Self, UnrecognisedFunctionIdError> {
+        let fid = FuncId::try_from(regs[0] as u32)?;
 
         let msg = match fid {
             FuncId::Error => Self::Error {
