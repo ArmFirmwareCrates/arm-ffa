@@ -6,7 +6,8 @@
 extern crate alloc;
 
 use alloc::string::String;
-use num_enum::TryFromPrimitive;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+use thiserror::Error;
 use uuid::Uuid;
 
 pub mod boot_info;
@@ -22,17 +23,26 @@ pub enum Instance {
 }
 
 /// FF-A v1.1, Table 12.2: Error status codes
-#[derive(Debug, Eq, PartialEq, Clone, Copy, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, Error, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[repr(i32)]
 pub enum Error {
+    #[error("Not supported")]
     NotSupported = -1,
+    #[error("Invalid parameters")]
     InvalidParameters = -2,
+    #[error("No memory")]
     NoMemory = -3,
+    #[error("Busy")]
     Busy = -4,
+    #[error("Interrupted")]
     Interrupted = -5,
+    #[error("Denied")]
     Denied = -6,
+    #[error("Retry")]
     Retry = -7,
+    #[error("Aborted")]
     Aborted = -8,
+    #[error("No data")]
     NoData = -9,
 }
 
