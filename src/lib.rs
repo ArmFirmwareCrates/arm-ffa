@@ -48,7 +48,7 @@ pub enum Error {
 }
 
 /// FF-A v1.1: Function IDs
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[repr(u32)]
 pub enum FuncId {
     Error = 0x84000060,
