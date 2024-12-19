@@ -54,3 +54,63 @@ pub(crate) struct boot_info_header {
     /// Offset 24, length 8: Reserved (MBZ)
     pub(crate) reserved: u64,
 }
+
+/// Table 13.37: Partition information descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct partition_info_descriptor {
+    /// Offset 0, length 2: 16-bit ID of the partition, stream or auxiliary endpoint.
+    pub(crate) partition_id: u16,
+    /// Offset 2, length 2:
+    /// - Number of execution contexts implemented by this partition if Bit\[5:4\] = b’00 in the
+    ///   Partition properties field.
+    /// - ID of the proxy endpoint for a dependent peripheral device if Bit\[5:4\] = b’10 in the
+    ///   Partition properties field.
+    /// - Reserved and MBZ for all other encodings of the Partition properties field.
+    pub(crate) exec_ctx_count_or_proxy_id: u16,
+    /// Offset 4, length 4: Flags to determine partition properties.
+    /// - Bit\[3:0\] has the following encoding if Bit\[5:4\] = b’00. It is Reserved and MBZ otherwise.
+    ///   + Bit\[0\] has the following encoding:
+    ///     * b’0: Does not support receipt of direct requests
+    ///     * b’1: Supports receipt of direct requests. Count of execution contexts must be either 1
+    ///       or equal to the number of PEs in the system.
+    ///   + bit\[1\] has the following encoding:
+    ///     * b’0: Cannot send direct requests.
+    ///     * b’1: Can send direct requests.
+    ///   + bit\[2\] has the following encoding:
+    ///     * b’0: Cannot send and receive indirect messages.
+    ///     * b’1: Can send and receive indirect messages.
+    ///   + bit\[3\] has the following encoding:
+    ///     * b’0: Does not support receipt of notifications.
+    ///     * b’1: Supports receipt of notifications.
+    /// - bit\[5:4\] has the following encoding:
+    ///   + b’00: Partition ID is a PE endpoint ID.
+    ///   + b’01: Partition ID is a SEPID for an independent peripheral device.
+    ///   + b’10: Partition ID is a SEPID for an dependent peripheral device.
+    ///   + b’11: Partition ID is an auxiliary ID.
+    /// - bit\[6\] has the following encoding:
+    ///   + b’0: Partition must not be informed about each VM that is created by the Hypervisor.
+    ///   + b’1: Partition must be informed about each VM that is created by the Hypervisor.
+    ///   + bit\[6\] is used only if the following conditions are true. It is Reserved (MBZ) in all
+    ///     other scenarios.
+    ///     * This ABI is invoked at the Non-secure physical FF-A instance.
+    ///     * The partition is an SP that supports receipt of direct requests i.e. Bit\[0\] = b’1.
+    /// - bit\[7\] has the following encoding:
+    ///   + b’0: Partition must not be informed about each VM that is destroyed by the Hypervisor.
+    ///   + b’1: Partition must be informed about each VM that is destroyed by the Hypervisor.
+    ///   + bit\[7\] is used only if the following conditions are true. It is Reserved (MBZ) in all
+    ///     other scenarios.
+    ///     * This ABI is invoked at the Non-secure physical FF-A instance.
+    ///     * The partition is an SP that supports receipt of direct requests i.e. Bit\[0\] = b’1.
+    /// - bit\[8\] has the following encoding:
+    ///   + b’0: Partition runs in the AArch32 execution state.
+    ///   + b’1: Partition runs in the AArch64 execution state.
+    /// - bit\[31:9\]: Reserved (MBZ).
+    pub(crate) partition_props: u32,
+    /// Offset 8, length 16:
+    /// - UUID of the partition, stream or auxiliary endpoint if the Nil UUID was specified in w1-w4
+    ///   as an input parameter.
+    /// - This field is reserved and MBZ if a non-Nil UUID was was specified in w1-w4 as an input
+    ///   parameter.
+    pub(crate) uuid: [u8; 16],
+}
