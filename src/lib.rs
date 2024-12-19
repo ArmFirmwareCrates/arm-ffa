@@ -12,6 +12,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 pub mod boot_info;
+mod ffa_v1_1;
 pub mod memory_management;
 pub mod partition_info;
 
