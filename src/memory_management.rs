@@ -1,7 +1,46 @@
 // SPDX-FileCopyrightText: Copyright 2023 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use alloc::vec::Vec;
+use crate::ffa_v1_1::{
+    composite_memory_region_descriptor, constituent_memory_region_descriptor,
+    endpoint_memory_access_descriptor, memory_access_permission_descriptor,
+    memory_relinquish_descriptor, memory_transaction_descriptor,
+};
+use core::mem::size_of;
+use thiserror::Error;
+use zerocopy::{FromBytes, IntoBytes};
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Invalid cacheability attribute {0}")]
+    InvalidCacheability(u16),
+    #[error("Invalid shareability attribute {0}")]
+    InvalidShareability(u16),
+    #[error("Invalid device memory attributes {0}")]
+    InvalidDevMemAttributes(u16),
+    #[error("Invalid instruction access permission {0}")]
+    InvalidInstrAccessPerm(u8),
+    #[error("Invalid instruction data permission {0}")]
+    InvalidDataAccessPerm(u8),
+    #[error("Invalid memory type {0}")]
+    InvalidMemType(u16),
+    #[error("Invalid memory attributes {0}")]
+    InvalidMemAttributes(u16),
+    #[error("Composite offset mismatch")]
+    CompositeOffsetMismatch,
+    #[error("Invalid endpoint count {0}")]
+    UnsupportedEndpointCount(u32),
+    #[error("Invalid buffer size")]
+    InvalidBufferSize,
+    #[error("Malformed descriptor")]
+    MalformedDescriptor,
+}
+
+impl From<Error> for crate::FfaError {
+    fn from(_value: Error) -> Self {
+        Self::InvalidParameters
+    }
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Handle(pub u64);
@@ -31,13 +70,13 @@ pub enum Cacheability {
 }
 
 impl TryFrom<u16> for Cacheability {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match (value >> Self::SHIFT) & Self::MASK {
             Self::NON_CACHEABLE => Ok(Cacheability::NonCacheable),
             Self::WRITE_BACK => Ok(Cacheability::WriteBack),
-            _ => Err(()),
+            _ => Err(Error::InvalidCacheability(value)),
         }
     }
 }
@@ -59,14 +98,14 @@ pub enum Shareability {
 }
 
 impl TryFrom<u16> for Shareability {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match (value >> Self::SHIFT) & Self::MASK {
             Self::NON_SHAREABLE => Ok(Self::NonShareable),
             Self::OUTER => Ok(Self::Outer),
             Self::INNER => Ok(Self::Inner),
-            _ => Err(()),
+            _ => Err(Error::InvalidShareability(value)),
         }
     }
 }
@@ -90,16 +129,15 @@ pub enum DeviceMemAttributes {
 }
 
 impl TryFrom<u16> for DeviceMemAttributes {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        // TODO: sanity check if it's device memory
         match (value >> Self::SHIFT) & Self::MASK {
             Self::DEV_NGNRNE => Ok(Self::DevnGnRnE),
             Self::DEV_NGNRE => Ok(Self::DevnGnRE),
             Self::DEV_NGRE => Ok(Self::DevnGRE),
             Self::DEV_GRE => Ok(Self::DevGRE),
-            _ => Err(()),
+            _ => Err(Error::InvalidDevMemAttributes(value)),
         }
     }
 }
@@ -125,17 +163,17 @@ pub enum MemType {
 }
 
 impl TryFrom<u16> for MemType {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match (value >> Self::SHIFT) & Self::MASK {
             Self::NOT_SPECIFIED => Ok(Self::NotSpecified),
-            Self::DEVICE => Ok(Self::Device(DeviceMemAttributes::try_from(value)?)),
+            Self::DEVICE => Ok(Self::Device(value.try_into()?)),
             Self::NORMAL => Ok(Self::Normal {
-                cacheability: Cacheability::try_from(value)?,
-                shareability: Shareability::try_from(value)?,
+                cacheability: value.try_into()?,
+                shareability: value.try_into()?,
             }),
-            _ => Err(()),
+            _ => Err(Error::InvalidMemType(value)),
         }
     }
 }
@@ -169,14 +207,12 @@ pub enum MemRegionSecurity {
     NonSecure = Self::NON_SECURE << Self::SHIFT,
 }
 
-impl TryFrom<u16> for MemRegionSecurity {
-    type Error = ();
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+impl From<u16> for MemRegionSecurity {
+    fn from(value: u16) -> Self {
         match (value >> Self::SHIFT) & Self::MASK {
-            Self::SECURE => Ok(Self::Secure),
-            Self::NON_SECURE => Ok(Self::NonSecure),
-            _ => Err(()),
+            Self::SECURE => Self::Secure,
+            Self::NON_SECURE => Self::NonSecure,
+            _ => panic!(), // The match is exhaustive for a 1-bit value
         }
     }
 }
@@ -188,7 +224,6 @@ impl MemRegionSecurity {
     const NON_SECURE: u16 = 0b1;
 }
 
-/// FF-A v1.1: Table 10.18: Memory region attributes descriptor
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemRegionAttributes {
     pub security: MemRegionSecurity,
@@ -196,15 +231,18 @@ pub struct MemRegionAttributes {
 }
 
 impl TryFrom<u16> for MemRegionAttributes {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         // bits[15:7]: Reserved (MBZ)
-        assert_eq!(value >> 7, 0);
-        Ok(Self {
-            security: MemRegionSecurity::try_from(value)?,
-            mem_type: MemType::try_from(value)?,
-        })
+        if value >> 7 == 0 {
+            Ok(Self {
+                security: value.into(),
+                mem_type: value.try_into()?,
+            })
+        } else {
+            Err(Error::InvalidMemAttributes(value))
+        }
     }
 }
 
@@ -224,14 +262,14 @@ pub enum InstuctionAccessPerm {
 }
 
 impl TryFrom<u8> for InstuctionAccessPerm {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match (value >> Self::SHIFT) & Self::MASK {
             Self::NOT_SPECIFIED => Ok(Self::NotSpecified),
             Self::NOT_EXECUTABLE => Ok(Self::NotExecutable),
             Self::EXECUTABLE => Ok(Self::Executable),
-            _ => Err(()),
+            _ => Err(Error::InvalidInstrAccessPerm(value)),
         }
     }
 }
@@ -254,14 +292,14 @@ pub enum DataAccessPerm {
 }
 
 impl TryFrom<u8> for DataAccessPerm {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match (value >> Self::SHIFT) & Self::MASK {
             Self::NOT_SPECIFIED => Ok(Self::NotSpecified),
             Self::READ_ONLY => Ok(Self::ReadOnly),
             Self::READ_WRITE => Ok(Self::ReadWrite),
-            _ => Err(()),
+            _ => Err(Error::InvalidDataAccessPerm(value)),
         }
     }
 }
@@ -274,48 +312,157 @@ impl DataAccessPerm {
     const READ_WRITE: u8 = 0b10;
 }
 
-/// FF-A v1.1: Table 10.15: Memory access permissions descriptor
 #[derive(Debug, Default, Clone, Copy)]
-pub struct MemAccessPermDesc {
+pub struct MemAccessPerm {
     pub endpoint_id: u16,
     pub instr_access: InstuctionAccessPerm,
     pub data_access: DataAccessPerm,
     pub flags: u8, // TODO
 }
 
-/// FF-A v1.1 Table 10.16: Endpoint memory access descriptor
-#[derive(Debug, Default, Clone, Copy)]
-pub struct EndpointMemAccessDesc {
-    pub mem_access_perm: MemAccessPermDesc,
-    pub composite_offset: u32,
+pub struct MemAccessPermIterator<'a> {
+    buf: &'a [u8],
+    offset: usize,
+    count: usize,
 }
 
-impl EndpointMemAccessDesc {
-    const SIZE: usize = 16;
+impl<'a> MemAccessPermIterator<'a> {
+    fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
+        let Some(total_size) = count
+            .checked_mul(size_of::<endpoint_memory_access_descriptor>())
+            .and_then(|x| x.checked_add(offset))
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        if buf.len() < total_size {
+            return Err(Error::InvalidBufferSize);
+        }
+
+        Ok(Self { buf, offset, count })
+    }
 }
 
-/// FF-A v1.1 Table 10.21: Flags usage in FFA_MEM_DONATE, FFA_MEM_LEND and FFA_MEM_SHARE ABIs
-/// FF-A v1.1 Table 10.22: Flags usage in FFA_MEM_RETRIEVE_REQ ABI
-/// FF-A v1.1 Table 10.23: Flags usage in FFA_MEM_RETRIEVE_RESP ABI
-#[derive(Debug, Default, Clone, Copy)]
-pub struct MemTransactionFlags(pub u32); // TODO: use bitflags?
+impl Iterator for MemAccessPermIterator<'_> {
+    type Item = Result<MemAccessPerm, Error>;
 
-#[allow(dead_code)]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count > 0 {
+            let offset = self.offset;
+            self.offset += size_of::<endpoint_memory_access_descriptor>();
+            self.count -= 1;
+
+            let Ok(desc_raw) = endpoint_memory_access_descriptor::ref_from_bytes(
+                &self.buf[offset..offset + size_of::<endpoint_memory_access_descriptor>()],
+            ) else {
+                return Some(Err(Error::MalformedDescriptor));
+            };
+
+            let instr_access = match desc_raw
+                .access_perm_desc
+                .memory_access_permissions
+                .try_into()
+            {
+                Ok(v) => v,
+                Err(e) => return Some(Err(e)),
+            };
+
+            let data_access = match desc_raw
+                .access_perm_desc
+                .memory_access_permissions
+                .try_into()
+            {
+                Ok(v) => v,
+                Err(e) => return Some(Err(e)),
+            };
+
+            let desc = MemAccessPerm {
+                endpoint_id: desc_raw.access_perm_desc.endpoint_id,
+                instr_access,
+                data_access,
+                flags: desc_raw.access_perm_desc.flags,
+            };
+
+            return Some(Ok(desc));
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ConstituentMemRegion {
+    pub address: u64,
+    pub page_cnt: u32,
+}
+
+pub struct ConstituentMemRegionIterator<'a> {
+    buf: &'a [u8],
+    offset: usize,
+    count: usize,
+}
+
+impl<'a> ConstituentMemRegionIterator<'a> {
+    fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
+        let Some(total_size) = count
+            .checked_mul(size_of::<constituent_memory_region_descriptor>())
+            .and_then(|x| x.checked_add(offset))
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        if buf.len() < total_size {
+            return Err(Error::InvalidBufferSize);
+        }
+
+        Ok(Self { buf, offset, count })
+    }
+}
+
+impl Iterator for ConstituentMemRegionIterator<'_> {
+    type Item = Result<ConstituentMemRegion, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count > 0 {
+            let offset = self.offset;
+            self.offset += size_of::<constituent_memory_region_descriptor>();
+            self.count -= 1;
+
+            let Ok(desc_raw) = constituent_memory_region_descriptor::ref_from_bytes(
+                &self.buf[offset..offset + size_of::<constituent_memory_region_descriptor>()],
+            ) else {
+                return Some(Err(Error::MalformedDescriptor));
+            };
+
+            let desc = ConstituentMemRegion {
+                address: desc_raw.address,
+                page_cnt: desc_raw.page_count,
+            };
+
+            return Some(Ok(desc));
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct MemTransactionFlags(pub u32);
+
 impl MemTransactionFlags {
-    const MEM_SHARE_MASK: u32 = 0b11;
-    const MEM_RETRIEVE_REQ_MASK: u32 = 0b11_1111_1111;
-    const MEM_RETRIEVE_RESP_MASK: u32 = 0b1_1111;
-    const ZERO_MEMORY: u32 = 0b1;
-    const TIME_SLICING: u32 = 0b1 << 1;
-    const ZERO_AFTER_RELINQ: u32 = 0b1 << 2;
+    pub const MEM_SHARE_MASK: u32 = 0b11;
+    pub const MEM_RETRIEVE_REQ_MASK: u32 = 0b11_1111_1111;
+    pub const MEM_RETRIEVE_RESP_MASK: u32 = 0b1_1111;
+    pub const ZERO_MEMORY: u32 = 0b1;
+    pub const TIME_SLICING: u32 = 0b1 << 1;
+    pub const ZERO_AFTER_RELINQ: u32 = 0b1 << 2;
     pub const TYPE_SHARE: u32 = 0b01 << 3;
-    const TYPE_LEND: u32 = 0b10 << 3;
-    const TYPE_DONATE: u32 = 0b11 << 3;
-    const ALIGN_HINT_MASK: u32 = 0b1111 << 5;
-    const HINT_VALID: u32 = 0b1 << 9;
+    pub const TYPE_LEND: u32 = 0b10 << 3;
+    pub const TYPE_DONATE: u32 = 0b11 << 3;
+    pub const ALIGN_HINT_MASK: u32 = 0b1111 << 5;
+    pub const HINT_VALID: u32 = 0b1 << 9;
 }
 
-/// FF-A v1.1: Table 10.20: Memory transaction descriptor
 #[derive(Debug, Default)]
 pub struct MemTransactionDesc {
     pub sender_id: u16,
@@ -323,244 +470,250 @@ pub struct MemTransactionDesc {
     pub flags: MemTransactionFlags,
     pub handle: Handle,
     pub tag: u64, // TODO
-    pub ep_access_descs: Vec<EndpointMemAccessDesc>,
-}
-
-/// FF-A v1.1 Table 10.13: Composite memory region descriptor
-#[derive(Debug, Default)]
-pub struct CompositeMemRegionDesc {
-    pub total_page_cnt: u32,
-    pub constituents: Vec<ConstituentMemRegionDesc>,
-}
-
-impl CompositeMemRegionDesc {
-    const CONSTITUENT_ARRAY_OFFSET: usize = 16;
-}
-
-/// FF-A v1.1 Table 10.14: Constituent memory region descriptor
-#[derive(Debug, Default, Clone, Copy)]
-pub struct ConstituentMemRegionDesc {
-    pub address: u64,
-    pub page_cnt: u32,
-}
-
-impl ConstituentMemRegionDesc {
-    const SIZE: usize = 16;
 }
 
 impl MemTransactionDesc {
-    // Must be 16 byte aligned
-    const ENDPOINT_MEM_ACCESS_DESC_OFFSET: usize = 48;
+    // Offset from the base of the memory transaction descriptor to the first element in the
+    // endpoint memory access descriptor array. Must be 16 byte aligned, but otherwise we're free to
+    // choose any value here. Let's just pack it right after the memory transaction descriptor.
+    const ENDPOINT_MEM_ACCESS_DESC_OFFSET: usize =
+        size_of::<memory_transaction_descriptor>().next_multiple_of(16);
 
-    pub fn create(&self, composite_desc: &CompositeMemRegionDesc, buf: &mut [u8]) -> usize {
-        let mem_access_desc_cnt = self.ep_access_descs.len();
-        let composite_offset = (Self::ENDPOINT_MEM_ACCESS_DESC_OFFSET
-            + mem_access_desc_cnt * EndpointMemAccessDesc::SIZE)
+    // The array of constituent memory region descriptors starts right after the composite memory
+    // region descriptor
+    const CONSTITUENT_ARRAY_OFFSET: usize = size_of::<composite_memory_region_descriptor>();
+
+    pub fn pack(
+        &self,
+        constituents: &[ConstituentMemRegion],
+        access_descriptors: &[MemAccessPerm],
+        buf: &mut [u8],
+    ) -> usize {
+        let mem_access_desc_size = size_of::<endpoint_memory_access_descriptor>();
+        let mem_access_desc_cnt = access_descriptors.len();
+
+        let transaction_desc_raw = memory_transaction_descriptor {
+            sender_endpoint_id: self.sender_id,
+            memory_region_attributes: self.mem_region_attr.into(),
+            flags: self.flags.0,
+            handle: self.handle.0,
+            tag: self.tag,
+            endpoint_mem_access_desc_size: mem_access_desc_size as u32,
+            endpoint_mem_access_desc_count: mem_access_desc_cnt as u32,
+            endpoint_mem_access_desc_array_offset: Self::ENDPOINT_MEM_ACCESS_DESC_OFFSET as u32,
+            reserved1: 0,
+            reserved2: 0,
+        };
+
+        transaction_desc_raw.write_to_prefix(buf).unwrap();
+
+        // Offset from the base of the memory transaction descriptor to the composite memory region
+        // descriptor to which the endpoint access permissions apply.
+        let composite_offset = mem_access_desc_cnt
+            .checked_mul(mem_access_desc_size)
+            .unwrap()
+            .checked_add(Self::ENDPOINT_MEM_ACCESS_DESC_OFFSET)
+            .unwrap()
             .next_multiple_of(8);
 
-        // Offset 0, length 2: ID of the Owner endpoint.
-        buf[0..2].copy_from_slice(&self.sender_id.to_le_bytes());
-
-        // Offset 2, length 2: Memory region attributes
-        let mem_reg_attr = u16::from(self.mem_region_attr);
-        buf[2..4].copy_from_slice(&mem_reg_attr.to_le_bytes());
-
-        // Offset 4, length 4: Flags
-        buf[4..8].copy_from_slice(&self.flags.0.to_le_bytes());
-
-        // Offset 8, length 8: Handle
-        buf[8..16].copy_from_slice(&self.handle.0.to_le_bytes());
-
-        // Offset 16, length 8: Tag
-        buf[16..24].copy_from_slice(&self.tag.to_le_bytes());
-
-        // Offset 24, length 4: Size of each endpoint memory access descriptor in the array.
-        buf[24..28].copy_from_slice(&(EndpointMemAccessDesc::SIZE as u32).to_le_bytes());
-
-        // Offset 28, length 4: Count of endpoint memory access descriptors.
-        buf[28..32].copy_from_slice(&(mem_access_desc_cnt as u32).to_le_bytes());
-
-        // Offset 32, length 4: 16-byte aligned offset from the base address of this descriptor to the first element of the Endpoint memory access descriptor array.
-        buf[32..36].copy_from_slice(&(Self::ENDPOINT_MEM_ACCESS_DESC_OFFSET as u32).to_le_bytes());
-
         let mut offset = Self::ENDPOINT_MEM_ACCESS_DESC_OFFSET;
-        for desc in &self.ep_access_descs {
-            // Offset 0, length 4: Memory access permissions descriptor
-            // Offset 0, length 2: 16-bit ID of endpoint to which the memory access permissions apply
-            buf[offset..offset + 2]
-                .copy_from_slice(&desc.mem_access_perm.endpoint_id.to_le_bytes());
 
-            // Offset 2, length 1: Permissions used to access a memory region.
-            buf[offset + 2] =
-                desc.mem_access_perm.data_access as u8 | desc.mem_access_perm.instr_access as u8;
+        for desc in access_descriptors {
+            let desc_raw = endpoint_memory_access_descriptor {
+                access_perm_desc: memory_access_permission_descriptor {
+                    endpoint_id: desc.endpoint_id,
+                    memory_access_permissions: desc.data_access as u8 | desc.instr_access as u8,
+                    flags: desc.flags,
+                },
+                composite_offset: composite_offset as u32,
+                reserved: 0,
+            };
 
-            // Offset 3, length 1: ABI specific flags
-            buf[offset + 2] = desc.mem_access_perm.flags;
-
-            // Offset 4, length 4: Offset to the composite memory region descriptor to which the endpoint access permissions apply
-            buf[offset + 4..offset + 8].copy_from_slice(&(composite_offset as u32).to_le_bytes());
-
-            // Offset 8, length 8: Reserved (MBZ)
-            buf[offset + 8..offset + 16].fill(0);
-
-            offset += EndpointMemAccessDesc::SIZE;
+            desc_raw.write_to_prefix(&mut buf[offset..]).unwrap();
+            offset += mem_access_desc_size;
         }
 
-        offset = composite_offset;
-        // Offset 0, length 4: Size of the memory region described as the count of 4K pages
-        buf[offset..offset + 4].copy_from_slice(&composite_desc.total_page_cnt.to_le_bytes());
+        let mut total_page_count = 0;
 
-        // Offset 4, length 4: Count of address ranges specified using constituent memory region descriptors
-        let addr_range_cnt = composite_desc.constituents.len() as u32;
-        buf[offset + 4..offset + 8].copy_from_slice(&addr_range_cnt.to_le_bytes());
+        offset = composite_offset + Self::CONSTITUENT_ARRAY_OFFSET;
+        for constituent in constituents {
+            let constituent_raw = constituent_memory_region_descriptor {
+                address: constituent.address,
+                page_count: constituent.page_cnt,
+                reserved: 0,
+            };
 
-        // Offset 8, length 8: Reserved (MBZ)
-        buf[offset + 8..offset + 16].fill(0);
+            constituent_raw.write_to_prefix(&mut buf[offset..]).unwrap();
+            offset += size_of::<constituent_memory_region_descriptor>();
 
-        offset = composite_offset + CompositeMemRegionDesc::CONSTITUENT_ARRAY_OFFSET;
-        for constituent in &composite_desc.constituents {
-            // Offset 0, length 8: Base VA, PA or IPA of constituent memory region aligned to the page size (4K) granularity.
-            buf[offset..offset + 8].copy_from_slice(&constituent.address.to_le_bytes());
-
-            // Offset 8, length 4: Number of 4K pages in constituent memory region
-            buf[offset + 8..offset + 12].copy_from_slice(&constituent.page_cnt.to_le_bytes());
-
-            // Offset 12, length 4: Reserved (MBZ)
-            buf[offset + 12..offset + 16].fill(0);
-
-            offset += ConstituentMemRegionDesc::SIZE;
+            total_page_count += constituent_raw.page_count;
         }
+
+        let composite_desc_raw = composite_memory_region_descriptor {
+            total_page_count,
+            address_range_count: constituents.len() as u32,
+            reserved: 0,
+        };
+
+        composite_desc_raw
+            .write_to_prefix(&mut buf[composite_offset..])
+            .unwrap();
 
         offset
     }
 
-    pub fn parse(
-        &mut self,
-        composite_desc: &mut CompositeMemRegionDesc,
+    pub fn unpack(
         buf: &[u8],
-    ) -> Result<(), ()> {
-        // Offset 0, length 2: ID of the Owner endpoint.
-        self.sender_id = u16::from_le_bytes(buf[0..2].try_into().unwrap());
+    ) -> Result<
+        (
+            MemTransactionDesc,
+            MemAccessPermIterator,
+            Option<ConstituentMemRegionIterator>,
+        ),
+        Error,
+    > {
+        let Some(transaction_desc_bytes) = buf.get(0..size_of::<memory_transaction_descriptor>())
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
 
-        // Offset 2, length 2: Memory region attributes
-        let mem_attr = u16::from_le_bytes(buf[2..4].try_into().unwrap());
-        self.mem_region_attr = MemRegionAttributes::try_from(mem_attr)?;
+        let Ok(transaction_desc_raw) =
+            memory_transaction_descriptor::ref_from_bytes(transaction_desc_bytes)
+        else {
+            return Err(Error::MalformedDescriptor);
+        };
 
-        // Offset 4, length 4: Flags
-        self.flags.0 = u32::from_le_bytes(buf[4..8].try_into().unwrap()); // TODO: validate
-
-        // Offset 8, length 8: Handle
-        self.handle.0 = u64::from_le_bytes(buf[8..16].try_into().unwrap());
-
-        // Offset 16, length 8: Tag
-        self.tag = u64::from_le_bytes(buf[16..24].try_into().unwrap());
-
-        // Offset 24, length 4: Size of each endpoint memory access descriptor in the array.
-        let endpoint_mem_access_desc_size = u32::from_le_bytes(buf[24..28].try_into().unwrap());
-        assert_eq!(
-            EndpointMemAccessDesc::SIZE,
-            endpoint_mem_access_desc_size as usize
-        );
-
-        // Offset 28, length 4: Count of endpoint memory access descriptors.
-        let endpoint_mem_access_desc_cnt = u32::from_le_bytes(buf[28..32].try_into().unwrap());
-
-        // Offset 32, length 4: 16-byte aligned offset from the base address of this descriptor to
-        // the first element of the Endpoint memory access descriptor array.
-        let endpoint_mem_access_desc_offset = u32::from_le_bytes(buf[32..36].try_into().unwrap());
-
-        assert!(
-            endpoint_mem_access_desc_offset
-                + endpoint_mem_access_desc_cnt * endpoint_mem_access_desc_size
-                <= buf.len() as u32
-        );
-
-        let mut composite_offset = 0;
-        let mut offset = endpoint_mem_access_desc_offset as usize;
-        for _ in 0..endpoint_mem_access_desc_cnt {
-            let mut desc = EndpointMemAccessDesc::default();
-            desc.mem_access_perm.endpoint_id =
-                u16::from_le_bytes(buf[offset..offset + 2].try_into().unwrap());
-
-            desc.mem_access_perm.instr_access = InstuctionAccessPerm::try_from(buf[offset + 2])?;
-            desc.mem_access_perm.data_access = DataAccessPerm::try_from(buf[offset + 2])?;
-            desc.mem_access_perm.flags = buf[offset + 3];
-            desc.composite_offset =
-                u32::from_le_bytes(buf[offset + 4..offset + 8].try_into().unwrap());
-            // TODO: different composite offsets?
-            composite_offset = desc.composite_offset as usize;
-
-            self.ep_access_descs.push(desc);
-
-            offset += endpoint_mem_access_desc_size as usize;
+        if size_of::<endpoint_memory_access_descriptor>()
+            != transaction_desc_raw.endpoint_mem_access_desc_size as usize
+        {
+            return Err(Error::MalformedDescriptor);
         }
 
-        if self.handle != Handle(0) || composite_offset == 0 {
-            return Ok(());
+        if transaction_desc_raw.endpoint_mem_access_desc_count == 0 {
+            return Err(Error::MalformedDescriptor);
         }
 
-        composite_desc.total_page_cnt = u32::from_le_bytes(
-            buf[composite_offset..composite_offset + 4]
-                .try_into()
-                .unwrap(),
-        );
+        let Some(total_desc_size) = transaction_desc_raw
+            .endpoint_mem_access_desc_size
+            .checked_mul(transaction_desc_raw.endpoint_mem_access_desc_count)
+            .and_then(|x| {
+                x.checked_add(transaction_desc_raw.endpoint_mem_access_desc_array_offset)
+            })
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
 
-        let addr_range_cnt = u32::from_le_bytes(
-            buf[composite_offset + 4..composite_offset + 8]
-                .try_into()
-                .unwrap(),
-        );
-
-        offset = composite_offset + CompositeMemRegionDesc::CONSTITUENT_ARRAY_OFFSET;
-        let mut total_page_cnt = 0;
-        for _ in 0..addr_range_cnt {
-            let desc = ConstituentMemRegionDesc {
-                address: u64::from_le_bytes(buf[offset..offset + 8].try_into().unwrap()),
-                page_cnt: u32::from_le_bytes(buf[offset + 8..offset + 12].try_into().unwrap()),
-            };
-            total_page_cnt += desc.page_cnt;
-
-            composite_desc.constituents.push(desc);
-
-            offset += ConstituentMemRegionDesc::SIZE;
+        if buf.len() < total_desc_size as usize {
+            return Err(Error::InvalidBufferSize);
         }
 
-        assert_eq!(total_page_cnt, composite_desc.total_page_cnt);
+        let transaction_desc = MemTransactionDesc {
+            sender_id: transaction_desc_raw.sender_endpoint_id,
+            mem_region_attr: transaction_desc_raw.memory_region_attributes.try_into()?,
+            flags: MemTransactionFlags(transaction_desc_raw.flags),
+            handle: Handle(transaction_desc_raw.handle),
+            tag: transaction_desc_raw.tag,
+        };
 
-        Ok(())
+        let mut offset = transaction_desc_raw.endpoint_mem_access_desc_array_offset as usize;
+
+        let access_desc_iter = MemAccessPermIterator::new(
+            buf,
+            transaction_desc_raw.endpoint_mem_access_desc_count as usize,
+            offset,
+        )?;
+
+        // We have to check the first endpoint memory access descriptor to get the composite offset
+        let Ok(desc_raw) = endpoint_memory_access_descriptor::ref_from_bytes(
+            &buf[offset..offset + size_of::<endpoint_memory_access_descriptor>()],
+        ) else {
+            return Err(Error::MalformedDescriptor);
+        };
+
+        offset = desc_raw.composite_offset as usize;
+
+        // An offset value of 0 indicates that the endpoint access permissions apply to a memory
+        // region description identified by the Handle (i.e. there is no composite descriptor)
+        if offset == 0 {
+            return Ok((transaction_desc, access_desc_iter, None));
+        }
+
+        let Some(composite_desc_bytes) =
+            buf.get(offset..offset + size_of::<composite_memory_region_descriptor>())
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        let Ok(composite_desc_raw) =
+            composite_memory_region_descriptor::ref_from_bytes(composite_desc_bytes)
+        else {
+            return Err(Error::MalformedDescriptor);
+        };
+
+        let constituent_iter = ConstituentMemRegionIterator::new(
+            buf,
+            composite_desc_raw.address_range_count as usize,
+            offset + Self::CONSTITUENT_ARRAY_OFFSET,
+        )?;
+
+        // TODO: add a sainty check to compare the composite descriptor's total page count and the
+        // sum of page counts from constituent memory regions (not sure if it's really valuable)
+
+        Ok((transaction_desc, access_desc_iter, Some(constituent_iter)))
     }
 }
 
-/// FF-A v1.1 Table 16.25: Descriptor to relinquish a memory region
 #[derive(Debug, Default)]
 pub struct MemRelinquishDesc {
     pub handle: Handle,
     pub flags: u32,
-    pub endpoints: Vec<u16>,
+    pub endpoint: u16,
+}
+
+impl TryFrom<&[u8]> for MemRelinquishDesc {
+    type Error = Error;
+
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        let Some(desc_bytes) = buf.get(0..size_of::<memory_relinquish_descriptor>()) else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        let Ok(desc_raw) = memory_relinquish_descriptor::ref_from_bytes(desc_bytes) else {
+            return Err(Error::MalformedDescriptor);
+        };
+
+        let Some(total_desc_size) = (desc_raw.endpoint_count as usize)
+            .checked_mul(size_of::<u16>())
+            .and_then(|x| x.checked_add(Self::ENDPOINT_ARRAY_OFFSET))
+        else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        if buf.len() < total_desc_size {
+            return Err(Error::InvalidBufferSize);
+        }
+
+        // If the caller is a PE endpoint Borrower, then Endpoint count must equal 1. Currently only
+        // this case is supported. The array of endpoint IDs contains only a single element.
+        if desc_raw.endpoint_count != 1 {
+            return Err(Error::UnsupportedEndpointCount(desc_raw.endpoint_count));
+        }
+
+        let endpoint = u16::from_le_bytes([
+            buf[Self::ENDPOINT_ARRAY_OFFSET],
+            buf[Self::ENDPOINT_ARRAY_OFFSET + 1],
+        ]);
+
+        Ok(Self {
+            handle: Handle(desc_raw.handle),
+            flags: desc_raw.flags, // TODO: validate
+            endpoint,
+        })
+    }
 }
 
 impl MemRelinquishDesc {
-    const ENDPOINT_ARRAY_OFFSET: usize = 16;
-
-    pub fn parse(&mut self, buf: &[u8]) -> Result<(), ()> {
-        // Offset 0, length 8: Handle
-        self.handle.0 = u64::from_le_bytes(buf[0..8].try_into().unwrap());
-
-        // Offset 8, length 4: Flags
-        self.flags = u32::from_le_bytes(buf[8..12].try_into().unwrap()); // TODO: validate
-
-        // Offset 12, length 4: Count of endpoint ID entries in the Endpoint array
-        let endpoint_cnt = u32::from_le_bytes(buf[12..16].try_into().unwrap());
-
-        let mut offset = MemRelinquishDesc::ENDPOINT_ARRAY_OFFSET;
-        for _ in 0..endpoint_cnt as usize {
-            let endpoint = u16::from_le_bytes(buf[offset..offset + 2].try_into().unwrap());
-            self.endpoints.push(endpoint);
-            offset += 2;
-        }
-
-        Ok(())
-    }
+    const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
 }
 
 #[cfg(test)]
@@ -620,16 +773,13 @@ mod tests {
 
     #[test]
     fn mem_share() {
-        let mut transaction_desc = MemTransactionDesc::default();
-        let mut composite_desc = CompositeMemRegionDesc::default();
-
-        transaction_desc
-            .parse(&mut composite_desc, MEM_RETRIEVE_REQ_FROM_SP1)
-            .unwrap();
+        let (transaction_desc, access_desc, constituents) =
+            MemTransactionDesc::unpack(MEM_SHARE_FROM_SP1).unwrap();
 
         println!("transaction desc: {:#x?}", transaction_desc);
-        println!("endpont desc: {:#x?}", transaction_desc.ep_access_descs);
-        println!("composite desc: {:#x?}", composite_desc);
-        println!("constituent desc: {:#x?}", composite_desc.constituents);
+        access_desc.for_each(|d| println!("endpont desc: {d:#x?}"));
+        constituents
+            .unwrap()
+            .for_each(|c| println!("constituent desc: {c:#x?}"));
     }
 }
