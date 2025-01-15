@@ -114,3 +114,96 @@ pub(crate) struct partition_info_descriptor {
     ///   parameter.
     pub(crate) uuid: [u8; 16],
 }
+
+/// Table 10.13: Composite memory region descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct composite_memory_region_descriptor {
+    /// Offset 0, length 4: Size of the memory region described as the count of 4K pages. Must be
+    /// equal to the sum of page counts specified in each constituent memory region descriptor.
+    pub(crate) total_page_count: u32,
+    /// Offset 4, length 4: Count of address ranges specified using constituent memory region
+    /// descriptors
+    pub(crate) address_range_count: u32,
+    /// Offset 8, length 8: Reserved (MBZ)
+    pub(crate) reserved: u64,
+}
+
+/// Table 10.14: Constituent memory region descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct constituent_memory_region_descriptor {
+    /// Offset 0, length 8: Base VA, PA or IPA of constituent memory region aligned to the page size
+    /// (4K) granularity
+    pub(crate) address: u64,
+    /// Offset 8, length 4: Number of 4K pages in constituent memory region
+    pub(crate) page_count: u32,
+    /// Offset 12, length 4: Reserved (MBZ)
+    pub(crate) reserved: u32,
+}
+
+/// Table 10.15: Memory access permissions descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct memory_access_permission_descriptor {
+    /// Offset 0, length 2: 16-bit ID of endpoint to which the memory access permissions apply
+    pub(crate) endpoint_id: u16,
+    /// Offset 2, length 1: Permissions used to access a memory region
+    pub(crate) memory_access_permissions: u8,
+    /// Offset 3, length 1: ABI specific flags
+    pub(crate) flags: u8,
+}
+
+/// Table 10.16: Endpoint memory access descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct endpoint_memory_access_descriptor {
+    /// Offset 0, length 4: Memory access permissions descriptor as specified in Table 10.15
+    pub(crate) access_perm_desc: memory_access_permission_descriptor,
+    /// Offset 4, length 4: Offset to the composite memory region descriptor to which the endpoint
+    /// access permissions apply. Offset must be calculated from the base address of the data
+    /// structure this descriptor is included in. An offset value of 0 indicates that the endpoint
+    /// access permissions apply to a memory region description identified by the Handle parameter
+    /// specified in the data structure that includes this one.
+    pub(crate) composite_offset: u32,
+    /// Offset 8, length 8: Reserved (MBZ)
+    pub(crate) reserved: u64,
+}
+
+/// Table 10.20: Memory transaction descriptor
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct memory_transaction_descriptor {
+    /// Offset 0, length 2: ID of the Owner endpoint
+    pub(crate) sender_endpoint_id: u16,
+    /// Offset 2, length 2: Memory region attributes
+    pub(crate) memory_region_attributes: u16,
+    /// Offset 4, length 4: Flags
+    pub(crate) flags: u32,
+    /// Offset 8, length 8: Globally unique Handle to identify a memory region
+    pub(crate) handle: u64,
+    /// Offset 16, length 8: Tag
+    pub(crate) tag: u64,
+    /// Offset 24, length 4: Size of each endpoint memory access descriptor in the array
+    pub(crate) endpoint_mem_access_desc_size: u32,
+    /// Offset 28, length 4: Count of endpoint memory access descriptors
+    pub(crate) endpoint_mem_access_desc_count: u32,
+    /// Offset 32, length 4: 16-byte aligned offset from the base address of this descriptor to the
+    /// first element of the Endpoint memory access descriptor array
+    pub(crate) endpoint_mem_access_desc_array_offset: u32,
+    /// Offset 36, length 12: Reserved (MBZ)
+    pub(crate) reserved1: u32,
+    pub(crate) reserved2: u64,
+}
+
+/// Table 16.25: Descriptor to relinquish a memory region
+#[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
+#[repr(C, packed)]
+pub(crate) struct memory_relinquish_descriptor {
+    /// Offset 0, length 8: Globally unique Handle to identify a memory region
+    pub(crate) handle: u64,
+    /// Offset 8, length 4: Flags
+    pub(crate) flags: u32,
+    /// Offset 12, length 4: Count of endpoint ID entries in the Endpoint array
+    pub(crate) endpoint_count: u32,
+}
