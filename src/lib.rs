@@ -3,6 +3,7 @@
 
 #![cfg_attr(not(test), no_std)]
 
+#[cfg(feature = "alloc")]
 extern crate alloc;
 
 use core::fmt::{self, Debug, Display, Formatter};
