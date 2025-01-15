@@ -3,8 +3,6 @@
 
 #![cfg_attr(not(test), no_std)]
 
-extern crate alloc;
-
 use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
