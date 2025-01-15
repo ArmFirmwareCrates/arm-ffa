@@ -5,7 +5,6 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
@@ -935,21 +934,22 @@ impl Debug for Version {
     }
 }
 
+pub const CONSOLE_LOG_32_MAX_MSG_LEN: usize = 24;
+pub const CONSOLE_LOG_64_MAX_MSG_LEN: usize = 48;
+
 pub fn parse_console_log(
     char_cnt: u32,
     char_lists: &[u64; 6],
     is_32bit: bool,
-) -> Result<String, Error> {
+    log_bytes: &mut [u8],
+) -> Result<(), Error> {
     const CHAR_COUNT_MASK: u32 = 0xff;
-    const LOG_32_MAX_MSG_LEN: usize = 24;
-    const LOG_64_MAX_MSG_LEN: usize = 48;
 
-    let mut msg_bytes = [0u8; LOG_64_MAX_MSG_LEN + 1];
     let char_count = (char_cnt & CHAR_COUNT_MASK) as usize;
     let (max_length, reg_size) = if is_32bit {
-        (LOG_32_MAX_MSG_LEN, 4)
+        (CONSOLE_LOG_32_MAX_MSG_LEN, 4)
     } else {
-        (LOG_64_MAX_MSG_LEN, 8)
+        (CONSOLE_LOG_64_MAX_MSG_LEN, 8)
     };
 
     if char_count < 1 || char_count > max_length {
@@ -957,9 +957,9 @@ pub fn parse_console_log(
     }
 
     for i in 0..=5 {
-        msg_bytes[reg_size * i..reg_size * (i + 1)]
+        log_bytes[reg_size * i..reg_size * (i + 1)]
             .copy_from_slice(&char_lists[i].to_le_bytes()[0..reg_size]);
     }
 
-    String::from_utf8(msg_bytes.to_vec()).map_err(|_| Error::InvalidParameters)
+    Ok(())
 }
