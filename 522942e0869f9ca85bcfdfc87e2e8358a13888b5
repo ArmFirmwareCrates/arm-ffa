@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "958e8579_55b8c8d5",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-21T17:13:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d4287fa0_c825c085",
+      "range": {
+        "startLine": 17,
+        "startChar": 4,
+        "endLine": 17,
+        "endChar": 18
+      },
+      "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "963ab032_079fcaab",
@@ -41,6 +65,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4a8294ba_14d41d8f",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-21T17:13:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "963ab032_079fcaab",
+      "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a7137e9f_e96ad9e9",
@@ -54,6 +96,30 @@
       "writtenOn": "2025-01-15T12:37:54Z",
       "side": 1,
       "message": "The lifetime parameter is now not necessary.",
+      "range": {
+        "startLine": 191,
+        "startChar": 4,
+        "endLine": 191,
+        "endChar": 9
+      },
+      "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "76cf2f6f_f09698dc",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-21T17:13:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a7137e9f_e96ad9e9",
       "range": {
         "startLine": 191,
         "startChar": 4,
@@ -87,6 +153,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e83530d6_1866917e",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-21T17:13:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ef2eec7f_e6f197d9",
+      "range": {
+        "startLine": 259,
+        "startChar": 8,
+        "endLine": 260,
+        "endChar": 41
+      },
+      "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "cfe8ac55_c02638c9",
@@ -100,6 +190,24 @@
       "writtenOn": "2025-01-15T12:37:54Z",
       "side": 1,
       "message": "Please add checks for:\n* boot_info_blob_size \u003c\u003d buf.len()\n* boot_info_desc_size * boot_info_desc_count \u003c\u003d boot_info_blob_size\n* buf.len() \u003c\u003d FFA_PAGE_SIZE",
+      "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "03b2a640_e76119a4",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-21T17:13:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cfe8ac55_c02638c9",
       "revId": "522942e0869f9ca85bcfdfc87e2e8358a13888b5",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
