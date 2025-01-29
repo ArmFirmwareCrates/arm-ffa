@@ -1,0 +1,95 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "091c3fe1_d6a54778",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 302,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:29:50Z",
+      "side": 1,
+      "message": "These should be all pub, and then it won\u0027t need the allow(dead_code).",
+      "revId": "f06c79fde32cf0b9290acd351b177137baf43bcd",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6dcc6b08_576d0a9f",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 399,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:29:50Z",
+      "side": 1,
+      "message": "Who\u0027s responsibility is to keep total_page_cnt consistent? It might be better to remove it from CompositeMemRegionDesc and calculate it based on the sum of pages in constituents.",
+      "revId": "f06c79fde32cf0b9290acd351b177137baf43bcd",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b2de8c30_60aac193",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 423,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:29:50Z",
+      "side": 1,
+      "message": "Please change asserts and unwraps to returning Err().",
+      "revId": "f06c79fde32cf0b9290acd351b177137baf43bcd",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6ff5a74f_e390ab0d",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 484,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:29:50Z",
+      "side": 1,
+      "message": "That\u0027s an invalid request, so the function should return Err().",
+      "range": {
+        "startLine": 484,
+        "startChar": 12,
+        "endLine": 484,
+        "endChar": 95
+      },
+      "revId": "f06c79fde32cf0b9290acd351b177137baf43bcd",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a13ead31_07eac4cb",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 538,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:29:50Z",
+      "side": 1,
+      "message": "Please change unwraps to returning Err().",
+      "revId": "f06c79fde32cf0b9290acd351b177137baf43bcd",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
