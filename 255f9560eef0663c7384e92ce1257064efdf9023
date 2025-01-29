@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f078950_87931a30",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T12:55:31Z",
+      "side": 1,
+      "message": "This is not the identity mapped address in line 276, this is only the offset in buf. \u0026raw buf + total_offset is the identify mapped offset.\nIt might be cleaner to always set content_addr \u003d dest_addr + total_offset, and set dest_addr at the beginning of the function to something like dest_addr.unwrap_or(\u0026raw buf);",
+      "range": {
+        "startLine": 269,
+        "startChar": 20,
+        "endLine": 277,
+        "endChar": 22
+      },
+      "revId": "255f9560eef0663c7384e92ce1257064efdf9023",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
