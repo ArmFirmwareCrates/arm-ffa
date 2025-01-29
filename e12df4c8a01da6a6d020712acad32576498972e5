@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9a302d18_978467c9",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-01-29T14:41:21Z",
+      "side": 1,
+      "message": "This should be Option\u003cMemOpAddr\u003e. Some goes for all MemOpAddrs below. On the parser side, if the register value is zero, then addr \u003d None.",
+      "revId": "e12df4c8a01da6a6d020712acad32576498972e5",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
