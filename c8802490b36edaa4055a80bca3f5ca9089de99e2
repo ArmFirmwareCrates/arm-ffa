@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "f10ca81e_4520777a",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-31T18:25:16Z",
+      "side": 1,
+      "message": "We didn\u0027t really bother while the crate is in this flux state. After this patch stack is merged, there should be less churn so it might be a good idea to start using it (and also more detailed commit messages)",
+      "parentUuid": "af7ae35d_cdf98d04",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 32
+      },
+      "revId": "c8802490b36edaa4055a80bca3f5ca9089de99e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "cf0bca0b_5a743aa3",
@@ -54,6 +78,30 @@
       "writtenOn": "2025-01-31T09:35:21Z",
       "side": 1,
       "message": "Docs say:\n```\nINVALID_PARAMETERS:\nCount of characters is greater than 128 when the SMC64 convention is used.\n```\nIs 48 the correct number?",
+      "range": {
+        "startLine": 938,
+        "startChar": 46,
+        "endLine": 938,
+        "endChar": 48
+      },
+      "revId": "c8802490b36edaa4055a80bca3f5ca9089de99e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6b718c67_92c6feab",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 938,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-01-31T18:25:16Z",
+      "side": 1,
+      "message": "For now the crate only supports 8 64-bit registers instead of the full 18, so only 48 characters can be received.",
+      "parentUuid": "dd8c9edb_2fd19c3d",
       "range": {
         "startLine": 938,
         "startChar": 46,
