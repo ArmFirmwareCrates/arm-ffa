@@ -50,6 +50,23 @@
       "message": "I guess we could have a better name for this?",
       "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "17335115_c0a067f4",
+        "filename": "src/ffa_v1_1.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-01-31T15:45:44Z",
+      "side": 1,
+      "message": "I see that in this patch and in the next one you add all the information from the spec on the descriptor field but not for name, typ, flags, etc.\nAny reason?",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
