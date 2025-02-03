@@ -37,6 +37,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "2c38c3e6_c566db70",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "I\u0027m not sure about this, usually I\u0027d use this as `boot_info::Error` anyway, or if really necessary then we can do `use boot_info::Error as BootInfoError`. Do you think it\u0027s more idiomatic to have a specific name for this enum?",
+      "parentUuid": "c1864418_85988b73",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "12734b1d_69dd8973",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
@@ -48,6 +66,24 @@
       "writtenOn": "2025-02-03T12:06:45Z",
       "side": 1,
       "message": "The field should be pub, otherwise applications using arm-ffa cannot access the type.",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5af81a74_53c13d56",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "12734b1d_69dd8973",
       "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -71,6 +107,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "93a91053_e16939a2",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "What do you suggest? It\u0027s the type of the boot info as defined in FF-A, currently it can be either a standard or an impdef type.",
+      "parentUuid": "f196baf0_5ad7e6cb",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0da1109f_5b291ca2",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
@@ -82,6 +136,30 @@
       "writtenOn": "2025-02-03T12:06:45Z",
       "side": 1,
       "message": "Please return Err instead of assert.",
+      "range": {
+        "startLine": 446,
+        "startChar": 21,
+        "endLine": 447,
+        "endChar": 80
+      },
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0203b9c6_50cae399",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 447,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "Oops this was a leftover. Fixed",
+      "parentUuid": "0da1109f_5b291ca2",
       "range": {
         "startLine": 446,
         "startChar": 21,
@@ -115,6 +193,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "29e0b876_565332c8",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 460,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6ba3489b_95fbad30",
+      "range": {
+        "startLine": 459,
+        "startChar": 12,
+        "endLine": 460,
+        "endChar": 33
+      },
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "17335115_c0a067f4",
@@ -128,6 +230,24 @@
       "writtenOn": "2025-01-31T15:45:44Z",
       "side": 1,
       "message": "I see that in this patch and in the next one you add all the information from the spec on the descriptor field but not for name, typ, flags, etc.\nAny reason?",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d42225e3_bab2fc3c",
+        "filename": "src/ffa_v1_1.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T12:49:39Z",
+      "side": 1,
+      "message": "You\u0027re right, this was missing. Fixed",
+      "parentUuid": "17335115_c0a067f4",
       "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
