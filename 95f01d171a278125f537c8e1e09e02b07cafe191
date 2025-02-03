@@ -143,6 +143,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "b7837b46_2144c649",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T14:25:23Z",
+      "side": 1,
+      "message": "I was talking about the \"MASK\" value, did I miss it and it\u0027s defined that way?",
+      "parentUuid": "93a91053_e16939a2",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0da1109f_5b291ca2",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
