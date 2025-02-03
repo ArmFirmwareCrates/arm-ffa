@@ -68,6 +68,24 @@
       "parentUuid": "f5139205_5b81fef8",
       "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "26f1769e_af1fd81b",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T16:39:23Z",
+      "side": 1,
+      "message": "What I mean is that the same change to `next()` should be applied here to this `PartitionInfoIterator`\u0027s `next()`",
+      "parentUuid": "20c65f16_3c5e5162",
+      "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
