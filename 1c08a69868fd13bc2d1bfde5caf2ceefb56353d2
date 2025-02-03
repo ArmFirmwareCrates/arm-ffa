@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a439fb8a_9c07a8e5",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 570,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-03T14:48:55Z",
+      "side": 1,
+      "message": "Please check first if the descriptor fits into the buffer.",
+      "revId": "1c08a69868fd13bc2d1bfde5caf2ceefb56353d2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5a02b599_459800d9",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 617,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-03T14:48:55Z",
+      "side": 1,
+      "message": "Please check first if the boundaries of the descriptor fit into the buffer.",
+      "revId": "1c08a69868fd13bc2d1bfde5caf2ceefb56353d2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
