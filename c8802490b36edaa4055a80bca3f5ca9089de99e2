@@ -50,6 +50,30 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "d866fe61_09374061",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T09:11:47Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "f10ca81e_4520777a",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 32
+      },
+      "revId": "c8802490b36edaa4055a80bca3f5ca9089de99e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "cf0bca0b_5a743aa3",
         "filename": "/PATCHSET_LEVEL",
         "patchSetId": 1
@@ -102,6 +126,30 @@
       "side": 1,
       "message": "For now the crate only supports 8 64-bit registers instead of the full 18, so only 48 characters can be received.",
       "parentUuid": "dd8c9edb_2fd19c3d",
+      "range": {
+        "startLine": 938,
+        "startChar": 46,
+        "endLine": 938,
+        "endChar": 48
+      },
+      "revId": "c8802490b36edaa4055a80bca3f5ca9089de99e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9dd4ec61_a3d54b4a",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 938,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T09:11:47Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "6b718c67_92c6feab",
       "range": {
         "startLine": 938,
         "startChar": 46,
