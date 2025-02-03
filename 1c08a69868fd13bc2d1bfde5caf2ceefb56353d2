@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "9ef29315_90b6bf08",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 377,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T15:14:26Z",
+      "side": 1,
+      "message": "Doesn\u0027t the same comment as in here apply?\nhttps://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/34521/4..5/src/boot_info.rs#b460\n\n\"Early return on error will skip this, and it will become an infinite loop.\"",
+      "revId": "1c08a69868fd13bc2d1bfde5caf2ceefb56353d2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a439fb8a_9c07a8e5",
         "filename": "src/memory_management.rs",
         "patchSetId": 5
