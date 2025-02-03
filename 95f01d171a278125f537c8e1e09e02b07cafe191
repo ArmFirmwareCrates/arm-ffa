@@ -179,6 +179,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "848fea2a_7dab9428",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T16:36:06Z",
+      "side": 1,
+      "message": "I see the same pattern everywhere, we can leave it like this tbh, but I find it confusing to have 2 \"mask\"s for the same thing...\nMaybe \"RECOVERY_MASK\" and/or a comment to explicitly explain this pattern in which we recover the type from the u8 value? Not too fuzzed about it but I do think it would be a bit clearer to understand how it gets used.",
+      "parentUuid": "7843d8bf_773b203b",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0da1109f_5b291ca2",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
