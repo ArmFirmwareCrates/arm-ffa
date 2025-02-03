@@ -94,6 +94,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "6ba3489b_95fbad30",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 460,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-03T12:09:55Z",
+      "side": 1,
+      "message": "Early return on error will skip this, and it will become an infinite loop.",
+      "range": {
+        "startLine": 459,
+        "startChar": 12,
+        "endLine": 460,
+        "endChar": 33
+      },
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "17335115_c0a067f4",
         "filename": "src/ffa_v1_1.rs",
         "patchSetId": 4
