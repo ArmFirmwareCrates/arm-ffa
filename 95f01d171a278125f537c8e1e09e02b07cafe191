@@ -37,6 +37,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "12734b1d_69dd8973",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-03T12:06:45Z",
+      "side": 1,
+      "message": "The field should be pub, otherwise applications using arm-ffa cannot access the type.",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f196baf0_5ad7e6cb",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
@@ -48,6 +65,29 @@
       "writtenOn": "2025-01-31T15:01:22Z",
       "side": 1,
       "message": "I guess we could have a better name for this?",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0da1109f_5b291ca2",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 447,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-03T12:06:45Z",
+      "side": 1,
+      "message": "Please return Err instead of assert.",
+      "range": {
+        "startLine": 446,
+        "startChar": 21,
+        "endLine": 447,
+        "endChar": 80
+      },
       "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
