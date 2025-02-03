@@ -161,6 +161,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7843d8bf_773b203b",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-03T15:49:49Z",
+      "side": 1,
+      "message": "Ah okay I see. The SHIFT + MASK together basically describe bit[7] of the field, which can have the value of STANDARD or IMPDEF. I have followed the same pattern for other enums too. I agree that the naming is a bit unfortunate because we have the TYPE_MASK too. The issue is that we have kind of two levels here, the \"type of the type\" is standard or impdef, then the type itself is DT or HOB under standard, etc. And both of this in a single u8 field",
+      "parentUuid": "b7837b46_2144c649",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0da1109f_5b291ca2",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
