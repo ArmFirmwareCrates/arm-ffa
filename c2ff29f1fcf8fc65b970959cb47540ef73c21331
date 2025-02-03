@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cbf439c3_cf8e35c6",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-02-03T15:01:59Z",
+      "side": 1,
+      "message": "Should this be an `unwrap` or an error?",
+      "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
