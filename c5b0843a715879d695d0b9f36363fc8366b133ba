@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47f5e8be_6e5940b0",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 665,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-04T17:16:13Z",
+      "side": 1,
+      "message": "Please check first if the boundaries fit into the buffer, and also in line 679.",
+      "revId": "c5b0843a715879d695d0b9f36363fc8366b133ba",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
