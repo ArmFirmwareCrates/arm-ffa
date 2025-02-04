@@ -37,6 +37,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ed633e0c_3b773b31",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-04T15:51:38Z",
+      "side": 1,
+      "message": "The general idea for the whole library was that packing operations panic on error, since it means a programmer error. I.e. the library\u0027s user always knows and has full control of the input arguments of a pack method, so in case of an issue like this the caller code is simply wrong and should be fixed. If we return an error, the caller cannot really propagate it anywhere. On the other hand, unpacking functions should never panic since it operates on \"user input\" data, i.e. data that we have no control over. Does this sound reasonable?",
+      "parentUuid": "cbf439c3_cf8e35c6",
+      "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f5139205_5b81fef8",
         "filename": "src/partition_info.rs",
         "patchSetId": 7
@@ -84,6 +102,24 @@
       "side": 1,
       "message": "What I mean is that the same change to `next()` should be applied here to this `PartitionInfoIterator`\u0027s `next()`",
       "parentUuid": "20c65f16_3c5e5162",
+      "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4846da26_4336fe0e",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-04T15:51:38Z",
+      "side": 1,
+      "message": "Oops you\u0027re right, I\u0027ve missed that. Fixed now",
+      "parentUuid": "26f1769e_af1fd81b",
       "revId": "c2ff29f1fcf8fc65b970959cb47540ef73c21331",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
