@@ -197,6 +197,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "6d41d821_14b9af5d",
+        "filename": "src/boot_info.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-04T15:42:49Z",
+      "side": 1,
+      "message": "I\u0027ve cleaned this up a bit. I checked the spec again and Standard or Impdef is actually called the type, while FDT or HOB is called the ID. I updated the naming convention of the enums and the constants to reflect this, hopefully it\u0027s more straightforward now.",
+      "parentUuid": "848fea2a_7dab9428",
+      "revId": "95f01d171a278125f537c8e1e09e02b07cafe191",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0da1109f_5b291ca2",
         "filename": "src/boot_info.rs",
         "patchSetId": 4
