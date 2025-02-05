@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "acbe4566_43f339dd",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-05T13:23:26Z",
+      "side": 1,
+      "message": "No, the VM\u0027s endpoint ID is always 16-bit. For this public API the goal is to have \"user friendly\" types, i.e. the endpoint ID will always be a 16-bit value from the caller code. Maybe we could even introduce a `struct EndpointId(u16)` or something similar...\nThe fact that the spec then uses a 32-bit register to actually transmit this, should be an \"implementation detail\" inside the library, not visible to the user. This way the library can enforce e.g. that the upper 16 bits MBZ",
+      "parentUuid": "e09d0ab8_9dfbef78",
+      "revId": "522b8f47e067d90eb4507ca30eb8f7c9e8eb76b9",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "5d99ce0c_818f96c0",
         "filename": "src/lib.rs",
         "patchSetId": 4
@@ -37,6 +55,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "64da2ba8_a508fd9f",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-05T13:23:26Z",
+      "side": 1,
+      "message": "Same as above",
+      "parentUuid": "5d99ce0c_818f96c0",
+      "revId": "522b8f47e067d90eb4507ca30eb8f7c9e8eb76b9",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "accf619c_e0a2d4bc",
         "filename": "src/lib.rs",
         "patchSetId": 4
@@ -48,6 +84,24 @@
       "writtenOn": "2025-02-03T15:36:49Z",
       "side": 1,
       "message": "Shouldn\u0027t this be u32?",
+      "revId": "522b8f47e067d90eb4507ca30eb8f7c9e8eb76b9",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7336b2e2_a4073a9e",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 270,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-05T13:23:26Z",
+      "side": 1,
+      "message": "Same as above",
+      "parentUuid": "accf619c_e0a2d4bc",
       "revId": "522b8f47e067d90eb4507ca30eb8f7c9e8eb76b9",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
