@@ -1,0 +1,8 @@
+Code-Review+2: Kis Imre <imre.kis@arm.com>
+Code-Review+1: Tomás Agustín González Orlando <tomasagustin.gonzalezorlando@arm.com>
+Submitted-by: Bálint Dobszay <balint.dobszay@arm.com>
+Submitted-at: Fri, 07 Feb 2025 15:12:08 +0100
+Reviewed-on: https://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/34521
+Comments-Total: 31
+Project: rust-spmc/arm-ffa
+Branch: refs/heads/main
