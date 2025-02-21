@@ -30,10 +30,10 @@ pub enum Error {
 impl From<Error> for FfaError {
     fn from(value: Error) -> Self {
         match value {
-            Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
-                Self::NotSupported
+            Error::UnrecognisedFeatureId(_) => Self::NotSupported,
+            Error::UnrecognisedFunctionId(_) | Error::UnrecognisedErrorCode(_) => {
+                Self::InvalidParameters
             }
-            Error::UnrecognisedErrorCode(_) => Self::InvalidParameters,
         }
     }
 }
