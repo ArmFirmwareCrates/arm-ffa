@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: Copyright 2023 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+//! Implementation of FF-A partition discovery data structures.
+
 use crate::ffa_v1_1::partition_info_descriptor;
 use thiserror::Error;
 use uuid::Uuid;
 use zerocopy::{FromBytes, IntoBytes};
 
+/// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
+/// with the `FFA_ERROR` interface.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Invalid buffer size")]
@@ -20,11 +24,18 @@ impl From<Error> for crate::FfaError {
     }
 }
 
+/// Type of partition identified by the partition ID.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PartitionIdType {
+    /// Partition ID is a PE endpoint ID. Contains the number of execution contexts implemented by
+    /// this partition.
     PeEndpoint { execution_ctx_count: u16 },
+    /// Partition ID is a SEPID for an independent peripheral device.
     SepidIndep,
+    /// Partition ID is a SEPID for an dependent peripheral device. Contains the ID of the proxy
+    /// endpoint for a dependent peripheral device.
     SepidDep { proxy_endpoint_id: u16 },
+    /// Partition ID is an auxiliary ID.
     Aux,
 }
 
@@ -37,21 +48,22 @@ impl PartitionIdType {
     const AUX: u32 = 0b11;
 }
 
+/// Properties of a partition.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct PartitionProperties {
-    /// Supports receipt of direct requests
+    /// The partition supports receipt of direct requests.
     pub support_direct_req_rec: bool,
-    /// Can send direct requests
+    /// The partition can send direct requests.
     pub support_direct_req_send: bool,
-    /// Can send and receive indirect messages
+    /// The partition can send and receive indirect messages.
     pub support_indirect_msg: bool,
-    /// Supports receipt of notifications
+    /// The partition supports receipt of notifications.
     pub support_notif_rec: bool,
-    /// Must be informed about each VM that is created by the Hypervisor
+    /// The partition must be informed about each VM that is created by the Hypervisor.
     pub subscribe_vm_created: bool,
-    /// Must be informed about each VM that is destroyed by the Hypervisor
+    /// The partition must be informed about each VM that is destroyed by the Hypervisor.
     pub subscribe_vm_destroyed: bool,
-    /// Partition runs in the AArch64 execution state
+    /// The partition runs in the AArch64 execution state.
     pub is_aarch64: bool,
 }
 
@@ -172,6 +184,7 @@ impl From<(u32, u16)> for PartPropWrapper {
     }
 }
 
+/// Partition information descriptor, returned by the `FFA_PARTITION_INFO_GET` interface.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PartitionInfo {
     pub uuid: Uuid,
@@ -181,8 +194,10 @@ pub struct PartitionInfo {
 }
 
 impl PartitionInfo {
-    pub const DESC_SIZE: usize = size_of::<partition_info_descriptor>();
+    const DESC_SIZE: usize = size_of::<partition_info_descriptor>();
 
+    /// Serialize a list of partition information descriptors into a buffer. The `fill_uuid`
+    /// parameter controls whether the UUID field of the descriptor will be filled.
     pub fn pack(descriptors: &[PartitionInfo], buf: &mut [u8], fill_uuid: bool) {
         let mut offset = 0;
 
@@ -207,6 +222,7 @@ impl PartitionInfo {
     }
 }
 
+/// Iterator of partition information descriptors.
 pub struct PartitionInfoIterator<'a> {
     buf: &'a [u8],
     offset: usize,
@@ -214,6 +230,7 @@ pub struct PartitionInfoIterator<'a> {
 }
 
 impl<'a> PartitionInfoIterator<'a> {
+    /// Create an iterator of partition information descriptors from a buffer.
     pub fn new(buf: &'a [u8], count: usize) -> Result<Self, Error> {
         let Some(total_size) = count.checked_mul(PartitionInfo::DESC_SIZE) else {
             return Err(Error::InvalidBufferSize);
