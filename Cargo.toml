@@ -11,8 +11,11 @@ authors = [
 description = "Arm Firmware Framework for Arm A-profile support library"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://git.trustedfirmware.org/rust-spmc/rust-spmc.git"
+repository = "https://git.trustedfirmware.org/rust-spmc/arm-ffa.git"
 keywords = ["arm", "aarch64", "spmc", "ff-a", "firmware"]
+categories = ["embedded", "no-std", "data-structures", "api-bindings"]
+readme = "README.md"
+rust-version = "1.82"
 
 [dependencies]
 num_enum = { version = "0.7", default-features = false }
