@@ -10,6 +10,8 @@ use core::mem::size_of;
 use thiserror::Error;
 use zerocopy::{FromBytes, IntoBytes};
 
+/// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
+/// with the `FFA_ERROR` interface.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Invalid cacheability attribute {0}")]
@@ -42,6 +44,7 @@ impl From<Error> for crate::FfaError {
     }
 }
 
+/// Memory region handle, used to identify a composite memory region description.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Handle(pub u64);
 
@@ -61,6 +64,7 @@ impl Handle {
     pub const INVALID: u64 = 0xffff_ffff_ffff_ffff;
 }
 
+/// Cacheability attribute of a memory region. Only valid for normal memory.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[repr(u16)]
 pub enum Cacheability {
@@ -88,6 +92,7 @@ impl Cacheability {
     const WRITE_BACK: u16 = 0b11;
 }
 
+/// Shareability attribute of a memory region. Only valid for normal memory.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[repr(u16)]
 pub enum Shareability {
@@ -118,6 +123,7 @@ impl Shareability {
     const INNER: u16 = 0b11;
 }
 
+/// Device memory attributes.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(u16)]
 pub enum DeviceMemAttributes {
@@ -151,6 +157,7 @@ impl DeviceMemAttributes {
     const DEV_GRE: u16 = 0b11;
 }
 
+/// Memory region type.
 #[derive(Debug, Default, Clone, Copy)]
 pub enum MemType {
     #[default]
@@ -199,6 +206,7 @@ impl MemType {
     const NORMAL: u16 = 0b10;
 }
 
+/// Memory region security attribute.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[repr(u16)]
 pub enum MemRegionSecurity {
@@ -224,6 +232,7 @@ impl MemRegionSecurity {
     const NON_SECURE: u16 = 0b1;
 }
 
+/// Memory region attributes descriptor.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemRegionAttributes {
     pub security: MemRegionSecurity,
@@ -252,6 +261,7 @@ impl From<MemRegionAttributes> for u16 {
     }
 }
 
+/// Instruction access permissions of a memory region.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(u8)]
 pub enum InstuctionAccessPerm {
@@ -282,6 +292,7 @@ impl InstuctionAccessPerm {
     const EXECUTABLE: u8 = 0b10;
 }
 
+/// Data access permissions of a memory region.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(u8)]
 pub enum DataAccessPerm {
@@ -312,6 +323,7 @@ impl DataAccessPerm {
     const READ_WRITE: u8 = 0b10;
 }
 
+/// Endpoint memory access permissions descriptor.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemAccessPerm {
     pub endpoint_id: u16,
@@ -320,6 +332,7 @@ pub struct MemAccessPerm {
     pub flags: u8, // TODO
 }
 
+/// Iterator of endpoint memory access permission descriptors.
 pub struct MemAccessPermIterator<'a> {
     buf: &'a [u8],
     offset: usize,
@@ -327,6 +340,7 @@ pub struct MemAccessPermIterator<'a> {
 }
 
 impl<'a> MemAccessPermIterator<'a> {
+    /// Create an iterator of endpoint memory access permission descriptors from a buffer.
     fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
         let Some(total_size) = count
             .checked_mul(size_of::<endpoint_memory_access_descriptor>())
@@ -390,12 +404,14 @@ impl Iterator for MemAccessPermIterator<'_> {
     }
 }
 
+/// Constituent memory region descriptor.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ConstituentMemRegion {
     pub address: u64,
     pub page_cnt: u32,
 }
 
+/// Iterator of constituent memory region descriptors.
 pub struct ConstituentMemRegionIterator<'a> {
     buf: &'a [u8],
     offset: usize,
@@ -403,6 +419,7 @@ pub struct ConstituentMemRegionIterator<'a> {
 }
 
 impl<'a> ConstituentMemRegionIterator<'a> {
+    /// Create an iterator of constituent memory region descriptors from a buffer.
     fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
         let Some(total_size) = count
             .checked_mul(size_of::<constituent_memory_region_descriptor>())
@@ -446,6 +463,7 @@ impl Iterator for ConstituentMemRegionIterator<'_> {
     }
 }
 
+/// Flags of a memory management transaction.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemTransactionFlags(pub u32);
 
@@ -463,6 +481,8 @@ impl MemTransactionFlags {
     pub const HINT_VALID: u32 = 0b1 << 9;
 }
 
+/// Memory transaction decriptor. Used by an Owner/Lender and a Borrower/Receiver in a transaction
+/// to donate, lend or share a memory region.
 #[derive(Debug, Default)]
 pub struct MemTransactionDesc {
     pub sender_id: u16,
@@ -483,6 +503,8 @@ impl MemTransactionDesc {
     // region descriptor
     const CONSTITUENT_ARRAY_OFFSET: usize = size_of::<composite_memory_region_descriptor>();
 
+    /// Serialize a memory transaction descriptor and the related constituent memory region
+    /// descriptors and endpoint memory access permission descriptors into a buffer.
     pub fn pack(
         &self,
         constituents: &[ConstituentMemRegion],
@@ -562,6 +584,9 @@ impl MemTransactionDesc {
         offset
     }
 
+    /// Deserialize a memory transaction descriptor from a buffer and return an interator of the
+    /// related endpoint memory access permission descriptors and constituent memory region
+    /// descriptors, if any.
     pub fn unpack(
         buf: &[u8],
     ) -> Result<
@@ -663,6 +688,7 @@ impl MemTransactionDesc {
     }
 }
 
+/// Descriptor to relinquish a memory region. Currently only supports specifying a single endpoint.
 #[derive(Debug, Default)]
 pub struct MemRelinquishDesc {
     pub handle: Handle,

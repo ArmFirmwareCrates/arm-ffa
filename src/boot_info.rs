@@ -10,6 +10,8 @@ use thiserror::Error;
 use uuid::Uuid;
 use zerocopy::{FromBytes, IntoBytes};
 
+/// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
+/// with the `FFA_ERROR` interface.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Invalid standard type {0}")]
@@ -42,12 +44,14 @@ impl From<Error> for crate::FfaError {
     }
 }
 
+/// Name of boot information descriptor.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BootInfoName<'a> {
     NullTermString(&'a CStr),
     Uuid(Uuid),
 }
 
+/// ID for supported standard boot information types.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BootInfoStdId {
@@ -72,6 +76,7 @@ impl BootInfoStdId {
     const HOB: u8 = 1;
 }
 
+/// ID for implementation defined boot information type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BootInfoImpdefId(pub u8);
 
@@ -81,6 +86,7 @@ impl From<u8> for BootInfoImpdefId {
     }
 }
 
+/// Boot information type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BootInfoType {
     Std(BootInfoStdId),
@@ -122,6 +128,7 @@ impl BootInfoType {
     const ID_MASK: u8 = 0b0111_1111;
 }
 
+/// Boot information contents.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BootInfoContents<'a> {
     Address { content_buf: &'a [u8] },
@@ -208,6 +215,7 @@ impl From<BootInfoFlags> for u16 {
     }
 }
 
+/// Boot information descriptor.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BootInfo<'a> {
     pub name: BootInfoName<'a>,
@@ -216,10 +224,15 @@ pub struct BootInfo<'a> {
 }
 
 impl BootInfo<'_> {
+    /// Serialize a list of boot information descriptors into a buffer. The `mapped_addr` parameter
+    /// should contain the address of the buffer in the consumers translation regime (typically a
+    /// virtual address where the buffer is mapped to). This is necessary since there are
+    /// self-references within the serialized data structure which must be described with an
+    /// absolute address according to the FF-A spec.
     pub fn pack(descriptors: &[BootInfo], buf: &mut [u8], mapped_addr: Option<usize>) {
         // Offset from the base of the header to the first element in the boot info descriptor array
         // Must be 8 byte aligned, but otherwise we're free to choose any value here.
-        // Let's just  pack the array right after the header.
+        // Let's just pack the array right after the header.
         const DESC_ARRAY_OFFSET: usize = size_of::<boot_info_header>().next_multiple_of(8);
         const DESC_SIZE: usize = size_of::<boot_info_descriptor>();
 
@@ -365,11 +378,10 @@ impl BootInfo<'_> {
         Ok(header_raw)
     }
 
-    /// Get the size of the boot information blob spanning contiguous memory.
-    ///
-    /// This enables a consumer to map all of the boot information blob in its translation regime
-    /// or copy it to another memory location without parsing each element in the boot information
-    /// descriptor array.
+    /// Get the size of the boot information blob spanning contiguous memory. This enables a
+    /// consumer to map all of the boot information blob in its translation regime or copy it to
+    /// another memory location without parsing each element in the boot information descriptor
+    /// array.
     pub fn get_blob_size(buf: &[u8]) -> Result<usize, Error> {
         let header_raw = Self::get_header(buf)?;
 
@@ -377,6 +389,7 @@ impl BootInfo<'_> {
     }
 }
 
+/// Iterator of boot information descriptors.
 pub struct BootInfoIterator<'a> {
     buf: &'a [u8],
     offset: usize,
@@ -385,6 +398,7 @@ pub struct BootInfoIterator<'a> {
 }
 
 impl<'a> BootInfoIterator<'a> {
+    /// Create an iterator of boot information descriptors from a buffer.
     pub fn new(buf: &'a [u8]) -> Result<Self, Error> {
         let header_raw = BootInfo::get_header(buf)?;
 

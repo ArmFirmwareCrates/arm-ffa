@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 #![cfg_attr(not(test), no_std)]
+#![deny(clippy::undocumented_unsafe_blocks)]
+#![deny(unsafe_op_in_unsafe_fn)]
+#![doc = include_str!("../README.md")]
 
 use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -13,10 +16,12 @@ mod ffa_v1_1;
 pub mod memory_management;
 pub mod partition_info;
 
-// On many occasions the FF-A spec defines memory size as count of 4K pages,
-// regardless of the current translation granule
+/// Constant for 4K page size. On many occasions the FF-A spec defines memory size as count of 4K
+/// pages, regardless of the current translation granule.
 pub const FFA_PAGE_SIZE_4K: usize = 4096;
 
+/// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
+/// with the `FFA_ERROR` interface.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Unrecognised FF-A function ID {0}")]
@@ -38,13 +43,16 @@ impl From<Error> for FfaError {
     }
 }
 
+/// An FF-A instance is a valid combination of two FF-A components at an exception level boundary.
 #[derive(PartialEq, Clone, Copy)]
 pub enum Instance {
+    /// The instance between the SPMC and SPMD.
     SecurePhysical,
+    /// The instance between the SPMC and a physical SP (contains the SP's endpoint ID).
     SecureVirtual(u16),
 }
 
-/// FF-A v1.1: Function IDs
+/// Function IDs of the various FF-A interfaces.
 #[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedFunctionId))]
 #[repr(u32)]
@@ -91,7 +99,7 @@ pub enum FuncId {
     ConsoleLog64 = 0xc400008a,
 }
 
-/// FF-A v1.1, Table 12.2: Error status codes
+/// Error status codes used by the `FFA_ERROR` interface.
 #[derive(Clone, Copy, Debug, Eq, Error, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedErrorCode))]
 #[repr(i32)]
@@ -116,6 +124,7 @@ pub enum FfaError {
     NoData = -9,
 }
 
+/// Endpoint ID and vCPU ID pair, used by `FFA_ERROR`, `FFA_INTERRUPT` and `FFA_RUN` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct TargetInfo {
     pub endpoint_id: u16,
@@ -137,12 +146,14 @@ impl From<TargetInfo> for u32 {
     }
 }
 
+/// Arguments for the `FFA_SUCCESS` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Result32([u32; 6]),
     Result64([u64; 6]),
 }
 
+/// Version number of the FF-A implementation, `.0` is the major, `.1` is minor the version.
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Version(pub u16, pub u16);
 
@@ -170,6 +181,7 @@ impl Debug for Version {
     }
 }
 
+/// Feature IDs used by the `FFA_FEATURES` interface.
 #[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedFeatureId))]
 #[repr(u8)]
@@ -179,6 +191,7 @@ pub enum FeatureId {
     ManagedExitInterrupt = 0x3,
 }
 
+/// Arguments for the `FFA_FEATURES` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Feature {
     FuncId(FuncId),
@@ -208,36 +221,46 @@ impl From<Feature> for u32 {
     }
 }
 
+/// RXTX buffer descriptor, used by `FFA_RXTX_MAP`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum RxTxAddr {
     Addr32 { rx: u32, tx: u32 },
     Addr64 { rx: u64, tx: u64 },
 }
 
+/// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DirectMsgArgs {
     Args32([u32; 5]),
     Args64([u64; 5]),
 }
 
+/// Descriptor for a dynamically allocated memory buffer that contains the memory transaction
+/// descriptor. Used by `FFA_MEM_{DONATE,LEND,SHARE,RETRIEVE_REQ}` interfaces, only when the TX
+/// buffer is not used to transmit the transaction descriptor.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum MemOpBuf {
     Buf32 { addr: u32, page_cnt: u32 },
     Buf64 { addr: u64, page_cnt: u32 },
 }
 
+/// Memory address argument for `FFA_MEM_PERM_{GET,SET}` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum MemAddr {
     Addr32(u32),
     Addr64(u64),
 }
 
+/// Argument for the `FFA_CONSOLE_LOG` interface. Currently only supports x0..x7 instead of x0..x17.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ConsoleLogChars {
     Reg32([u32; 6]),
     Reg64([u64; 6]),
 }
 
+/// FF-A "message types", the terminology used by the spec is "interfaces". The interfaces are used
+/// by FF-A components for communication at an FF-A instance. The spec also describes the valid FF-A
+/// instances and conduits for each interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Interface {
     Error {
@@ -743,6 +766,7 @@ impl Interface {
         }
     }
 
+    /// Create register contents for an interface.
     pub fn copy_to_array(&self, a: &mut [u64; 8]) {
         a.fill(0);
         if let Some(function_id) = self.function_id() {
@@ -1001,7 +1025,7 @@ impl Interface {
         }
     }
 
-    /// Helper function to create an FFA_SUCCESS interface without any arguments
+    /// Helper function to create an `FFA_SUCCESS` interface without any arguments.
     pub fn success32_noargs() -> Self {
         Self::Success {
             target_info: 0,
@@ -1009,7 +1033,7 @@ impl Interface {
         }
     }
 
-    /// Helper function to create an FFA_ERROR interface without any arguments
+    /// Helper function to create an `FFA_ERROR` interface with an error code.
     pub fn error(error_code: FfaError) -> Self {
         Self::Error {
             target_info: TargetInfo {
@@ -1021,9 +1045,15 @@ impl Interface {
     }
 }
 
-pub const CONSOLE_LOG_32_MAX_MSG_LEN: u8 = 24;
-pub const CONSOLE_LOG_64_MAX_MSG_LEN: u8 = 48;
+/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG32` message.
+pub const CONSOLE_LOG_32_MAX_CHAR_CNT: u8 = 24;
+/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG64` message. Note: this
+/// value currently differs from the spec because the library currently only supports parsing 8
+/// registers instead of 18.
+pub const CONSOLE_LOG_64_MAX_CHAR_CNT: u8 = 48;
 
+/// Helper function to convert the "Tightly packed list of characters" format used by the
+/// `FFA_CONSOLE_LOG` interface into a byte slice.
 pub fn parse_console_log(
     char_cnt: u8,
     char_lists: &ConsoleLogChars,
@@ -1031,7 +1061,7 @@ pub fn parse_console_log(
 ) -> Result<(), FfaError> {
     match char_lists {
         ConsoleLogChars::Reg32(regs) => {
-            if !(1..=CONSOLE_LOG_32_MAX_MSG_LEN).contains(&char_cnt) {
+            if !(1..=CONSOLE_LOG_32_MAX_CHAR_CNT).contains(&char_cnt) {
                 return Err(FfaError::InvalidParameters);
             }
             for (i, reg) in regs.iter().enumerate() {
@@ -1039,7 +1069,7 @@ pub fn parse_console_log(
             }
         }
         ConsoleLogChars::Reg64(regs) => {
-            if !(1..=CONSOLE_LOG_64_MAX_MSG_LEN).contains(&char_cnt) {
+            if !(1..=CONSOLE_LOG_64_MAX_CHAR_CNT).contains(&char_cnt) {
                 return Err(FfaError::InvalidParameters);
             }
             for (i, reg) in regs.iter().enumerate() {
