@@ -142,7 +142,7 @@ impl From<u32> for TargetInfo {
 
 impl From<TargetInfo> for u32 {
     fn from(value: TargetInfo) -> Self {
-        (value.endpoint_id as u32) << 16 | value.vcpu_id as u32
+        ((value.endpoint_id as u32) << 16) | value.vcpu_id as u32
     }
 }
 
@@ -165,7 +165,7 @@ impl From<u32> for Version {
 
 impl From<Version> for u32 {
     fn from(v: Version) -> Self {
-        (v.0 as u32) << 16 | v.1 as u32
+        ((v.0 as u32) << 16) | v.1 as u32
     }
 }
 
@@ -870,7 +870,7 @@ impl Interface {
                 flags,
                 args,
             } => {
-                a[1] = (src_id as u64) << 16 | dst_id as u64;
+                a[1] = ((src_id as u64) << 16) | dst_id as u64;
                 a[2] = flags.into();
                 match args {
                     DirectMsgArgs::Args32(args) => {
@@ -895,7 +895,7 @@ impl Interface {
                 flags,
                 args,
             } => {
-                a[1] = (src_id as u64) << 16 | dst_id as u64;
+                a[1] = ((src_id as u64) << 16) | dst_id as u64;
                 a[2] = flags.into();
                 match args {
                     DirectMsgArgs::Args32(args) => {
