@@ -124,10 +124,10 @@ impl From<BootInfoType> for u8 {
     fn from(value: BootInfoType) -> Self {
         match value {
             BootInfoType::Std(std_type) => {
-                std_type as u8 | BootInfoType::TYPE_STANDARD << BootInfoType::TYPE_SHIFT
+                std_type as u8 | (BootInfoType::TYPE_STANDARD << BootInfoType::TYPE_SHIFT)
             }
             BootInfoType::Impdef(impdef_type) => {
-                impdef_type.0 | BootInfoType::TYPE_IMPDEF << BootInfoType::TYPE_SHIFT
+                impdef_type.0 | (BootInfoType::TYPE_IMPDEF << BootInfoType::TYPE_SHIFT)
             }
         }
     }

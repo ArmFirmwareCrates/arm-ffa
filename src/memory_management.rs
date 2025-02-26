@@ -61,7 +61,7 @@ pub struct Handle(pub u64);
 
 impl From<[u32; 2]> for Handle {
     fn from(value: [u32; 2]) -> Self {
-        Self((value[1] as u64) << 32 | value[0] as u64)
+        Self(((value[1] as u64) << 32) | value[0] as u64)
     }
 }
 
@@ -200,11 +200,11 @@ impl From<MemType> for u16 {
     fn from(value: MemType) -> Self {
         match value {
             MemType::NotSpecified => MemType::NOT_SPECIFIED << MemType::SHIFT,
-            MemType::Device(attr) => attr as u16 | MemType::DEVICE << MemType::SHIFT,
+            MemType::Device(attr) => attr as u16 | (MemType::DEVICE << MemType::SHIFT),
             MemType::Normal {
                 cacheability,
                 shareability,
-            } => cacheability as u16 | shareability as u16 | MemType::NORMAL << MemType::SHIFT,
+            } => cacheability as u16 | shareability as u16 | (MemType::NORMAL << MemType::SHIFT),
         }
     }
 }
