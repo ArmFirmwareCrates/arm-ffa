@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d273e350_ecdd7bb0",
+        "filename": "Cargo.lock",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-27T15:55:36Z",
+      "side": 1,
+      "message": "This looks strange, because Cargo.toml has `thiserror \u003d { version \u003d \"2.0.3\", default-features \u003d false }`",
+      "range": {
+        "startLine": 67,
+        "startChar": 11,
+        "endLine": 67,
+        "endChar": 18
+      },
+      "revId": "2f081163648b6ae6226373dc5523599b3488023a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
