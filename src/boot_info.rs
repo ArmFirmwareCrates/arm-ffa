@@ -16,14 +16,17 @@
 //!   - S-EL2 SPMC and a S-EL0 SP.
 //!   - S-EL1 SPMC and a S-EL0 SP.
 
-use crate::{
-    ffa_v1_1::{boot_info_descriptor, boot_info_header},
-    Version,
-};
 use core::ffi::CStr;
 use thiserror::Error;
 use uuid::Uuid;
 use zerocopy::{FromBytes, IntoBytes};
+
+// This module uses FF-A v1.1 types by default.
+// FF-A v1.2 didn't introduce any changes to the data stuctures used by this module.
+use crate::{
+    ffa_v1_1::{boot_info_descriptor, boot_info_header},
+    Version,
+};
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
@@ -244,7 +247,14 @@ impl BootInfo<'_> {
     /// virtual address where the buffer is mapped to). This is necessary since there are
     /// self-references within the serialized data structure which must be described with an
     /// absolute address according to the FF-A spec.
-    pub fn pack(descriptors: &[BootInfo], buf: &mut [u8], mapped_addr: Option<usize>) {
+    pub fn pack(
+        version: Version,
+        descriptors: &[BootInfo],
+        buf: &mut [u8],
+        mapped_addr: Option<usize>,
+    ) {
+        assert!((Version(1, 1)..=Version(1, 2)).contains(&version));
+
         // Offset from the base of the header to the first element in the boot info descriptor array
         // Must be 8 byte aligned, but otherwise we're free to choose any value here.
         // Let's just pack the array right after the header.
@@ -365,7 +375,7 @@ impl BootInfo<'_> {
 
         let header_raw = boot_info_header {
             signature: 0x0ffa,
-            version: Version(1, 1).into(),
+            version: version.into(),
             boot_info_blob_size: total_offset as u32,
             boot_info_desc_size: DESC_SIZE as u32,
             boot_info_desc_count: desc_cnt as u32,
@@ -377,7 +387,7 @@ impl BootInfo<'_> {
     }
 
     /// Validate and return the boot information header
-    fn get_header(buf: &[u8]) -> Result<&boot_info_header, Error> {
+    fn get_header(version: Version, buf: &[u8]) -> Result<&boot_info_header, Error> {
         let (header_raw, _) =
             boot_info_header::ref_from_prefix(buf).map_err(|_| Error::InvalidHeader)?;
 
@@ -385,9 +395,9 @@ impl BootInfo<'_> {
             return Err(Error::InvalidSignature);
         }
 
-        let version = Version::from(header_raw.version);
-        if version != Version(1, 1) {
-            return Err(Error::InvalidVersion(version));
+        let header_version = header_raw.version.into();
+        if header_version != version {
+            return Err(Error::InvalidVersion(header_version));
         }
 
         Ok(header_raw)
@@ -397,8 +407,12 @@ impl BootInfo<'_> {
     /// consumer to map all of the boot information blob in its translation regime or copy it to
     /// another memory location without parsing each element in the boot information descriptor
     /// array.
-    pub fn get_blob_size(buf: &[u8]) -> Result<usize, Error> {
-        let header_raw = Self::get_header(buf)?;
+    pub fn get_blob_size(version: Version, buf: &[u8]) -> Result<usize, Error> {
+        if !(Version(1, 1)..=Version(1, 2)).contains(&version) {
+            return Err(Error::InvalidVersion(version));
+        }
+
+        let header_raw = Self::get_header(version, buf)?;
 
         Ok(header_raw.boot_info_blob_size as usize)
     }
@@ -414,8 +428,8 @@ pub struct BootInfoIterator<'a> {
 
 impl<'a> BootInfoIterator<'a> {
     /// Create an iterator of boot information descriptors from a buffer.
-    pub fn new(buf: &'a [u8]) -> Result<Self, Error> {
-        let header_raw = BootInfo::get_header(buf)?;
+    pub fn new(version: Version, buf: &'a [u8]) -> Result<Self, Error> {
+        let header_raw = BootInfo::get_header(version, buf)?;
 
         if buf.len() < header_raw.boot_info_blob_size as usize {
             return Err(Error::InvalidBufferSize);
@@ -551,8 +565,13 @@ mod tests {
 
         let mut buf = [0u8; 0x1ff];
         let buf_addr = buf.as_ptr() as usize;
-        BootInfo::pack(&[desc1.clone(), desc2.clone()], &mut buf, Some(buf_addr));
-        let mut descriptors = BootInfoIterator::new(&buf).unwrap();
+        BootInfo::pack(
+            Version(1, 1),
+            &[desc1.clone(), desc2.clone()],
+            &mut buf,
+            Some(buf_addr),
+        );
+        let mut descriptors = BootInfoIterator::new(Version(1, 1), &buf).unwrap();
         let desc1_check = descriptors.next().unwrap().unwrap();
         let desc2_check = descriptors.next().unwrap().unwrap();
 
