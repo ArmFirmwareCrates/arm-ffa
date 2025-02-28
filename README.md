@@ -5,7 +5,8 @@
 [FF-A Memory Management Protocol specification](https://developer.arm.com/documentation/den0140/latest/)
 
 Library for handling common FF-A related functionality, create and parse interfaces and descriptors
-defined by FF-A.
+defined by FF-A. Starting from FF-A v1.2 the memory management related parts of the specification
+have been moved to a separate document (link above).
 
 ## Design goals
   * Keep the code exception level agnostic by default. If exception level specific parts are
@@ -27,6 +28,17 @@ defined by FF-A.
       the spec (i.e. Table x.y or chapter x.y.z)
     * The data structures should derive the necessary `zerocopy` traits.
 
+## FF-A version handling
+
+The FF-A specification allows different components of a system to use different versions of the
+specification. The version used at a specific FF-A instance (i.e. an interface between two FF-A
+components) is discovered at runtime, either by parsing FF-A manifests or using `FFA_VERSION`. An
+FF-A component might have to use multiple versions at runtime on its different interfaces, therefore
+this library must be able to support this and having a compile time fixed version is not possible.
+Because of this, most of the functions to create or parse FF-A messages and data structures require
+passing the FF-A version used at the instance where the serialized data was received from or will be
+sent to.
+
 ## Implemented features
 
   * Supports converting FF-A interface types between Rust types and the FF-A register ABI.
@@ -38,6 +50,7 @@ defined by FF-A.
 
   * Implement missing features from FF-A v1.1 and later. Implementing FF-A v1.0 features that are
     deprecated by v1.1 are low priority for now.
+  * Increase test coverage.
   * Create more detailed documentation to capture which parts of FF-A are currently supported.
 
 ## License
