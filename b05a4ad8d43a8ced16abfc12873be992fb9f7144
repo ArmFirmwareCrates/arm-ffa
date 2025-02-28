@@ -1,0 +1,124 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4ae76506_880b5b81",
+        "filename": "src/ffa_v1_2.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "Please mark that this is a reference to the memory management protocol document and not the base spec.",
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d5e30dd9_f2f559bc",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 283,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "Requiring `mut` might not fit `try_from` well if the caller has the registers as a non-mut variable. Is it possible to avoid this?",
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5cd750eb_33b226e4",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 434,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "Missing FFA_MSG_SEND_DIRECT_REQ2 and FFA_MSG_SEND_DIRECT_RESP2.",
+      "range": {
+        "startLine": 434,
+        "startChar": 20,
+        "endLine": 434,
+        "endChar": 60
+      },
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fe1e10f2_b34c1815",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 810,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "These can be simplified by slice to array conversion: `Result64_2(regs[2..17].try_into().unwrap())`",
+      "range": {
+        "startLine": 809,
+        "startChar": 20,
+        "endLine": 810,
+        "endChar": 99
+      },
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "edd9eec9_2475eaf9",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1147,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "The pattern can be simplified by `a[2..17].copy_from_slice(\u0026regs[0..15]);`",
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "306ce4c2_46c0dafe",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 184,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-02-28T16:49:21Z",
+      "side": 1,
+      "message": "This can be simplified by checking `part_id_type \u003d\u003d  PartitionIdType::PE_ENDPOINT`",
+      "range": {
+        "startLine": 184,
+        "startChar": 8,
+        "endLine": 184,
+        "endChar": 100
+      },
+      "revId": "b05a4ad8d43a8ced16abfc12873be992fb9f7144",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
