@@ -22,6 +22,30 @@
       },
       "revId": "2f081163648b6ae6226373dc5523599b3488023a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c2f80057_3f5664ae",
+        "filename": "Cargo.lock",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-02-28T14:21:53Z",
+      "side": 1,
+      "message": "This was just the result of running `cargo update`. What\u0027s specified in Cargo.toml only means that we need at least this version number, but more generally just a  version of the crate that\u0027s SemVer compatible with that, which is true in this case.",
+      "parentUuid": "d273e350_ecdd7bb0",
+      "range": {
+        "startLine": 67,
+        "startChar": 11,
+        "endLine": 67,
+        "endChar": 18
+      },
+      "revId": "2f081163648b6ae6226373dc5523599b3488023a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
