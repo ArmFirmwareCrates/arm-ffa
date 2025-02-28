@@ -3,10 +3,20 @@
 
 //! Implementation of FF-A partition discovery data structures.
 
-use crate::ffa_v1_1::partition_info_descriptor;
 use thiserror::Error;
 use uuid::Uuid;
 use zerocopy::{FromBytes, IntoBytes};
+
+// This module uses FF-A v1.1 types by default.
+// FF-A v1.2 specified some previously reserved bits in the partition info properties field, but
+// this doesn't change the descriptor format.
+use crate::{ffa_v1_1::partition_info_descriptor, Version};
+
+// Sanity check to catch if the descriptor format is changed.
+const _: () = assert!(
+    size_of::<crate::ffa_v1_1::partition_info_descriptor>()
+        == size_of::<crate::ffa_v1_2::partition_info_descriptor>()
+);
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
@@ -55,6 +65,12 @@ pub struct PartitionProperties {
     pub support_direct_req_rec: bool,
     /// The partition can send direct requests.
     pub support_direct_req_send: bool,
+    /// The partition supports receipt of direct requests via the FFA_MSG_SEND_DIRECT_REQ2 ABI.
+    /// Added in FF-A v1.2
+    pub support_direct_req2_rec: Option<bool>,
+    /// The partition can send direct requests via the FFA_MSG_SEND_DIRECT_REQ2 ABI.
+    /// Added in FF-A v1.2
+    pub support_direct_req2_send: Option<bool>,
     /// The partition can send and receive indirect messages.
     pub support_indirect_msg: bool,
     /// The partition supports receipt of notifications.
@@ -75,113 +91,135 @@ impl PartitionProperties {
     const SUBSCRIBE_VM_CREATED_SHIFT: usize = 6;
     const SUBSCRIBE_VM_DESTROYED_SHIFT: usize = 7;
     const IS_AARCH64_SHIFT: usize = 8;
+    const SUPPORT_DIRECT_REQ2_REC_SHIFT: usize = 9;
+    const SUPPORT_DIRECT_REQ2_SEND_SHIFT: usize = 10;
 }
 
-struct PartPropWrapper(PartitionIdType, PartitionProperties);
+fn create_partition_properties(
+    version: Version,
+    id_type: PartitionIdType,
+    properties: PartitionProperties,
+) -> (u32, u16) {
+    let exec_ctx_count_or_proxy_id = match id_type {
+        PartitionIdType::PeEndpoint {
+            execution_ctx_count,
+        } => execution_ctx_count,
+        PartitionIdType::SepidIndep => 0,
+        PartitionIdType::SepidDep { proxy_endpoint_id } => proxy_endpoint_id,
+        PartitionIdType::Aux => 0,
+    };
 
-impl From<PartPropWrapper> for (u32, u16) {
-    fn from(value: PartPropWrapper) -> Self {
-        let exec_ctx_count_or_proxy_id = match value.0 {
-            PartitionIdType::PeEndpoint {
-                execution_ctx_count,
-            } => execution_ctx_count,
-            PartitionIdType::SepidIndep => 0,
-            PartitionIdType::SepidDep { proxy_endpoint_id } => proxy_endpoint_id,
-            PartitionIdType::Aux => 0,
-        };
+    let mut prop_bits = match id_type {
+        PartitionIdType::PeEndpoint { .. } => {
+            let mut p = PartitionIdType::PE_ENDPOINT << PartitionIdType::SHIFT;
 
-        let mut props = match value.0 {
-            PartitionIdType::PeEndpoint { .. } => {
-                let mut p = PartitionIdType::PE_ENDPOINT << PartitionIdType::SHIFT;
-
-                if value.1.support_direct_req_rec {
-                    p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ_REC_SHIFT;
-                    if value.1.subscribe_vm_created {
-                        // TODO: how to handle if ABI is invoked at NS phys instance?
-                        p |= 1 << PartitionProperties::SUBSCRIBE_VM_CREATED_SHIFT
-                    }
-                    if value.1.subscribe_vm_destroyed {
-                        // TODO: how to handle if ABI is invoked at NS phys instance?
-                        p |= 1 << PartitionProperties::SUBSCRIBE_VM_DESTROYED_SHIFT
-                    }
+            if properties.support_direct_req_rec {
+                p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ_REC_SHIFT;
+                if properties.subscribe_vm_created {
+                    // TODO: how to handle if ABI is invoked at NS phys instance?
+                    p |= 1 << PartitionProperties::SUBSCRIBE_VM_CREATED_SHIFT
                 }
-                if value.1.support_direct_req_send {
-                    p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ_SEND_SHIFT
+                if properties.subscribe_vm_destroyed {
+                    // TODO: how to handle if ABI is invoked at NS phys instance?
+                    p |= 1 << PartitionProperties::SUBSCRIBE_VM_DESTROYED_SHIFT
                 }
-                if value.1.support_indirect_msg {
-                    p |= 1 << PartitionProperties::SUPPORT_INDIRECT_MSG_SHIFT
-                }
-                if value.1.support_notif_rec {
-                    p |= 1 << PartitionProperties::SUPPORT_NOTIF_REC_SHIFT
-                }
-
-                p
             }
-            PartitionIdType::SepidIndep => PartitionIdType::SEPID_INDEP << PartitionIdType::SHIFT,
-            PartitionIdType::SepidDep { .. } => {
-                PartitionIdType::SEPID_DEP << PartitionIdType::SHIFT
-            }
-            PartitionIdType::Aux => PartitionIdType::AUX << PartitionIdType::SHIFT,
-        };
 
-        if value.1.is_aarch64 {
-            props |= 1 << PartitionProperties::IS_AARCH64_SHIFT
+            if properties.support_direct_req_send {
+                p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ_SEND_SHIFT
+            }
+
+            // For v1.2 and later it's mandatory to specify these properties
+            if version >= Version(1, 2) {
+                if properties.support_direct_req2_rec.unwrap() {
+                    p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ2_REC_SHIFT
+                }
+
+                if properties.support_direct_req2_send.unwrap() {
+                    p |= 1 << PartitionProperties::SUPPORT_DIRECT_REQ2_SEND_SHIFT
+                }
+            }
+
+            if properties.support_indirect_msg {
+                p |= 1 << PartitionProperties::SUPPORT_INDIRECT_MSG_SHIFT
+            }
+
+            if properties.support_notif_rec {
+                p |= 1 << PartitionProperties::SUPPORT_NOTIF_REC_SHIFT
+            }
+
+            p
         }
+        PartitionIdType::SepidIndep => PartitionIdType::SEPID_INDEP << PartitionIdType::SHIFT,
+        PartitionIdType::SepidDep { .. } => PartitionIdType::SEPID_DEP << PartitionIdType::SHIFT,
+        PartitionIdType::Aux => PartitionIdType::AUX << PartitionIdType::SHIFT,
+    };
 
-        (props, exec_ctx_count_or_proxy_id)
+    if properties.is_aarch64 {
+        prop_bits |= 1 << PartitionProperties::IS_AARCH64_SHIFT
     }
+
+    (prop_bits, exec_ctx_count_or_proxy_id)
 }
 
-impl From<(u32, u16)> for PartPropWrapper {
-    fn from(value: (u32, u16)) -> Self {
-        let part_id_type = match (value.0 >> PartitionIdType::SHIFT) & PartitionIdType::MASK {
-            PartitionIdType::PE_ENDPOINT => PartitionIdType::PeEndpoint {
-                execution_ctx_count: value.1,
-            },
-            PartitionIdType::SEPID_INDEP => PartitionIdType::SepidIndep,
-            PartitionIdType::SEPID_DEP => PartitionIdType::SepidDep {
-                proxy_endpoint_id: value.1,
-            },
-            PartitionIdType::AUX => PartitionIdType::Aux,
-            _ => panic!(), // The match is exhaustive for a 2-bit value
-        };
+fn parse_partition_properties(
+    version: Version,
+    prop_bits: u32,
+    id_type: u16,
+) -> (PartitionIdType, PartitionProperties) {
+    let part_id_type = match (prop_bits >> PartitionIdType::SHIFT) & PartitionIdType::MASK {
+        PartitionIdType::PE_ENDPOINT => PartitionIdType::PeEndpoint {
+            execution_ctx_count: id_type,
+        },
+        PartitionIdType::SEPID_INDEP => PartitionIdType::SepidIndep,
+        PartitionIdType::SEPID_DEP => PartitionIdType::SepidDep {
+            proxy_endpoint_id: id_type,
+        },
+        PartitionIdType::AUX => PartitionIdType::Aux,
+        _ => panic!(), // The match is exhaustive for a 2-bit value
+    };
 
-        let mut part_props = PartitionProperties::default();
+    let mut part_props = PartitionProperties::default();
 
-        if (value.0 >> PartitionIdType::SHIFT) & PartitionIdType::MASK
-            == PartitionIdType::PE_ENDPOINT
-        {
-            if (value.0 >> PartitionProperties::SUPPORT_DIRECT_REQ_REC_SHIFT) & 0b1 == 1 {
-                part_props.support_direct_req_rec = true;
+    if (prop_bits >> PartitionIdType::SHIFT) & PartitionIdType::MASK == PartitionIdType::PE_ENDPOINT
+    {
+        if (prop_bits >> PartitionProperties::SUPPORT_DIRECT_REQ_REC_SHIFT) & 0b1 == 1 {
+            part_props.support_direct_req_rec = true;
 
-                if (value.0 >> PartitionProperties::SUBSCRIBE_VM_CREATED_SHIFT) & 0b1 == 1 {
-                    part_props.subscribe_vm_created = true;
-                }
-
-                if (value.0 >> PartitionProperties::SUBSCRIBE_VM_DESTROYED_SHIFT) & 0b1 == 1 {
-                    part_props.subscribe_vm_destroyed = true;
-                }
+            if (prop_bits >> PartitionProperties::SUBSCRIBE_VM_CREATED_SHIFT) & 0b1 == 1 {
+                part_props.subscribe_vm_created = true;
             }
 
-            if (value.0 >> PartitionProperties::SUPPORT_DIRECT_REQ_SEND_SHIFT) & 0b1 == 1 {
-                part_props.support_direct_req_send = true;
-            }
-
-            if (value.0 >> PartitionProperties::SUPPORT_INDIRECT_MSG_SHIFT) & 0b1 == 1 {
-                part_props.support_indirect_msg = true;
-            }
-
-            if (value.0 >> PartitionProperties::SUPPORT_NOTIF_REC_SHIFT) & 0b1 == 1 {
-                part_props.support_notif_rec = true;
+            if (prop_bits >> PartitionProperties::SUBSCRIBE_VM_DESTROYED_SHIFT) & 0b1 == 1 {
+                part_props.subscribe_vm_destroyed = true;
             }
         }
 
-        if (value.0 >> PartitionProperties::IS_AARCH64_SHIFT) & 0b1 == 1 {
-            part_props.is_aarch64 = true;
+        if (prop_bits >> PartitionProperties::SUPPORT_DIRECT_REQ_SEND_SHIFT) & 0b1 == 1 {
+            part_props.support_direct_req_send = true;
         }
 
-        PartPropWrapper(part_id_type, part_props)
+        if version >= Version(1, 2) {
+            part_props.support_direct_req2_rec =
+                Some((prop_bits >> PartitionProperties::SUPPORT_DIRECT_REQ2_REC_SHIFT) & 0b1 == 1);
+            part_props.support_direct_req2_send =
+                Some((prop_bits >> PartitionProperties::SUPPORT_DIRECT_REQ2_SEND_SHIFT) & 0b1 == 1);
+        }
+
+        if (prop_bits >> PartitionProperties::SUPPORT_INDIRECT_MSG_SHIFT) & 0b1 == 1 {
+            part_props.support_indirect_msg = true;
+        }
+
+        if (prop_bits >> PartitionProperties::SUPPORT_NOTIF_REC_SHIFT) & 0b1 == 1 {
+            part_props.support_notif_rec = true;
+        }
     }
+
+    if (prop_bits >> PartitionProperties::IS_AARCH64_SHIFT) & 0b1 == 1 {
+        part_props.is_aarch64 = true;
+    }
+
+    (part_id_type, part_props)
 }
 
 /// Partition information descriptor, returned by the `FFA_PARTITION_INFO_GET` interface.
@@ -194,11 +232,13 @@ pub struct PartitionInfo {
 }
 
 impl PartitionInfo {
-    const DESC_SIZE: usize = size_of::<partition_info_descriptor>();
+    pub const DESC_SIZE: usize = size_of::<partition_info_descriptor>();
 
     /// Serialize a list of partition information descriptors into a buffer. The `fill_uuid`
     /// parameter controls whether the UUID field of the descriptor will be filled.
-    pub fn pack(descriptors: &[PartitionInfo], buf: &mut [u8], fill_uuid: bool) {
+    pub fn pack(version: Version, descriptors: &[PartitionInfo], buf: &mut [u8], fill_uuid: bool) {
+        assert!((Version(1, 1)..=Version(1, 2)).contains(&version));
+
         let mut offset = 0;
 
         for desc in descriptors {
@@ -210,7 +250,7 @@ impl PartitionInfo {
             (
                 desc_raw.partition_props,
                 desc_raw.exec_ctx_count_or_proxy_id,
-            ) = PartPropWrapper(desc.partition_id_type, desc.props).into();
+            ) = create_partition_properties(version, desc.partition_id_type, desc.props);
 
             if fill_uuid {
                 desc_raw.uuid.copy_from_slice(desc.uuid.as_bytes());
@@ -224,6 +264,7 @@ impl PartitionInfo {
 
 /// Iterator of partition information descriptors.
 pub struct PartitionInfoIterator<'a> {
+    version: Version,
     buf: &'a [u8],
     offset: usize,
     count: usize,
@@ -231,7 +272,9 @@ pub struct PartitionInfoIterator<'a> {
 
 impl<'a> PartitionInfoIterator<'a> {
     /// Create an iterator of partition information descriptors from a buffer.
-    pub fn new(buf: &'a [u8], count: usize) -> Result<Self, Error> {
+    pub fn new(version: Version, buf: &'a [u8], count: usize) -> Result<Self, Error> {
+        assert!((Version(1, 1)..=Version(1, 2)).contains(&version));
+
         let Some(total_size) = count.checked_mul(PartitionInfo::DESC_SIZE) else {
             return Err(Error::InvalidBufferSize);
         };
@@ -241,6 +284,7 @@ impl<'a> PartitionInfoIterator<'a> {
         }
 
         Ok(Self {
+            version,
             buf,
             offset: 0,
             count,
@@ -265,18 +309,19 @@ impl Iterator for PartitionInfoIterator<'_> {
 
             let partition_id = desc_raw.partition_id;
 
-            let wrapper = PartPropWrapper::from((
+            let (partition_id_type, props) = parse_partition_properties(
+                self.version,
                 desc_raw.partition_props,
                 desc_raw.exec_ctx_count_or_proxy_id,
-            ));
+            );
 
             let uuid = Uuid::from_bytes(desc_raw.uuid);
 
             let desc = PartitionInfo {
                 uuid,
                 partition_id,
-                partition_id_type: wrapper.0,
-                props: wrapper.1,
+                partition_id_type,
+                props,
             };
 
             return Some(Ok(desc));
@@ -309,6 +354,8 @@ mod tests {
                 subscribe_vm_created: true,
                 subscribe_vm_destroyed: true,
                 is_aarch64: true,
+                support_direct_req2_rec: Some(true),
+                support_direct_req2_send: Some(true),
             },
         };
 
@@ -324,13 +371,15 @@ mod tests {
                 subscribe_vm_created: false,
                 subscribe_vm_destroyed: false,
                 is_aarch64: true,
+                support_direct_req2_rec: None,
+                support_direct_req2_send: None,
             },
         };
 
         let mut buf = [0u8; 0xff];
-        PartitionInfo::pack(&[desc1, desc2], &mut buf, true);
+        PartitionInfo::pack(Version(1, 2), &[desc1, desc2], &mut buf, true);
 
-        let mut descriptors = PartitionInfoIterator::new(&buf, 2).unwrap();
+        let mut descriptors = PartitionInfoIterator::new(Version(1, 2), &buf, 2).unwrap();
         let desc1_check = descriptors.next().unwrap().unwrap();
         let desc2_check = descriptors.next().unwrap().unwrap();
 
