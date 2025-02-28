@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 pub mod boot_info;
 mod ffa_v1_1;
+mod ffa_v1_2;
 pub mod memory_management;
 pub mod partition_info;
 
@@ -30,14 +31,19 @@ pub enum Error {
     UnrecognisedFeatureId(u8),
     #[error("Unrecognised FF-A error code {0}")]
     UnrecognisedErrorCode(i32),
+    #[error("Invalid number of registers ({0}) for version {1}")]
+    InvalidRegisterNumVersion(usize, Version),
+    #[error("Invalid number of registers ({0}) for function {1}")]
+    InvalidRegisterNumFunction(usize, u32),
 }
 
 impl From<Error> for FfaError {
     fn from(value: Error) -> Self {
         match value {
-            Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
-                Self::NotSupported
-            }
+            Error::UnrecognisedFunctionId(_)
+            | Error::UnrecognisedFeatureId(_)
+            | Error::InvalidRegisterNumVersion(..)
+            | Error::InvalidRegisterNumFunction(..) => Self::NotSupported,
             Error::UnrecognisedErrorCode(_) => Self::InvalidParameters,
         }
     }
@@ -78,8 +84,10 @@ pub enum FuncId {
     MsgSend2 = 0x84000086,
     MsgSendDirectReq32 = 0x8400006f,
     MsgSendDirectReq64 = 0xc400006f,
+    MsgSendDirectReq64_2 = 0xc400008d,
     MsgSendDirectResp32 = 0x84000070,
     MsgSendDirectResp64 = 0xc4000070,
+    MsgSendDirectResp64_2 = 0xc400008e,
     MemDonate32 = 0x84000071,
     MemDonate64 = 0xc4000071,
     MemLend32 = 0x84000072,
@@ -97,6 +105,13 @@ pub enum FuncId {
     MemPermSet64 = 0xc4000089,
     ConsoleLog32 = 0x8400008a,
     ConsoleLog64 = 0xc400008a,
+}
+
+impl FuncId {
+    /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
+    pub fn is_32bit(&self) -> bool {
+        u32::from(*self) & (1 << 30) != 0
+    }
 }
 
 /// Error status codes used by the `FFA_ERROR` interface.
@@ -151,10 +166,11 @@ impl From<TargetInfo> for u32 {
 pub enum SuccessArgs {
     Result32([u32; 6]),
     Result64([u64; 6]),
+    Result64_2([u64; 16]),
 }
 
 /// Version number of the FF-A implementation, `.0` is the major, `.1` is minor the version.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Version(pub u16, pub u16);
 
 impl From<u32> for Version {
@@ -235,6 +251,10 @@ pub enum DirectMsgArgs {
     Args64([u64; 5]),
 }
 
+/// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}2` interfaces.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct DirectMsg2Args([u64; 14]);
+
 /// Descriptor for a dynamically allocated memory buffer that contains the memory transaction
 /// descriptor. Used by `FFA_MEM_{DONATE,LEND,SHARE,RETRIEVE_REQ}` interfaces, only when the TX
 /// buffer is not used to transmit the transaction descriptor.
@@ -255,7 +275,7 @@ pub enum MemAddr {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ConsoleLogChars {
     Reg32([u32; 6]),
-    Reg64([u64; 6]),
+    Reg64([u64; 16]),
 }
 
 /// FF-A "message types", the terminology used by the spec is "interfaces". The interfaces are used
@@ -326,6 +346,17 @@ pub enum Interface {
         flags: u32,
         args: DirectMsgArgs,
     },
+    MsgSendDirectReq2 {
+        src_id: u16,
+        dst_id: u16,
+        uuid: Uuid,
+        args: DirectMsg2Args,
+    },
+    MsgSendDirectResp2 {
+        src_id: u16,
+        dst_id: u16,
+        args: DirectMsg2Args,
+    },
     MemDonate {
         total_len: u32,
         frag_len: u32,
@@ -357,6 +388,7 @@ pub enum Interface {
     },
     MemPermGet {
         addr: MemAddr,
+        page_cnt: Option<u32>,
     },
     MemPermSet {
         addr: MemAddr,
@@ -369,10 +401,118 @@ pub enum Interface {
     },
 }
 
-impl TryFrom<[u64; 8]> for Interface {
-    type Error = Error;
+impl Interface {
+    /// Returns the function ID for the call, if it has one.
+    pub fn function_id(&self) -> Option<FuncId> {
+        match self {
+            Interface::Error { .. } => Some(FuncId::Error),
+            Interface::Success { args, .. } => match args {
+                SuccessArgs::Result32(..) => Some(FuncId::Success32),
+                SuccessArgs::Result64(..) | SuccessArgs::Result64_2(..) => Some(FuncId::Success64),
+            },
+            Interface::Interrupt { .. } => Some(FuncId::Interrupt),
+            Interface::Version { .. } => Some(FuncId::Version),
+            Interface::VersionOut { .. } => None,
+            Interface::Features { .. } => Some(FuncId::Features),
+            Interface::RxAcquire { .. } => Some(FuncId::RxAcquire),
+            Interface::RxRelease { .. } => Some(FuncId::RxRelease),
+            Interface::RxTxMap { addr, .. } => match addr {
+                RxTxAddr::Addr32 { .. } => Some(FuncId::RxTxMap32),
+                RxTxAddr::Addr64 { .. } => Some(FuncId::RxTxMap64),
+            },
+            Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
+            Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::IdGet => Some(FuncId::IdGet),
+            Interface::SpmIdGet => Some(FuncId::SpmIdGet),
+            Interface::MsgWait => Some(FuncId::MsgWait),
+            Interface::Yield => Some(FuncId::Yield),
+            Interface::Run { .. } => Some(FuncId::Run),
+            Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
+            Interface::MsgSend2 { .. } => Some(FuncId::MsgSend2),
+            Interface::MsgSendDirectReq { args, .. } => match args {
+                DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectReq32),
+                DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectReq64),
+            },
+            Interface::MsgSendDirectResp { args, .. } => match args {
+                DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectResp32),
+                DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectResp64),
+            },
+            Interface::MsgSendDirectReq2 { .. } => Some(FuncId::MsgSendDirectReq64_2),
+            Interface::MsgSendDirectResp2 { .. } => Some(FuncId::MsgSendDirectResp64_2),
+            Interface::MemDonate { buf, .. } => match buf {
+                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemDonate64),
+                _ => Some(FuncId::MemDonate32),
+            },
+            Interface::MemLend { buf, .. } => match buf {
+                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemLend64),
+                _ => Some(FuncId::MemLend32),
+            },
+            Interface::MemShare { buf, .. } => match buf {
+                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemShare64),
+                _ => Some(FuncId::MemShare32),
+            },
+            Interface::MemRetrieveReq { buf, .. } => match buf {
+                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemRetrieveReq64),
+                _ => Some(FuncId::MemRetrieveReq32),
+            },
+            Interface::MemRetrieveResp { .. } => Some(FuncId::MemRetrieveResp),
+            Interface::MemRelinquish => Some(FuncId::MemRelinquish),
+            Interface::MemReclaim { .. } => Some(FuncId::MemReclaim),
+            Interface::MemPermGet { addr, .. } => match addr {
+                MemAddr::Addr32(_) => Some(FuncId::MemPermGet32),
+                MemAddr::Addr64(_) => Some(FuncId::MemPermGet64),
+            },
+            Interface::MemPermSet { addr, .. } => match addr {
+                MemAddr::Addr32(_) => Some(FuncId::MemPermSet32),
+                MemAddr::Addr64(_) => Some(FuncId::MemPermSet64),
+            },
+            Interface::ConsoleLog { char_lists, .. } => match char_lists {
+                ConsoleLogChars::Reg32(_) => Some(FuncId::ConsoleLog32),
+                ConsoleLogChars::Reg64(_) => Some(FuncId::ConsoleLog64),
+            },
+        }
+    }
 
-    fn try_from(regs: [u64; 8]) -> Result<Self, Error> {
+    /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
+    pub fn is_32bit(&self) -> bool {
+        // TODO: self should always have a function ID?
+        self.function_id().unwrap().is_32bit()
+    }
+
+    /// Parse interface from register contents.
+    pub fn from_regs(version: Version, regs: &[u64]) -> Result<Self, Error> {
+        let reg_cnt = regs.len();
+
+        let msg = match reg_cnt {
+            8 => {
+                if version > Version(1, 1) {
+                    return Err(Error::InvalidRegisterNumVersion(reg_cnt, version));
+                }
+
+                Interface::unpack_regs8(version, regs.try_into().unwrap())?
+            }
+            18 => {
+                if version < Version(1, 2) {
+                    return Err(Error::InvalidRegisterNumVersion(reg_cnt, version));
+                }
+
+                match FuncId::try_from(regs[0] as u32)? {
+                    FuncId::ConsoleLog64
+                    | FuncId::Success64
+                    | FuncId::MsgSendDirectReq64_2
+                    | FuncId::MsgSendDirectResp64_2 => {
+                        Interface::unpack_regs18(version, regs.try_into().unwrap())?
+                    }
+                    _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap())?,
+                }
+            }
+            _ => return Err(Error::InvalidRegisterNumVersion(reg_cnt, version)),
+        };
+
+        Ok(msg)
+    }
+
+    fn unpack_regs8(version: Version, regs: &[u64; 8]) -> Result<Self, Error> {
         let fid = FuncId::try_from(regs[0] as u32)?;
 
         let msg = match fid {
@@ -602,9 +742,19 @@ impl TryFrom<[u64; 8]> for Interface {
             },
             FuncId::MemPermGet32 => Self::MemPermGet {
                 addr: MemAddr::Addr32(regs[1] as u32),
+                page_cnt: if version >= Version(1, 3) {
+                    Some(regs[2] as u32)
+                } else {
+                    None
+                },
             },
             FuncId::MemPermGet64 => Self::MemPermGet {
                 addr: MemAddr::Addr64(regs[1]),
+                page_cnt: if version >= Version(1, 3) {
+                    Some(regs[2] as u32)
+                } else {
+                    None
+                },
             },
             FuncId::MemPermSet32 => Self::MemPermSet {
                 addr: MemAddr::Addr32(regs[1] as u32),
@@ -627,147 +777,80 @@ impl TryFrom<[u64; 8]> for Interface {
                     regs[7] as u32,
                 ]),
             },
-            FuncId::ConsoleLog64 => Self::ConsoleLog {
-                char_cnt: regs[1] as u8,
-                char_lists: ConsoleLogChars::Reg64([
-                    regs[2], regs[3], regs[4], regs[5], regs[6], regs[7],
-                ]),
-            },
+            _ => return Err(Error::InvalidRegisterNumFunction(8, fid as u32)),
         };
 
         Ok(msg)
     }
-}
 
-impl Interface {
-    /// Returns the function ID for the call, if it has one.
-    pub fn function_id(&self) -> Option<FuncId> {
-        match self {
-            Interface::Error { .. } => Some(FuncId::Error),
-            Interface::Success { args, .. } => match args {
-                SuccessArgs::Result32(..) => Some(FuncId::Success32),
-                SuccessArgs::Result64(..) => Some(FuncId::Success64),
-            },
-            Interface::Interrupt { .. } => Some(FuncId::Interrupt),
-            Interface::Version { .. } => Some(FuncId::Version),
-            Interface::VersionOut { .. } => None,
-            Interface::Features { .. } => Some(FuncId::Features),
-            Interface::RxAcquire { .. } => Some(FuncId::RxAcquire),
-            Interface::RxRelease { .. } => Some(FuncId::RxRelease),
-            Interface::RxTxMap { addr, .. } => match addr {
-                RxTxAddr::Addr32 { .. } => Some(FuncId::RxTxMap32),
-                RxTxAddr::Addr64 { .. } => Some(FuncId::RxTxMap64),
-            },
-            Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
-            Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
-            Interface::IdGet => Some(FuncId::IdGet),
-            Interface::SpmIdGet => Some(FuncId::SpmIdGet),
-            Interface::MsgWait => Some(FuncId::MsgWait),
-            Interface::Yield => Some(FuncId::Yield),
-            Interface::Run { .. } => Some(FuncId::Run),
-            Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
-            Interface::MsgSend2 { .. } => Some(FuncId::MsgSend2),
-            Interface::MsgSendDirectReq { args, .. } => match args {
-                DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectReq32),
-                DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectReq64),
-            },
-            Interface::MsgSendDirectResp { args, .. } => match args {
-                DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectResp32),
-                DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectResp64),
-            },
-            Interface::MemDonate { buf, .. } => match buf {
-                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemDonate64),
-                _ => Some(FuncId::MemDonate32),
-            },
-            Interface::MemLend { buf, .. } => match buf {
-                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemLend64),
-                _ => Some(FuncId::MemLend32),
-            },
-            Interface::MemShare { buf, .. } => match buf {
-                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemShare64),
-                _ => Some(FuncId::MemShare32),
-            },
-            Interface::MemRetrieveReq { buf, .. } => match buf {
-                Some(MemOpBuf::Buf64 { .. }) => Some(FuncId::MemRetrieveReq64),
-                _ => Some(FuncId::MemRetrieveReq32),
-            },
-            Interface::MemRetrieveResp { .. } => Some(FuncId::MemRetrieveResp),
-            Interface::MemRelinquish => Some(FuncId::MemRelinquish),
-            Interface::MemReclaim { .. } => Some(FuncId::MemReclaim),
-            Interface::MemPermGet { addr, .. } => match addr {
-                MemAddr::Addr32(_) => Some(FuncId::MemPermGet32),
-                MemAddr::Addr64(_) => Some(FuncId::MemPermGet64),
-            },
-            Interface::MemPermSet { addr, .. } => match addr {
-                MemAddr::Addr32(_) => Some(FuncId::MemPermSet32),
-                MemAddr::Addr64(_) => Some(FuncId::MemPermSet64),
-            },
-            Interface::ConsoleLog { char_lists, .. } => match char_lists {
-                ConsoleLogChars::Reg32(_) => Some(FuncId::ConsoleLog32),
-                ConsoleLogChars::Reg64(_) => Some(FuncId::ConsoleLog64),
-            },
+    fn unpack_regs18(version: Version, regs: &[u64; 18]) -> Result<Self, Error> {
+        if version < Version(1, 2) {
+            return Err(Error::InvalidRegisterNumVersion(18, version));
         }
-    }
 
-    /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
-    pub fn is_32bit(&self) -> bool {
-        match self {
-            Interface::Error { .. }
-            | Interface::Interrupt { .. }
-            | Interface::Version { .. }
-            | Interface::VersionOut { .. }
-            | Interface::Features { .. }
-            | Interface::RxAcquire { .. }
-            | Interface::RxRelease { .. }
-            | Interface::RxTxUnmap { .. }
-            | Interface::PartitionInfoGet { .. }
-            | Interface::IdGet
-            | Interface::SpmIdGet
-            | Interface::MsgWait
-            | Interface::Yield
-            | Interface::Run { .. }
-            | Interface::NormalWorldResume
-            | Interface::MsgSend2 { .. }
-            | Interface::MemRetrieveResp { .. }
-            | Interface::MemRelinquish
-            | Interface::MemReclaim { .. } => true,
-            Interface::Success {
-                args: SuccessArgs::Result32(..),
-                ..
-            } => true,
-            Interface::RxTxMap {
-                addr: RxTxAddr::Addr32 { .. },
-                ..
-            } => true,
-            Interface::MsgSendDirectReq { args, .. }
-            | Interface::MsgSendDirectResp { args, .. }
-                if matches!(args, DirectMsgArgs::Args32(_)) =>
-            {
-                true
-            }
-            Interface::MemDonate { buf, .. }
-            | Interface::MemLend { buf, .. }
-            | Interface::MemShare { buf, .. }
-            | Interface::MemRetrieveReq { buf, .. }
-                if buf.is_none() || matches!(buf, Some(MemOpBuf::Buf32 { .. })) =>
-            {
-                true
-            }
-            Interface::MemPermGet { addr, .. } | Interface::MemPermSet { addr, .. }
-                if matches!(addr, MemAddr::Addr32(_)) =>
-            {
-                true
-            }
-            Interface::ConsoleLog {
-                char_lists: ConsoleLogChars::Reg32(_),
-                ..
-            } => true,
-            _ => false,
-        }
+        let fid = FuncId::try_from(regs[0] as u32)?;
+
+        let msg = match fid {
+            FuncId::Success64 => Self::Success {
+                target_info: regs[1] as u32,
+                args: SuccessArgs::Result64_2(regs[2..18].try_into().unwrap()),
+            },
+            FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
+                src_id: (regs[1] >> 16) as u16,
+                dst_id: regs[1] as u16,
+                uuid: Uuid::from_u64_pair(regs[2], regs[3]),
+                args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
+            },
+            FuncId::MsgSendDirectResp64_2 => Self::MsgSendDirectResp2 {
+                src_id: (regs[1] >> 16) as u16,
+                dst_id: regs[1] as u16,
+                args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
+            },
+            FuncId::ConsoleLog64 => Self::ConsoleLog {
+                char_cnt: regs[1] as u8,
+                char_lists: ConsoleLogChars::Reg64(regs[2..18].try_into().unwrap()),
+            },
+            _ => return Err(Error::InvalidRegisterNumFunction(8, fid as u32)),
+        };
+
+        Ok(msg)
     }
 
     /// Create register contents for an interface.
-    pub fn copy_to_array(&self, a: &mut [u64; 8]) {
+    pub fn to_regs(&self, version: Version, regs: &mut [u64]) {
+        let reg_cnt = regs.len();
+
+        match reg_cnt {
+            8 => {
+                assert!(version <= Version(1, 1));
+                self.pack_regs8(version, &mut regs[..8].try_into().unwrap());
+            }
+            18 => {
+                assert!(version >= Version(1, 2));
+
+                match self {
+                    Interface::ConsoleLog {
+                        char_lists: ConsoleLogChars::Reg64(_),
+                        ..
+                    }
+                    | Interface::Success {
+                        args: SuccessArgs::Result64_2(_),
+                        ..
+                    }
+                    | Interface::MsgSendDirectReq2 { .. }
+                    | Interface::MsgSendDirectResp2 { .. } => {
+                        self.pack_regs18(version, regs.try_into().unwrap());
+                    }
+                    _ => {
+                        self.pack_regs8(version, &mut regs[..8].try_into().unwrap());
+                    }
+                }
+            }
+            _ => panic!("Invalid number of registers {}", reg_cnt),
+        }
+    }
+
+    fn pack_regs8(&self, version: Version, a: &mut [u64; 8]) {
         a.fill(0);
         if let Some(function_id) = self.function_id() {
             a[0] = function_id as u64;
@@ -800,6 +883,7 @@ impl Interface {
                         a[6] = regs[4];
                         a[7] = regs[5];
                     }
+                    _ => panic!("{:#x?} requires 18 registers", args),
                 }
             }
             Interface::Interrupt {
@@ -980,11 +1064,17 @@ impl Interface {
                 a[2] = handle_regs[1].into();
                 a[3] = flags.into();
             }
-            Interface::MemPermGet { addr } => {
+            Interface::MemPermGet { addr, page_cnt } => {
                 a[1] = match addr {
                     MemAddr::Addr32(addr) => addr.into(),
                     MemAddr::Addr64(addr) => addr,
                 };
+                a[2] = if version >= Version(1, 3) {
+                    page_cnt.unwrap().into()
+                } else {
+                    assert!(page_cnt.is_none());
+                    0
+                }
             }
             Interface::MemPermSet {
                 addr,
@@ -1012,16 +1102,60 @@ impl Interface {
                         a[6] = regs[4].into();
                         a[7] = regs[5].into();
                     }
-                    ConsoleLogChars::Reg64(regs) => {
-                        a[2] = regs[0];
-                        a[3] = regs[1];
-                        a[4] = regs[2];
-                        a[5] = regs[3];
-                        a[6] = regs[4];
-                        a[7] = regs[5];
-                    }
+                    _ => panic!("{:#x?} requires 18 registers", char_lists),
                 }
             }
+            _ => panic!("{:#x?} requires 18 registers", self),
+        }
+    }
+
+    fn pack_regs18(&self, version: Version, a: &mut [u64; 18]) {
+        assert!(version >= Version(1, 2));
+
+        a.fill(0);
+        if let Some(function_id) = self.function_id() {
+            a[0] = function_id as u64;
+        }
+
+        match *self {
+            Interface::Success { target_info, args } => {
+                a[1] = target_info.into();
+                match args {
+                    SuccessArgs::Result64_2(regs) => a[2..18].copy_from_slice(&regs[..16]),
+                    _ => panic!("{:#x?} requires 8 registers", args),
+                }
+            }
+            Interface::MsgSendDirectReq2 {
+                src_id,
+                dst_id,
+                uuid,
+                args,
+            } => {
+                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                (a[2], a[3]) = uuid.as_u64_pair();
+                a[4..18].copy_from_slice(&args.0[..14]);
+            }
+            Interface::MsgSendDirectResp2 {
+                src_id,
+                dst_id,
+                args,
+            } => {
+                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[2] = 0;
+                a[3] = 0;
+                a[4..18].copy_from_slice(&args.0[..14]);
+            }
+            Interface::ConsoleLog {
+                char_cnt,
+                char_lists,
+            } => {
+                a[1] = char_cnt.into();
+                match char_lists {
+                    ConsoleLogChars::Reg64(regs) => a[2..18].copy_from_slice(&regs[..16]),
+                    _ => panic!("{:#x?} requires 8 registers", char_lists),
+                }
+            }
+            _ => panic!("{:#x?} requires 8 registers", self),
         }
     }
 
@@ -1047,10 +1181,8 @@ impl Interface {
 
 /// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG32` message.
 pub const CONSOLE_LOG_32_MAX_CHAR_CNT: u8 = 24;
-/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG64` message. Note: this
-/// value currently differs from the spec because the library currently only supports parsing 8
-/// registers instead of 18.
-pub const CONSOLE_LOG_64_MAX_CHAR_CNT: u8 = 48;
+/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG64` message.
+pub const CONSOLE_LOG_64_MAX_CHAR_CNT: u8 = 128;
 
 /// Helper function to convert the "Tightly packed list of characters" format used by the
 /// `FFA_CONSOLE_LOG` interface into a byte slice.
