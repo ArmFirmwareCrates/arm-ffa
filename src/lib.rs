@@ -31,6 +31,18 @@ pub enum Error {
     UnrecognisedFeatureId(u8),
     #[error("Unrecognised FF-A error code {0}")]
     UnrecognisedErrorCode(i32),
+    #[error("Unrecognised FF-A Framework Message {0}")]
+    UnrecognisedFwkMsg(u32),
+    #[error("Unrecognised FF-A Msg Wait Flag {0}")]
+    UnrecognisedMsgWaitFlag(u32),
+    #[error("Unrecognised FF-A VM SP Return Status {0}")]
+    UnrecognisedVMSpReturnStatus(i32),
+    #[error("Unrecognised PSCI Return Status {0}")]
+    UnrecognisedPsciReturnStatus(i32),
+    #[error("Unrecognised FF-A Warm Boot Type {0}")]
+    UnrecognisedWarmBootType(u32),
+    #[error("Invalid version {0}")]
+    InvalidVersion(u32),
 }
 
 impl From<Error> for FfaError {
@@ -39,7 +51,13 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
-            Error::UnrecognisedErrorCode(_) => Self::InvalidParameters,
+            Error::UnrecognisedErrorCode(_)
+            | Error::UnrecognisedFwkMsg(_)
+            | Error::InvalidVersion(_)
+            | Error::UnrecognisedMsgWaitFlag(_)
+            | Error::UnrecognisedVMSpReturnStatus(_)
+            | Error::UnrecognisedPsciReturnStatus(_)
+            | Error::UnrecognisedWarmBootType(_) => Self::InvalidParameters,
         }
     }
 }
@@ -258,11 +276,124 @@ pub enum RxTxAddr {
     Addr64 { rx: u64, tx: u64 },
 }
 
+/// VM SP return status for the VM creation/destruction framework message.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::UnrecognisedVMSpReturnStatus))]
+#[repr(i32)]
+pub enum VMSpReturnStatus {
+    // The SP acknowledges successful receipt of VM creation message by transitioning to the VM
+    // available state.
+    Success = 0,
+    // One or more parameters were incorrectly encoded. One or more parameters contain invalid
+    // values. The SP transitions to the Error state.
+    InvalidParameters = FfaError::InvalidParameters as i32,
+    // The SP was interrupted by a Non-secure interrupt. It performed a managed exit before handling
+    // the message. The Hypervisor should resend the message to resume SP execution. This enables
+    // the SP to finish handling the VM creation message. The SP remains in the VM unavailable state
+    Interrupted = FfaError::Interrupted as i32,
+    // The SP cannot acknowledge successful receipt of VM creation message due to an IMPLEMENTATION
+    // DEFINED reason. The SP remains in its current state.
+    Denied = FfaError::Denied as i32,
+    // The SP is in an IMPLEMENTATION DEFINED state that prevents it from acknowledging the VM
+    // creation message. The Hypervisor should resend the VM creation message. The SP remains in the
+    // VM unavailable state.
+    Retry = FfaError::Retry as i32,
+}
+
+/// PSCI return status for the PSCI Request framework message.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::UnrecognisedPsciReturnStatus))]
+#[repr(i32)]
+pub enum PsciReturnStatus {
+    Success = 0,
+    Denied = -3,
+}
+
+/// Arguments for the Power Warm Boot `FFA_MSG_SEND_DIRECT_REQ` interface.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::UnrecognisedWarmBootType))]
+#[repr(u32)]
+pub enum WarmBootType {
+    ExitFromSuspend = 0,
+    ExitFromLowPower = 1,
+}
+
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DirectMsgArgs {
     Args32([u32; 5]),
     Args64([u64; 5]),
+    // Message for forwarding FFA_VERSION call from Normal world to the SPMC
+    VersionReq {
+        version: Version,
+    },
+    // Response message to forwarded FFA_VERSION call from the Normal world
+    // Contains the version returned by the SPMC or None
+    VersionResp {
+        version: Option<Version>,
+    },
+    // Message for a power management operation initiated by a PSCI function
+    PowerPsciReq32 {
+        function_id: u32,
+        // params[i]: Input parameter in wi in PSCI function invocation at EL3.
+        params: [u32; 3],
+    },
+    // Message for a power management operation initiated by a PSCI function
+    PowerPsciReq64 {
+        function_id: u32,
+        // params[i]: Input parameter in xi in PSCI function invocation at EL3.
+        params: [u64; 3],
+    },
+    // Message for a warm boot
+    PowerWarmBootReq {
+        boot_type: WarmBootType,
+    },
+    // Response message to indicate return status of the last power management request message
+    // Return error code SUCCESS or DENIED as defined in PSCI spec
+    PowerPsciResp {
+        psci_status: PsciReturnStatus,
+    },
+    // Message to signal creation of a VM
+    VmCreated {
+        // Globally unique Handle to identify a memory region that contains IMPLEMENTATION DEFINED
+        // information associated with the created VM.
+        // The invalid memory region handle must be specified by the Hypervisor if this field is not
+        //  used.
+        handle: memory_management::Handle,
+        vm_id: u16,
+    },
+    // Message to acknowledge creation of a VM
+    VmCreatedAck {
+        sp_status: VMSpReturnStatus,
+    },
+    // Message to signal destruction of a VM
+    VmDestructed {
+        // Globally unique Handle to identify a memory region that contains IMPLEMENTATION DEFINED
+        // information associated with the created VM.
+        // The invalid memory region handle must be specified by the Hypervisor if this field is not
+        //  used.
+        handle: memory_management::Handle,
+        vm_id: u16,
+    },
+    // Message to acknowledge destruction of a VM
+    AckDestructVmResp {
+        sp_status: VMSpReturnStatus,
+    },
+}
+
+impl DirectMsgArgs {
+    // Flags for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
+
+    const FWK_MSG_BITS: u32 = 1 << 31;
+    const VERSION_REQ: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b1000;
+    const VERSION_RESP: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b1001;
+    const POWER_PSCI_REQ: u32 = DirectMsgArgs::FWK_MSG_BITS;
+    const POWER_WARM_BOOT_REQ: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0001;
+    const POWER_PSCI_RESP: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0010;
+    const VM_CREATED: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0100;
+    const VM_CREATED_ACK: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0101;
+    const VM_DESTRUCTED: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0110;
+    const ACK_DESTRUCT_VM_RESP: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0111;
 }
 
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}2` interfaces.
@@ -351,13 +482,11 @@ pub enum Interface {
     MsgSendDirectReq {
         src_id: u16,
         dst_id: u16,
-        flags: u32,
         args: DirectMsgArgs,
     },
     MsgSendDirectResp {
         src_id: u16,
         dst_id: u16,
-        flags: u32,
         args: DirectMsgArgs,
     },
     MsgSendDirectReq2 {
@@ -446,10 +575,22 @@ impl Interface {
             Interface::MsgSendDirectReq { args, .. } => match args {
                 DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectReq32),
                 DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectReq64),
+                DirectMsgArgs::VersionReq { .. } => Some(FuncId::MsgSendDirectReq32),
+                DirectMsgArgs::PowerPsciReq32 { .. } => Some(FuncId::MsgSendDirectReq32),
+                DirectMsgArgs::PowerPsciReq64 { .. } => Some(FuncId::MsgSendDirectReq64),
+                DirectMsgArgs::PowerWarmBootReq { .. } => Some(FuncId::MsgSendDirectReq32),
+                DirectMsgArgs::VmCreated { .. } => Some(FuncId::MsgSendDirectReq32),
+                DirectMsgArgs::VmDestructed { .. } => Some(FuncId::MsgSendDirectReq32),
+                _ => None,
             },
             Interface::MsgSendDirectResp { args, .. } => match args {
                 DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectResp32),
                 DirectMsgArgs::Args64(_) => Some(FuncId::MsgSendDirectResp64),
+                DirectMsgArgs::VersionResp { .. } => Some(FuncId::MsgSendDirectResp32),
+                DirectMsgArgs::PowerPsciResp { .. } => Some(FuncId::MsgSendDirectResp32),
+                DirectMsgArgs::VmCreatedAck { .. } => Some(FuncId::MsgSendDirectResp32),
+                DirectMsgArgs::AckDestructVmResp { .. } => Some(FuncId::MsgSendDirectResp32),
+                _ => None,
             },
             Interface::MsgSendDirectReq2 { .. } => Some(FuncId::MsgSendDirectReq64_2),
             Interface::MsgSendDirectResp2 { .. } => Some(FuncId::MsgSendDirectResp64_2),
@@ -614,38 +755,102 @@ impl Interface {
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
-                args: DirectMsgArgs::Args32([
-                    regs[3] as u32,
-                    regs[4] as u32,
-                    regs[5] as u32,
-                    regs[6] as u32,
-                    regs[7] as u32,
-                ]),
+                args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
+                    match regs[2] as u32 {
+                        DirectMsgArgs::VERSION_REQ => DirectMsgArgs::VersionReq {
+                            version: Version::try_from(regs[3] as u32)?,
+                        },
+                        DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq32 {
+                            function_id: regs[3] as u32,
+                            params: [regs[4] as u32, regs[5] as u32, regs[6] as u32],
+                        },
+                        DirectMsgArgs::POWER_WARM_BOOT_REQ => DirectMsgArgs::PowerWarmBootReq {
+                            boot_type: WarmBootType::try_from(regs[3] as u32)?,
+                        },
+                        DirectMsgArgs::VM_CREATED => DirectMsgArgs::VmCreated {
+                            handle: memory_management::Handle::from([
+                                regs[3] as u32,
+                                regs[4] as u32,
+                            ]),
+                            vm_id: regs[5] as u16,
+                        },
+                        DirectMsgArgs::VM_DESTRUCTED => DirectMsgArgs::VmDestructed {
+                            handle: memory_management::Handle::from([
+                                regs[3] as u32,
+                                regs[4] as u32,
+                            ]),
+                            vm_id: regs[5] as u16,
+                        },
+                        _ => return Err(Error::UnrecognisedFwkMsg(regs[2] as u32)),
+                    }
+                } else {
+                    DirectMsgArgs::Args32([
+                        regs[3] as u32,
+                        regs[4] as u32,
+                        regs[5] as u32,
+                        regs[6] as u32,
+                        regs[7] as u32,
+                    ])
+                },
             },
             FuncId::MsgSendDirectReq64 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
-                args: DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]]),
+                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
+                    match regs[2] as u32 {
+                        DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq64 {
+                            function_id: regs[3] as u32,
+                            params: [regs[4], regs[5], regs[6]],
+                        },
+                        _ => return Err(Error::UnrecognisedFwkMsg(regs[2] as u32)),
+                    }
+                } else {
+                    DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]])
+                },
             },
             FuncId::MsgSendDirectResp32 => Self::MsgSendDirectResp {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
-                args: DirectMsgArgs::Args32([
-                    regs[3] as u32,
-                    regs[4] as u32,
-                    regs[5] as u32,
-                    regs[6] as u32,
-                    regs[7] as u32,
-                ]),
+                args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
+                    match regs[2] as u32 {
+                        DirectMsgArgs::VERSION_RESP => {
+                            if regs[3] as i32 == FfaError::NotSupported.into() {
+                                DirectMsgArgs::VersionResp { version: None }
+                            } else {
+                                DirectMsgArgs::VersionResp {
+                                    version: Some(Version::try_from(regs[3] as u32)?),
+                                }
+                            }
+                        }
+                        DirectMsgArgs::POWER_PSCI_RESP => DirectMsgArgs::PowerPsciResp {
+                            psci_status: (regs[3] as i32).try_into()?,
+                        },
+                        DirectMsgArgs::VM_CREATED_ACK => DirectMsgArgs::VmCreatedAck {
+                            sp_status: (regs[3] as i32).try_into()?,
+                        },
+                        DirectMsgArgs::ACK_DESTRUCT_VM_RESP => DirectMsgArgs::AckDestructVmResp {
+                            sp_status: (regs[3] as i32).try_into()?,
+                        },
+                        _ => return Err(Error::UnrecognisedFwkMsg(regs[2] as u32)),
+                    }
+                } else {
+                    DirectMsgArgs::Args32([
+                        regs[3] as u32,
+                        regs[4] as u32,
+                        regs[5] as u32,
+                        regs[6] as u32,
+                        regs[7] as u32,
+                    ])
+                },
             },
             FuncId::MsgSendDirectResp64 => Self::MsgSendDirectResp {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
-                args: DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]]),
+                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
+                    return Err(Error::UnrecognisedFwkMsg(regs[2] as u32));
+                } else {
+                    DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]])
+                },
             },
             FuncId::MemDonate32 => Self::MemDonate {
                 total_len: regs[1] as u32,
@@ -961,11 +1166,9 @@ impl Interface {
             Interface::MsgSendDirectReq {
                 src_id,
                 dst_id,
-                flags,
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                a[2] = flags.into();
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -981,16 +1184,57 @@ impl Interface {
                         a[6] = args[3];
                         a[7] = args[4];
                     }
+                    DirectMsgArgs::VersionReq { version } => {
+                        a[2] = DirectMsgArgs::VERSION_REQ.into();
+                        a[3] = u32::from(version).into();
+                    }
+                    DirectMsgArgs::PowerPsciReq32 {
+                        function_id,
+                        params,
+                    } => {
+                        a[2] = DirectMsgArgs::POWER_PSCI_REQ.into();
+                        a[3] = function_id.into();
+                        a[4] = params[0].into();
+                        a[5] = params[1].into();
+                        a[6] = params[2].into();
+                    }
+                    DirectMsgArgs::PowerPsciReq64 {
+                        function_id,
+                        params,
+                    } => {
+                        a[2] = DirectMsgArgs::POWER_PSCI_REQ.into();
+                        a[3] = function_id.into();
+                        a[4] = params[0];
+                        a[5] = params[1];
+                        a[6] = params[2];
+                    }
+                    DirectMsgArgs::PowerWarmBootReq { boot_type } => {
+                        a[2] = DirectMsgArgs::POWER_WARM_BOOT_REQ.into();
+                        a[3] = u32::from(boot_type).into();
+                    }
+                    DirectMsgArgs::VmCreated { handle, vm_id } => {
+                        a[2] = DirectMsgArgs::VM_CREATED.into();
+                        let handle_regs: [u32; 2] = handle.into();
+                        a[3] = handle_regs[0].into();
+                        a[4] = handle_regs[1].into();
+                        a[5] = vm_id.into();
+                    }
+                    DirectMsgArgs::VmDestructed { handle, vm_id } => {
+                        a[2] = DirectMsgArgs::VM_DESTRUCTED.into();
+                        let handle_regs: [u32; 2] = handle.into();
+                        a[3] = handle_regs[0].into();
+                        a[4] = handle_regs[1].into();
+                        a[5] = vm_id.into();
+                    }
+                    _ => panic!("Malformed MsgSendDirectReq interface"),
                 }
             }
             Interface::MsgSendDirectResp {
                 src_id,
                 dst_id,
-                flags,
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                a[2] = flags.into();
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -1006,6 +1250,26 @@ impl Interface {
                         a[6] = args[3];
                         a[7] = args[4];
                     }
+                    DirectMsgArgs::VersionResp { version } => {
+                        a[2] = DirectMsgArgs::VERSION_RESP.into();
+                        match version {
+                            None => a[3] = i32::from(FfaError::NotSupported) as u64,
+                            Some(ver) => a[3] = u32::from(ver).into(),
+                        }
+                    }
+                    DirectMsgArgs::PowerPsciResp { psci_status } => {
+                        a[2] = DirectMsgArgs::POWER_PSCI_RESP.into();
+                        a[3] = i32::from(psci_status) as u64;
+                    }
+                    DirectMsgArgs::VmCreatedAck { sp_status } => {
+                        a[2] = DirectMsgArgs::VM_CREATED_ACK.into();
+                        a[4] = i32::from(sp_status) as u64;
+                    }
+                    DirectMsgArgs::AckDestructVmResp { sp_status } => {
+                        a[2] = DirectMsgArgs::ACK_DESTRUCT_VM_RESP.into();
+                        a[3] = i32::from(sp_status) as u64;
+                    }
+                    _ => panic!("Malformed MsgSendDirectResp interface"),
                 }
             }
             Interface::MemDonate {
