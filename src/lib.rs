@@ -217,19 +217,19 @@ pub enum FeatureId {
 pub enum Feature {
     FuncId(FuncId),
     FeatureId(FeatureId),
+    Unknown(u32),
 }
 
-impl TryFrom<u32> for Feature {
-    type Error = Error;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        let res = if (value >> 31) & 1 == 1 {
-            Self::FuncId(value.try_into()?)
+impl From<u32> for Feature {
+    fn from(value: u32) -> Self {
+        // Bit[31] is set for all valid FF-A function IDs so we don't have to check it separately
+        if let Ok(func_id) = value.try_into() {
+            Self::FuncId(func_id)
+        } else if let Ok(feat_id) = (value as u8).try_into() {
+            Self::FeatureId(feat_id)
         } else {
-            Self::FeatureId((value as u8).try_into()?)
-        };
-
-        Ok(res)
+            Self::Unknown(value)
+        }
     }
 }
 
@@ -238,6 +238,7 @@ impl From<Feature> for u32 {
         match value {
             Feature::FuncId(func_id) => (1 << 31) | func_id as u32,
             Feature::FeatureId(feature_id) => feature_id as u32,
+            Feature::Unknown(id) => panic!("Unknown feature or function ID {:#x?}", id),
         }
     }
 }
@@ -546,7 +547,7 @@ impl Interface {
                 input_version: (regs[1] as u32).into(),
             },
             FuncId::Features => Self::Features {
-                feat_id: (regs[1] as u32).try_into()?,
+                feat_id: (regs[1] as u32).into(),
                 input_properties: regs[2] as u32,
             },
             FuncId::RxAcquire => Self::RxAcquire {
