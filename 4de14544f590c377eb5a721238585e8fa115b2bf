@@ -1,0 +1,95 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eb6081e7_f2164ef5",
+        "filename": "README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T12:57:44Z",
+      "side": 1,
+      "message": "May I suggest:\nThe FF-A specification allows different components of a system to use different versions of the specification\n?",
+      "range": {
+        "startLine": 33,
+        "startChar": 0,
+        "endLine": 34,
+        "endChar": 17
+      },
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d92af85a_ecace289",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T12:57:44Z",
+      "side": 1,
+      "message": "I\u0027m kind of skeptic of adding things that may be v1.2 specific to v1.1 as well.\nI would like the library to be very neat about what is v1.2 and what is v1.1, so that you cannot go mess up when coding as the types just won\u0027t allow you to.",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7e30ba2e_98a0e2fa",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T12:57:44Z",
+      "side": 1,
+      "message": "Does this comment need updating?",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0ad42322_c22633d1",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T12:57:44Z",
+      "side": 1,
+      "message": "These changes appear in the structure even if we are using version 1.1.\nCould we maybe make those types appear only when 1.2 is used ? Either via a feature/configuration or via Type definitions?\nThis can be done later (non-blocking) but thought it would be good mentioning it.",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "04b566c0_27666d5f",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 381,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T12:57:44Z",
+      "side": 1,
+      "message": "Is it possible to do the test for both versions?",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
