@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2d7b64ec_3aeb7fba",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T12:30:26Z",
+      "side": 1,
+      "message": "Sorry I don\u0027t agree with this change. In my understanding the `INVALID_PARAMETERS` error code means that the function ID was recognised, but some arguments of the call are invalid. It has a specific meaning for the interfaces where it\u0027s valid to return this error, as described in the spec (e.g. for `FFA_RXTX_UNMAP`: There is no buffer pair registered on behalf of the caller, for `FFA_PARTITION_INFO_GET`: Unrecognized UUID, etc).\n\nThe FF-A spec doesn\u0027t clearly state this, but in general it uses the `NOT_SUPPORTED` error code every time when a function ID is not recognised. This is usually because it\u0027s an optional function or it\u0027s from a newer version of the spec. Assuming that the caller of this library did at least a sanity check to see if the function ID is valid and in FF-A\u0027s SMCCC range, I think returning `NOT_SUPPORTED` will be the correct action for anything that we can\u0027t recognise.",
+      "revId": "ee4a80f44aba84af191cd9422b6c858fe3f621a8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
