@@ -184,6 +184,9 @@ impl Version {
     pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
         self.0 == callee_version.0 && self.1 <= callee_version.1
     }
+
+    // MSG flag for when responding to FFA_VERSION
+    pub const VERSION_MSG_FLAG: u32 = 0b0000_1001;
 }
 
 impl From<u32> for Version {
