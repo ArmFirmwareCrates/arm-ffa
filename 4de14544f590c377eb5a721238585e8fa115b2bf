@@ -83,6 +83,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5995c246_634c3eda",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T17:16:53Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "854a5396_2a3e74d7",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7e30ba2e_98a0e2fa",
@@ -149,6 +167,24 @@
       "side": 1,
       "message": "It\u0027s an `Option\u003c\u003e` because of this reason. For FF-A v1.1 the library always uses `None`. For FF-A v1.2 it\u0027s always `Some()`, passing `None` is an error. Using a compile time config is not feasible IMO, as I\u0027ve described in the other reply above.",
       "parentUuid": "0ad42322_c22633d1",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ffd524bb_94bab388",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-03T17:16:53Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "8cc999c6_051629db",
       "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
