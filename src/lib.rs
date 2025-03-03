@@ -31,6 +31,8 @@ pub enum Error {
     UnrecognisedFeatureId(u8),
     #[error("Unrecognised FF-A error code {0}")]
     UnrecognisedErrorCode(i32),
+    #[error("Unrecognised FF-A Direct Msg Flag {0}")]
+    UnrecognisedDirectMsgFlag(u32),
 }
 
 impl From<Error> for FfaError {
@@ -39,7 +41,9 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
-            Error::UnrecognisedErrorCode(_) => Self::InvalidParameters,
+            Error::UnrecognisedErrorCode(_) | Error::UnrecognisedDirectMsgFlag(_) => {
+                Self::InvalidParameters
+            }
         }
     }
 }
@@ -265,6 +269,31 @@ pub enum DirectMsgArgs {
     Args64([u64; 5]),
 }
 
+/// Flags for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::UnrecognisedDirectMsgFlag))]
+#[repr(u32)]
+pub enum DirectMsgFlags {
+    // Message for forwarding FFA_VERSION call from Normal world to the SPMC
+    VersionReq = 0b1000_0000_0000_0000_0000_0000_0000_1000,
+    // Response message to forwarded FFA_VERSION call from the Normal world
+    VersionResp = 0b1000_0000_0000_0000_0000_0000_0000_1001,
+    // Message for a power management operation initiated by a PSCI function
+    PowerPsciReq = 0b1000_0000_0000_0000_0000_0000_0000_0000,
+    // Message for a warm boot
+    PowerWarmBootReq = 0b1000_0000_0000_0000_0000_0000_0000_0001,
+    // Response message to indicate return status of the last power management request message
+    PowerResp = 0b1000_0000_0000_0000_0000_0000_0000_0010,
+    // Message to signal creation of a VM
+    CreateVmReq = 0b1000_0000_0000_0000_0000_0000_0000_0100,
+    // Message to acknowledge creation of a VM
+    AckCreateVmResp = 0b1000_0000_0000_0000_0000_0000_0000_0101,
+    // Message to signal destruction of a VM
+    DestructVmResp = 0b1000_0000_0000_0000_0000_0000_0000_0110,
+    // Message to acknowledge destruction of a VM
+    AckDestructVmResp = 0b1000_0000_0000_0000_0000_0000_0000_0111,
+}
+
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}2` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct DirectMsg2Args([u64; 14]);
@@ -351,13 +380,13 @@ pub enum Interface {
     MsgSendDirectReq {
         src_id: u16,
         dst_id: u16,
-        flags: u32,
+        flags: DirectMsgFlags,
         args: DirectMsgArgs,
     },
     MsgSendDirectResp {
         src_id: u16,
         dst_id: u16,
-        flags: u32,
+        flags: DirectMsgFlags,
         args: DirectMsgArgs,
     },
     MsgSendDirectReq2 {
@@ -614,7 +643,7 @@ impl Interface {
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
+                flags: (regs[2] as u32).try_into()?,
                 args: DirectMsgArgs::Args32([
                     regs[3] as u32,
                     regs[4] as u32,
@@ -626,13 +655,13 @@ impl Interface {
             FuncId::MsgSendDirectReq64 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
+                flags: (regs[2] as u32).try_into()?,
                 args: DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]]),
             },
             FuncId::MsgSendDirectResp32 => Self::MsgSendDirectResp {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
+                flags: (regs[2] as u32).try_into()?,
                 args: DirectMsgArgs::Args32([
                     regs[3] as u32,
                     regs[4] as u32,
@@ -644,7 +673,7 @@ impl Interface {
             FuncId::MsgSendDirectResp64 => Self::MsgSendDirectResp {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                flags: regs[2] as u32,
+                flags: (regs[2] as u32).try_into()?,
                 args: DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]]),
             },
             FuncId::MemDonate32 => Self::MemDonate {
@@ -965,7 +994,7 @@ impl Interface {
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                a[2] = flags.into();
+                a[2] = flags as u64;
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -990,7 +1019,7 @@ impl Interface {
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                a[2] = flags.into();
+                a[2] = flags as u64;
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
