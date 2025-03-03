@@ -178,6 +178,13 @@ pub enum SuccessArgs {
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Version(pub u16, pub u16);
 
+impl Version {
+    /// Returns whether the caller's version (self) is compatible with the callee's version (input parameter)
+    pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
+        self.0 == callee_version.0 && self.1 <= callee_version.1
+    }
+}
+
 impl From<u32> for Version {
     fn from(val: u32) -> Self {
         Self((val >> 16) as u16, val as u16)
