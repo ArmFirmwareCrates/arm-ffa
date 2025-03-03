@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d4e2f900_666441f3",
+        "filename": "README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T13:34:00Z",
+      "side": 1,
+      "message": "That\u0027s better indeed, thanks.",
+      "parentUuid": "eb6081e7_f2164ef5",
+      "range": {
+        "startLine": 33,
+        "startChar": 0,
+        "endLine": 34,
+        "endChar": 17
+      },
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d92af85a_ecace289",
@@ -43,6 +67,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "854a5396_2a3e74d7",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T13:34:00Z",
+      "side": 1,
+      "message": "I think introducing a feature flag for each FF-A version and having a lot of `#cfg[...` conditions in the code would decrease readability on long term. Also I\u0027m not sure it would be really useful, since e.g. SPMC, SPMD and hypervisor components will have to support all FF-A versions eventually, so they\u0027d just enable all feature flags anyway. The only scenario I can think of is having an SP which is FF-A v1.1 only and never wants to update to anything newer, but TBH that\u0027s not very realistic since it looks like most SPs will need direct req 2 anyway so will update to at least v1.2.\n\n\u003e I would like the library to be very neat about what is v1.2 and what is v1.1, so that you cannot go mess up when coding as the types just won\u0027t allow you to.\n\nUnfortunately I don\u0027t think we can do that, because of the reasons above. The library can try to help the user with these kind of errors, adding new fields as `Option\u003c\u003e`, etc, but in the end it\u0027s up to the library user to correctly handle the FF-A versions",
+      "parentUuid": "d92af85a_ecace289",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "7e30ba2e_98a0e2fa",
         "filename": "src/lib.rs",
         "patchSetId": 3
@@ -54,6 +96,24 @@
       "writtenOn": "2025-03-03T12:57:44Z",
       "side": 1,
       "message": "Does this comment need updating?",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "965a8611_610f228b",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T13:34:00Z",
+      "side": 1,
+      "message": "Good catch, fixed.",
+      "parentUuid": "7e30ba2e_98a0e2fa",
       "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -77,6 +137,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "8cc999c6_051629db",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T13:34:00Z",
+      "side": 1,
+      "message": "It\u0027s an `Option\u003c\u003e` because of this reason. For FF-A v1.1 the library always uses `None`. For FF-A v1.2 it\u0027s always `Some()`, passing `None` is an error. Using a compile time config is not feasible IMO, as I\u0027ve described in the other reply above.",
+      "parentUuid": "0ad42322_c22633d1",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "04b566c0_27666d5f",
         "filename": "src/partition_info.rs",
         "patchSetId": 3
@@ -88,6 +166,24 @@
       "writtenOn": "2025-03-03T12:57:44Z",
       "side": 1,
       "message": "Is it possible to do the test for both versions?",
+      "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "143937a5_adecaaf9",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 381,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-03T13:34:00Z",
+      "side": 1,
+      "message": "The tests need a bigger update which I plan to do later. TBH I\u0027d remove these what we have currently, and implement proper tests instead where a known good serialized version is crafted by hand and then we can test the pack/unpack against that.",
+      "parentUuid": "04b566c0_27666d5f",
       "revId": "4de14544f590c377eb5a721238585e8fa115b2bf",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
