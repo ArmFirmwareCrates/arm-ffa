@@ -31,6 +31,8 @@ pub enum Error {
     UnrecognisedFeatureId(u8),
     #[error("Unrecognised FF-A error code {0}")]
     UnrecognisedErrorCode(i32),
+    #[error("Invalid version {0}")]
+    InvalidVersion(u32),
 }
 
 impl From<Error> for FfaError {
@@ -39,7 +41,7 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
-            Error::UnrecognisedErrorCode(_) => Self::InvalidParameters,
+            Error::UnrecognisedErrorCode(_) | Error::InvalidVersion(_) => Self::InvalidParameters,
         }
     }
 }
@@ -189,9 +191,15 @@ impl Version {
     pub const VERSION_MSG_FLAG: u32 = 0b0000_1001;
 }
 
-impl From<u32> for Version {
-    fn from(val: u32) -> Self {
-        Self((val >> 16) as u16, val as u16)
+impl TryFrom<u32> for Version {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & (1 << 31)) != 0 {
+            Err(Error::InvalidVersion(val))
+        } else {
+            Ok(Self((val >> 16) as u16, val as u16))
+        }
     }
 }
 
@@ -555,7 +563,7 @@ impl Interface {
                 interrupt_id: regs[2] as u32,
             },
             FuncId::Version => Self::Version {
-                input_version: (regs[1] as u32).into(),
+                input_version: (regs[1] as u32).try_into()?,
             },
             FuncId::Features => Self::Features {
                 feat_id: (regs[1] as u32).into(),
