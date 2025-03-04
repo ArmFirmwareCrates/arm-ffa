@@ -33,6 +33,8 @@ pub enum Error {
     UnrecognisedErrorCode(i32),
     #[error("Unrecognised FF-A Direct Msg Flag {0}")]
     UnrecognisedDirectMsgFlag(u32),
+    #[error("Invalid version {0}")]
+    InvalidVersion(u32),
 }
 
 impl From<Error> for FfaError {
@@ -41,9 +43,9 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
-            Error::UnrecognisedErrorCode(_) | Error::UnrecognisedDirectMsgFlag(_) => {
-                Self::InvalidParameters
-            }
+            Error::UnrecognisedErrorCode(_)
+            | Error::UnrecognisedDirectMsgFlag(_)
+            | Error::InvalidVersion(_) => Self::InvalidParameters,
         }
     }
 }
@@ -183,6 +185,9 @@ pub enum SuccessArgs {
 pub struct Version(pub u16, pub u16);
 
 impl Version {
+    // The FF-A spec mandates that bit[31] of a version number must be 0
+    const MBZ_BITS: u32 = 1 << 31;
+
     /// Returns whether the caller's version (self) is compatible with the callee's version (input
     /// parameter)
     pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
@@ -190,15 +195,23 @@ impl Version {
     }
 }
 
-impl From<u32> for Version {
-    fn from(val: u32) -> Self {
-        Self((val >> 16) as u16, val as u16)
+impl TryFrom<u32> for Version {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(Error::InvalidVersion(val))
+        } else {
+            Ok(Self((val >> 16) as u16, val as u16))
+        }
     }
 }
 
 impl From<Version> for u32 {
     fn from(v: Version) -> Self {
-        ((v.0 as u32) << 16) | v.1 as u32
+        let v_u32 = ((v.0 as u32) << 16) | v.1 as u32;
+        assert!(v_u32 & Version::MBZ_BITS == 0);
+        v_u32
     }
 }
 
@@ -614,7 +627,7 @@ impl Interface {
                 interrupt_id: regs[2] as u32,
             },
             FuncId::Version => Self::Version {
-                input_version: (regs[1] as u32).into(),
+                input_version: (regs[1] as u32).try_into()?,
             },
             FuncId::Features => Self::Features {
                 feat_id: (regs[1] as u32).into(),
