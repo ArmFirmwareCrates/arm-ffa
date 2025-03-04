@@ -357,7 +357,7 @@ impl BootInfo<'_> {
             return Err(Error::InvalidSignature);
         }
 
-        let version = Version::from(header_raw.version);
+        let version = Version::try_from(header_raw.version).map_err(|_| Error::InvalidHeader)?;
         if version != Version(1, 1) {
             return Err(Error::InvalidVersion(version));
         }
