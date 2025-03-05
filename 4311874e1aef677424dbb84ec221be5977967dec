@@ -52,6 +52,24 @@
       "parentUuid": "ba9229c1_b3285bd6",
       "revId": "4311874e1aef677424dbb84ec221be5977967dec",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e2e1644b_09304330",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 156,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-05T12:31:17Z",
+      "side": 1,
+      "message": "This is not what I meant, the new variants should be added `DirectMsgArgs` and the flags shouldn\u0027t be exposed to the library user. A direct message can either contain a partition message or a framework message. Currently we only support partition messages i.e. the message arguments are just service specific imdef values, represented by `DirectMsgArgs::Args32` and `DirectMsgArgs::Args64`. When a direct message contains a framework message, these arguments are no longer service specific impdef values, but defined exactly by the spec. So a framework message shouldn\u0027t use `DirectMsgArgs::Args32` or `DirectMsgArgs::Args64`, but the new variants like `DirectMsgArgs::NwdVersionReq`, `DirectMsgArgs::PowerMgmtPsci`, etc. The flags should only be used for encoding/decoding these to/from registers, the public `flags` field of `Interface::MsgSendDirectReq/Resp` should be deleted. It was only added there as placeholder because what I\u0027ve described above was not yet implemented.",
+      "parentUuid": "22ee55a6_da02dcc5",
+      "revId": "4311874e1aef677424dbb84ec221be5977967dec",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
