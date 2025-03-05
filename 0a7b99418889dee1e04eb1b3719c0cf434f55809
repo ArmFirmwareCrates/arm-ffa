@@ -16,6 +16,24 @@
       "message": "Please wrap this to 100 characters",
       "revId": "0a7b99418889dee1e04eb1b3719c0cf434f55809",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3cd58dac_b34d2355",
+        "filename": "src/lib.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-05T11:19:15Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "be697adb_6005b149",
+      "revId": "0a7b99418889dee1e04eb1b3719c0cf434f55809",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
