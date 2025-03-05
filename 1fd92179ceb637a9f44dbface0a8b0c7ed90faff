@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "06fcaa62_8361c1ec",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-05T10:34:20Z",
+      "side": 1,
+      "message": "Please write a sentence, like \"The FF-A spec mandates that bit[31] of a version number must be 0. Add checks to validate this\" or something similar",
+      "revId": "1fd92179ceb637a9f44dbface0a8b0c7ed90faff",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
