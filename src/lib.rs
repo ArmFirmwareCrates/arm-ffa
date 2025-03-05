@@ -33,8 +33,8 @@ pub enum Error {
     UnrecognisedErrorCode(i32),
     #[error("Unrecognised FF-A Framework Message {0}")]
     UnrecognisedFwkMsg(u32),
-    #[error("Unrecognised FF-A Msg Wait Flag {0}")]
-    UnrecognisedMsgWaitFlag(u32),
+    #[error("Invalid FF-A Msg Wait Flag {0}")]
+    InvalidMsgWaitFlag(u32),
     #[error("Unrecognised VM availability status {0}")]
     UnrecognisedVmAvailabilityStatus(i32),
     #[error("Unrecognised FF-A Warm Boot Type {0}")]
@@ -52,7 +52,7 @@ impl From<Error> for FfaError {
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
-            | Error::UnrecognisedMsgWaitFlag(_)
+            | Error::InvalidMsgWaitFlag(_)
             | Error::UnrecognisedVmAvailabilityStatus(_)
             | Error::UnrecognisedWarmBootType(_) => Self::InvalidParameters,
         }
@@ -416,6 +416,37 @@ impl DirectMsgArgs {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct DirectMsg2Args([u64; 14]);
 
+struct MsgWaitFlags {
+    retain_rx_buffer: bool,
+}
+
+impl MsgWaitFlags {
+    const RETAIN_RX_BUFFER: u32 = 0x01;
+    const MBZ_BITS: u32 = 0xfffe;
+}
+
+impl TryFrom<u32> for MsgWaitFlags {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(Error::InvalidMsgWaitFlag(val))
+        } else {
+            Ok(MsgWaitFlags {
+                retain_rx_buffer: val & Self::RETAIN_RX_BUFFER != 0,
+            })
+        }
+    }
+}
+
+impl From<MsgWaitFlags> for u32 {
+    fn from(flags: MsgWaitFlags) -> Self {
+        // https://doc.rust-lang.org/reference/types/boolean.html
+        // The value false has the bit pattern 0x00 and the value true has the bit pattern 0x01
+        flags.retain_rx_buffer as u32
+    }
+}
+
 /// Descriptor for a dynamically allocated memory buffer that contains the memory transaction
 /// descriptor.
 ///
@@ -488,7 +519,9 @@ pub enum Interface {
     },
     IdGet,
     SpmIdGet,
-    MsgWait,
+    MsgWait {
+        retain_rx_buffer: bool,
+    },
     Yield,
     Run {
         target_info: TargetInfo,
@@ -589,7 +622,7 @@ impl Interface {
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
-            Interface::MsgWait => Some(FuncId::MsgWait),
+            Interface::MsgWait { .. } => Some(FuncId::MsgWait),
             Interface::Yield => Some(FuncId::Yield),
             Interface::Run { .. } => Some(FuncId::Run),
             Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
@@ -768,7 +801,9 @@ impl Interface {
             }
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
-            FuncId::MsgWait => Self::MsgWait,
+            FuncId::MsgWait => Self::MsgWait {
+                retain_rx_buffer: MsgWaitFlags::try_from(regs[2] as u32)?.retain_rx_buffer,
+            },
             FuncId::Yield => Self::Yield,
             FuncId::Run => Self::Run {
                 target_info: (regs[1] as u32).into(),
@@ -1183,7 +1218,10 @@ impl Interface {
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
             }
-            Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
+            Interface::MsgWait { retain_rx_buffer } => {
+                a[2] = u32::from(MsgWaitFlags { retain_rx_buffer }).into();
+            }
+            Interface::IdGet | Interface::SpmIdGet | Interface::Yield => {}
             Interface::Run { target_info } => {
                 a[1] = u32::from(target_info).into();
             }
