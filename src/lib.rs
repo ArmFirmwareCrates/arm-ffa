@@ -407,6 +407,15 @@ impl DirectMsgArgs {
     const ACK_DESTRUCT_VM_RESP: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b0111;
 }
 
+/// Flags for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::UnrecognisedMsgWaitFlag))]
+#[repr(u32)]
+pub enum MsgWaitFlags {
+    RelinquishRxBufferOwnership = 0x0,
+    RetainRxBufferOwnership = 0x1,
+}
+
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}2` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct DirectMsg2Args([u64; 14]);
@@ -483,7 +492,9 @@ pub enum Interface {
     },
     IdGet,
     SpmIdGet,
-    MsgWait,
+    MsgWait {
+        flags: MsgWaitFlags,
+    },
     Yield,
     Run {
         target_info: TargetInfo,
@@ -581,7 +592,7 @@ impl Interface {
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
-            Interface::MsgWait => Some(FuncId::MsgWait),
+            Interface::MsgWait { .. } => Some(FuncId::MsgWait),
             Interface::Yield => Some(FuncId::Yield),
             Interface::Run { .. } => Some(FuncId::Run),
             Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
@@ -756,7 +767,9 @@ impl Interface {
             }
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
-            FuncId::MsgWait => Self::MsgWait,
+            FuncId::MsgWait => Self::MsgWait {
+                flags: (regs[2] as u32).try_into()?,
+            },
             FuncId::Yield => Self::Yield,
             FuncId::Run => Self::Run {
                 target_info: (regs[1] as u32).into(),
@@ -1165,7 +1178,10 @@ impl Interface {
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
             }
-            Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
+            Interface::MsgWait { flags } => {
+                a[2] = flags as u64;
+            }
+            Interface::IdGet | Interface::SpmIdGet | Interface::Yield => {}
             Interface::Run { target_info } => {
                 a[1] = u32::from(target_info).into();
             }
