@@ -345,7 +345,9 @@ enum DirectMsgFlags {
 pub struct DirectMsg2Args([u64; 14]);
 
 /// Descriptor for a dynamically allocated memory buffer that contains the memory transaction
-/// descriptor. Used by `FFA_MEM_{DONATE,LEND,SHARE,RETRIEVE_REQ}` interfaces, only when the TX
+/// descriptor.
+///
+/// Used by `FFA_MEM_{DONATE,LEND,SHARE,RETRIEVE_REQ}` interfaces, only when the TX
 /// buffer is not used to transmit the transaction descriptor.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum MemOpBuf {
@@ -367,9 +369,10 @@ pub enum ConsoleLogChars {
     Reg64([u64; 16]),
 }
 
-/// FF-A "message types", the terminology used by the spec is "interfaces". The interfaces are used
-/// by FF-A components for communication at an FF-A instance. The spec also describes the valid FF-A
-/// instances and conduits for each interface.
+/// FF-A "message types", the terminology used by the spec is "interfaces".
+///
+/// The interfaces are used by FF-A components for communication at an FF-A instance.
+/// The spec also describes the valid FF-A instances and conduits for each interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Interface {
     Error {
