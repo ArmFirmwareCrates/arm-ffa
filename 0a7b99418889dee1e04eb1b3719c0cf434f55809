@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "be697adb_6005b149",
+        "filename": "src/lib.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-05T10:16:44Z",
+      "side": 1,
+      "message": "Please wrap this to 100 characters",
+      "revId": "0a7b99418889dee1e04eb1b3719c0cf434f55809",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
