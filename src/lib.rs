@@ -33,8 +33,6 @@ pub enum Error {
     UnrecognisedErrorCode(i32),
     #[error("Unrecognised FF-A Framework Message {0}")]
     UnrecognisedFwkMsg(u32),
-    #[error("Unrecognised FF-A Msg Wait Flag {0}")]
-    UnrecognisedMsgWaitFlag(u32),
     #[error("Unrecognised VM availability status {0}")]
     UnrecognisedVmAvailabilityStatus(i32),
     #[error("Unrecognised FF-A Warm Boot Type {0}")]
@@ -52,7 +50,6 @@ impl From<Error> for FfaError {
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
-            | Error::UnrecognisedMsgWaitFlag(_)
             | Error::UnrecognisedVmAvailabilityStatus(_)
             | Error::UnrecognisedWarmBootType(_) => Self::InvalidParameters,
         }
@@ -488,7 +485,9 @@ pub enum Interface {
     },
     IdGet,
     SpmIdGet,
-    MsgWait,
+    MsgWait {
+        retain_rx_buffer: bool,
+    },
     Yield,
     Run {
         target_info: TargetInfo,
@@ -589,7 +588,7 @@ impl Interface {
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
-            Interface::MsgWait => Some(FuncId::MsgWait),
+            Interface::MsgWait { .. } => Some(FuncId::MsgWait),
             Interface::Yield => Some(FuncId::Yield),
             Interface::Run { .. } => Some(FuncId::Run),
             Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
@@ -768,7 +767,9 @@ impl Interface {
             }
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
-            FuncId::MsgWait => Self::MsgWait,
+            FuncId::MsgWait => Self::MsgWait {
+                retain_rx_buffer: regs[2] != 0,
+            },
             FuncId::Yield => Self::Yield,
             FuncId::Run => Self::Run {
                 target_info: (regs[1] as u32).into(),
@@ -1183,7 +1184,12 @@ impl Interface {
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
             }
-            Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
+            Interface::MsgWait { retain_rx_buffer } => {
+                // https://doc.rust-lang.org/reference/types/boolean.html
+                // The value false has the bit pattern 0x00 and the value true has the bit pattern 0x01
+                a[2] = retain_rx_buffer as u64;
+            }
+            Interface::IdGet | Interface::SpmIdGet | Interface::Yield => {}
             Interface::Run { target_info } => {
                 a[1] = u32::from(target_info).into();
             }
