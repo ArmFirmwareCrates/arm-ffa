@@ -16,6 +16,24 @@
       "message": "Can define this in DirectMsgArgs or wherever you think is best?",
       "revId": "4311874e1aef677424dbb84ec221be5977967dec",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ba9229c1_b3285bd6",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 156,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-05T10:23:02Z",
+      "side": 1,
+      "message": "To handle the framework messages, new variants should be added to `DirectMsgArgs`, each variant representing a framework message type. The definition of this flag should be private to `DirectMsgArgs` and only used when creating and parsing a direct msg. These flags shouldn\u0027t be exposed to the library user. Also, please indicate in the name of the constant that this the flag of the response message.",
+      "parentUuid": "879a5362_43c994e6",
+      "revId": "4311874e1aef677424dbb84ec221be5977967dec",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
