@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e158b803_f11f1062",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-10T20:03:48Z",
+      "side": 1,
+      "message": "Please note this is just an alternative to https://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/35913 and is not necessarily the way to go forwards.",
+      "revId": "633fb9a1fe1dfd59d6063988ce9df5418fc3edce",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
