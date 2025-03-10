@@ -95,6 +95,8 @@ pub enum FuncId {
     NotificationInfoGet32 = 0x84000083,
     NotificationInfoGet64 = 0xc4000083,
     El3IntrHandle = 0x8400008c,
+    SecondaryEpRegister32 = 0x84000087,
+    SecondaryEpRegister64 = 0xc4000087,
     MemDonate32 = 0x84000071,
     MemDonate64 = 0xc4000071,
     MemLend32 = 0x84000072,
@@ -172,6 +174,13 @@ pub enum SuccessArgs {
     Result32([u32; 6]),
     Result64([u64; 6]),
     Result64_2([u64; 16]),
+}
+
+/// Entrypoint address argument for `FFA_SECONDARY_EP_REGISTER` interface.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum SecondaryEpRegisterAddr {
+    Addr32(u32),
+    Addr64(u64),
 }
 
 /// Version number of the FF-A implementation, `.0` is the major, `.1` is minor the version.
@@ -344,6 +353,9 @@ pub enum Interface {
         target_info: TargetInfo,
     },
     NormalWorldResume,
+    SecondaryEpRegister {
+        entrypoint: SecondaryEpRegisterAddr,
+    },
     MsgSend2 {
         sender_vm_id: u16,
         flags: u32,
@@ -442,6 +454,10 @@ impl Interface {
             Interface::Yield => Some(FuncId::Yield),
             Interface::Run { .. } => Some(FuncId::Run),
             Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
+            Interface::SecondaryEpRegister { entrypoint } => match entrypoint {
+                SecondaryEpRegisterAddr::Addr32 { .. } => Some(FuncId::SecondaryEpRegister32),
+                SecondaryEpRegisterAddr::Addr64 { .. } => Some(FuncId::SecondaryEpRegister64),
+            },
             Interface::MsgSend2 { .. } => Some(FuncId::MsgSend2),
             Interface::MsgSendDirectReq { args, .. } => match args {
                 DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectReq32),
@@ -607,6 +623,12 @@ impl Interface {
                 target_info: (regs[1] as u32).into(),
             },
             FuncId::NormalWorldResume => Self::NormalWorldResume,
+            FuncId::SecondaryEpRegister32 => Self::SecondaryEpRegister {
+                entrypoint: SecondaryEpRegisterAddr::Addr32(regs[1] as u32),
+            },
+            FuncId::SecondaryEpRegister64 => Self::SecondaryEpRegister {
+                entrypoint: SecondaryEpRegisterAddr::Addr64(regs[1]),
+            },
             FuncId::MsgSend2 => Self::MsgSend2 {
                 sender_vm_id: regs[1] as u16,
                 flags: regs[2] as u32,
@@ -951,6 +973,10 @@ impl Interface {
                 a[1] = u32::from(target_info).into();
             }
             Interface::NormalWorldResume => {}
+            Interface::SecondaryEpRegister { entrypoint } => match entrypoint {
+                SecondaryEpRegisterAddr::Addr32(addr) => a[1] = addr as u64,
+                SecondaryEpRegisterAddr::Addr64(addr) => a[1] = addr,
+            },
             Interface::MsgSend2 {
                 sender_vm_id,
                 flags,
