@@ -70,6 +70,24 @@
       "parentUuid": "22ee55a6_da02dcc5",
       "revId": "4311874e1aef677424dbb84ec221be5977967dec",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fdd8ef6e_7381c718",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 156,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-10T19:57:09Z",
+      "side": 1,
+      "message": "Done.\n\nHere is another alternative to the same problem\nhttps://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/36066",
+      "parentUuid": "e2e1644b_09304330",
+      "revId": "4311874e1aef677424dbb84ec221be5977967dec",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
