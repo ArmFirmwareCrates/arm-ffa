@@ -345,6 +345,11 @@ pub enum Interface {
         uuid: Uuid,
         flags: u32,
     },
+    PartitionInfoGetRegs {
+        uuid: Uuid,
+        start_index: u16,
+        info_tag: Option<u16>,
+    },
     IdGet,
     SpmIdGet,
     MsgWait,
@@ -448,6 +453,7 @@ impl Interface {
             },
             Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::PartitionInfoGetRegs { .. } => Some(FuncId::PartitionInfoGetRegs),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
             Interface::MsgWait => Some(FuncId::MsgWait),
@@ -613,6 +619,20 @@ impl Interface {
                 Self::PartitionInfoGet {
                     uuid: Uuid::from_bytes(bytes),
                     flags: regs[5] as u32,
+                }
+            }
+            FuncId::PartitionInfoGetRegs => {
+                // Bits[15:0]: Start index
+                let start_index = (regs[3] & 0xffff) as u16;
+                Self::PartitionInfoGetRegs {
+                    uuid: Uuid::from_u64_pair(regs[2], regs[1]),
+                    start_index,
+                    info_tag: if start_index != 0 {
+                        // Bits[31:16]: Information tag for the queried UUID
+                        Some((regs[3] >> 16) as u16)
+                    } else {
+                        None
+                    },
                 }
             }
             FuncId::IdGet => Self::IdGet,
@@ -967,6 +987,19 @@ impl Interface {
                 a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
+            }
+            Interface::PartitionInfoGetRegs {
+                uuid,
+                start_index,
+                info_tag,
+            } => {
+                let (most_significant_bits, least_significant_bits) = uuid.as_u64_pair();
+                a[1] = most_significant_bits;
+                a[2] = least_significant_bits;
+                a[3] = start_index.into();
+                if let Some(t) = info_tag {
+                    a[3] |= (t as u64) << 16;
+                }
             }
             Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
             Interface::Run { target_info } => {
