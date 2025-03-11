@@ -345,6 +345,10 @@ pub enum Interface {
         uuid: Uuid,
         flags: u32,
     },
+    PartitionInfoGetRegs {
+        uuid: Uuid,
+        start_and_tag: u32,
+    },
     IdGet,
     SpmIdGet,
     MsgWait,
@@ -448,6 +452,7 @@ impl Interface {
             },
             Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::PartitionInfoGetRegs { .. } => Some(FuncId::PartitionInfoGetRegs),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
             Interface::MsgWait => Some(FuncId::MsgWait),
@@ -613,6 +618,22 @@ impl Interface {
                 Self::PartitionInfoGet {
                     uuid: Uuid::from_bytes(bytes),
                     flags: regs[5] as u32,
+                }
+            }
+            FuncId::PartitionInfoGetRegs => {
+                let uuid_words = [
+                    regs[1] as u32,
+                    regs[2] as u32,
+                    regs[3] as u32,
+                    regs[4] as u32,
+                ];
+                let mut bytes: [u8; 16] = [0; 16];
+                for (i, b) in uuid_words.iter().flat_map(|w| w.to_le_bytes()).enumerate() {
+                    bytes[i] = b;
+                }
+                Self::PartitionInfoGetRegs {
+                    uuid: Uuid::from_bytes(bytes),
+                    start_and_tag: regs[5] as u32,
                 }
             }
             FuncId::IdGet => Self::IdGet,
@@ -967,6 +988,17 @@ impl Interface {
                 a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
+            }
+            Interface::PartitionInfoGetRegs {
+                uuid,
+                start_and_tag,
+            } => {
+                let bytes = uuid.into_bytes();
+                a[1] = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]).into();
+                a[2] = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]).into();
+                a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
+                a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
+                a[5] = start_and_tag.into();
             }
             Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
             Interface::Run { target_info } => {
