@@ -345,6 +345,11 @@ pub enum Interface {
         uuid: Uuid,
         flags: u32,
     },
+    PartitionInfoGetRegs {
+        uuid: Uuid,
+        start_index: u16,
+        info_tag: Option<u16>,
+    },
     IdGet,
     SpmIdGet,
     MsgWait,
@@ -448,6 +453,7 @@ impl Interface {
             },
             Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::PartitionInfoGetRegs { .. } => Some(FuncId::PartitionInfoGetRegs),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
             Interface::MsgWait => Some(FuncId::MsgWait),
@@ -613,6 +619,25 @@ impl Interface {
                 Self::PartitionInfoGet {
                     uuid: Uuid::from_bytes(bytes),
                     flags: regs[5] as u32,
+                }
+            }
+            FuncId::PartitionInfoGetRegs => {
+                let uuid_words = [regs[1], regs[2]];
+                let mut bytes: [u8; 16] = [0; 16];
+                for (i, b) in uuid_words.iter().flat_map(|w| w.to_le_bytes()).enumerate() {
+                    bytes[i] = b;
+                }
+                // Bits[15:0]: Start index
+                let start_index = (regs[3] & 0xffff) as u16;
+                Self::PartitionInfoGetRegs {
+                    uuid: Uuid::from_bytes(bytes),
+                    start_index,
+                    info_tag: if start_index != 0 {
+                        // Bits[31:16]: Information tag for the queried UUID
+                        Some((regs[3] >> 16) as u16)
+                    } else {
+                        None
+                    },
                 }
             }
             FuncId::IdGet => Self::IdGet,
@@ -967,6 +992,21 @@ impl Interface {
                 a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
                 a[5] = flags.into();
+            }
+            Interface::PartitionInfoGetRegs {
+                uuid,
+                start_index,
+                info_tag,
+            } => {
+                let bytes = uuid.into_bytes();
+                a[1] = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]).into();
+                a[2] = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]).into();
+                let shifted_tag = match info_tag {
+                    None => 0,
+                    // Bits[31:16]: Information tag for the queried UUID
+                    Some(value) => (value as u64) << 16,
+                };
+                a[3] = shifted_tag | (start_index as u64);
             }
             Interface::IdGet | Interface::SpmIdGet | Interface::MsgWait | Interface::Yield => {}
             Interface::Run { target_info } => {
