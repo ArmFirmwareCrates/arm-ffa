@@ -23,7 +23,7 @@ pub const FFA_PAGE_SIZE_4K: usize = 4096;
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("Unrecognised FF-A function ID {0}")]
     UnrecognisedFunctionId(u32),
@@ -41,6 +41,8 @@ pub enum Error {
     UnrecognisedWarmBootType(u32),
     #[error("Invalid version {0}")]
     InvalidVersion(u32),
+    #[error("Invalid Information Tag {0}")]
+    InvalidInformationTag(u16),
 }
 
 impl From<Error> for FfaError {
@@ -49,6 +51,7 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
+            Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
@@ -519,6 +522,11 @@ pub enum Interface {
         uuid: Uuid,
         flags: u32,
     },
+    PartitionInfoGetRegs {
+        uuid: Uuid,
+        start_index: u16,
+        info_tag: u16,
+    },
     IdGet,
     SpmIdGet,
     MsgWait {
@@ -622,6 +630,7 @@ impl Interface {
             },
             Interface::RxTxUnmap { .. } => Some(FuncId::RxTxUnmap),
             Interface::PartitionInfoGet { .. } => Some(FuncId::PartitionInfoGet),
+            Interface::PartitionInfoGetRegs { .. } => Some(FuncId::PartitionInfoGetRegs),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
             Interface::MsgWait { .. } => Some(FuncId::MsgWait),
@@ -711,7 +720,8 @@ impl Interface {
                     FuncId::ConsoleLog64
                     | FuncId::Success64
                     | FuncId::MsgSendDirectReq64_2
-                    | FuncId::MsgSendDirectResp64_2 => {
+                    | FuncId::MsgSendDirectResp64_2
+                    | FuncId::PartitionInfoGetRegs => {
                         Interface::unpack_regs18(version, regs.try_into().unwrap())?
                     }
                     _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap())?,
@@ -1101,6 +1111,20 @@ impl Interface {
                 char_cnt: regs[1] as u8,
                 char_lists: ConsoleLogChars::Reg64(regs[2..18].try_into().unwrap()),
             },
+            FuncId::PartitionInfoGetRegs => {
+                // Bits[15:0]: Start index
+                let start_index = (regs[3] & 0xffff) as u16;
+                let info_tag = ((regs[3] >> 16) & 0xffff) as u16;
+                Self::PartitionInfoGetRegs {
+                    uuid: Uuid::from_u64_pair(regs[1].swap_bytes(), regs[2].swap_bytes()),
+                    start_index,
+                    info_tag: if start_index == 0 && info_tag != 0 {
+                        return Err(Error::InvalidInformationTag(info_tag));
+                    } else {
+                        info_tag
+                    },
+                }
+            }
             _ => panic!("Invalid number of registers (18) for function {:#x?}", fid),
         };
 
@@ -1129,7 +1153,8 @@ impl Interface {
                         ..
                     }
                     | Interface::MsgSendDirectReq2 { .. }
-                    | Interface::MsgSendDirectResp2 { .. } => {
+                    | Interface::MsgSendDirectResp2 { .. }
+                    | Interface::PartitionInfoGetRegs { .. } => {
                         self.pack_regs18(version, regs.try_into().unwrap());
                     }
                     _ => {
@@ -1510,6 +1535,18 @@ impl Interface {
                     _ => panic!("{:#x?} requires 8 registers", char_lists),
                 }
             }
+            Interface::PartitionInfoGetRegs {
+                uuid,
+                start_index,
+                info_tag,
+            } => {
+                if start_index == 0 && info_tag != 0 {
+                    panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
+                }
+                let (uuid_msb, uuid_lsb) = uuid.as_u64_pair();
+                (a[1], a[2]) = (uuid_msb.swap_bytes(), uuid_lsb.swap_bytes());
+                a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
+            }
             _ => panic!("{:#x?} requires 8 registers", self),
         }
     }
@@ -1574,4 +1611,101 @@ pub fn parse_console_log(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part_info_get_regs() {
+        let uuid = Uuid::parse_str("a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8").unwrap();
+        let uuid_bytes = uuid.as_bytes();
+        let test_info_tag = 0b1101_1101;
+        let test_start_index = 0b1101;
+        let start_index_and_tag = (test_info_tag << 16) | test_start_index;
+        let version = Version(1, 2);
+
+        // From spec:
+        // Bytes[0...7] of UUID with byte 0 in the low-order bits.
+        let reg_x1 = (uuid_bytes[7] as u64) << 56
+            | (uuid_bytes[6] as u64) << 48
+            | (uuid_bytes[5] as u64) << 40
+            | (uuid_bytes[4] as u64) << 32
+            | (uuid_bytes[3] as u64) << 24
+            | (uuid_bytes[2] as u64) << 16
+            | (uuid_bytes[1] as u64) << 8
+            | (uuid_bytes[0] as u64);
+
+        // From spec:
+        // Bytes[8...15] of UUID with byte 8 in the low-order bits.
+        let reg_x2 = (uuid_bytes[15] as u64) << 56
+            | (uuid_bytes[14] as u64) << 48
+            | (uuid_bytes[13] as u64) << 40
+            | (uuid_bytes[12] as u64) << 32
+            | (uuid_bytes[11] as u64) << 24
+            | (uuid_bytes[10] as u64) << 16
+            | (uuid_bytes[9] as u64) << 8
+            | (uuid_bytes[8] as u64);
+
+        // First, test for wrong tag:
+        {
+            let mut regs = [0u64; 18];
+            regs[0] = FuncId::PartitionInfoGetRegs as u64;
+            regs[1] = reg_x1;
+            regs[2] = reg_x2;
+            regs[3] = test_info_tag << 16;
+
+            assert!(Interface::from_regs(version, &regs).is_err_and(
+                |e| e == Error::InvalidInformationTag(test_info_tag.try_into().unwrap())
+            ));
+        }
+
+        // Test for regs -> Interface -> regs
+        {
+            let mut orig_regs = [0u64; 18];
+            orig_regs[0] = FuncId::PartitionInfoGetRegs as u64;
+            orig_regs[1] = reg_x1;
+            orig_regs[2] = reg_x2;
+            orig_regs[3] = start_index_and_tag;
+
+            let mut test_regs = orig_regs.clone();
+            let interface = Interface::from_regs(version, &mut test_regs).unwrap();
+            match &interface {
+                Interface::PartitionInfoGetRegs {
+                    info_tag,
+                    start_index,
+                    uuid: int_uuid,
+                } => {
+                    assert_eq!(u64::from(*info_tag), test_info_tag);
+                    assert_eq!(u64::from(*start_index), test_start_index);
+                    assert_eq!(*int_uuid, uuid);
+                }
+                _ => panic!("Expecting Interface::PartitionInfoGetRegs!"),
+            }
+            test_regs.fill(0);
+            interface.to_regs(version, &mut test_regs);
+            assert_eq!(orig_regs, test_regs);
+        }
+
+        // Test for Interface -> regs -> Interface
+        {
+            let interface = Interface::PartitionInfoGetRegs {
+                info_tag: test_info_tag.try_into().unwrap(),
+                start_index: test_start_index.try_into().unwrap(),
+                uuid,
+            };
+
+            let mut regs: [u64; 18] = [0; 18];
+            interface.to_regs(version, &mut regs);
+
+            assert_eq!(Some(FuncId::PartitionInfoGetRegs), interface.function_id());
+            assert_eq!(regs[0], interface.function_id().unwrap() as u64);
+            assert_eq!(regs[1], reg_x1);
+            assert_eq!(regs[2], reg_x2);
+            assert_eq!(regs[3], (test_info_tag << 16) | test_start_index);
+
+            assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
+        }
+    }
 }
