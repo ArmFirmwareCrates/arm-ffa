@@ -1,0 +1,112 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6197ec72_460daf2d",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "Please rename this to something like \"Unrecognised Framework message type\"",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "50b78eab_8ee851f3",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 270,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "The arguments of these calls are missing. I.e. VersionReq should contain the version from NWd, PowerPsciReq should have the PSCI function ID plus arguments, etc",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "35fc67fd_95529021",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "Please remove this, it\u0027s misleading. DirectMsgArgs in general cannot be created from a single u32 value",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7ca6537b_50a60a0d",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "I think this is not needed, and won\u0027t work when the arguments are added to the new DirectMsgArgs variants",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "368e5a6c_8f867dca",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "I\u0027m not sure if we need an enum for this. I think it\u0027s probably enough to define the framework msg bit, and the framework msg type mask and types as associated constants on the DirectMsgArgs type. With this enum + TryFrom approach it\u0027s more difficult to enforce that certain framework messages are only valid as 32-bit calls",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d7ee93d2_cc98f379",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-12T11:01:20Z",
+      "side": 1,
+      "message": "Please define the framework msg bit and the bits [7:0] separately",
+      "range": {
+        "startLine": 311,
+        "startChar": 17,
+        "endLine": 311,
+        "endChar": 58
+      },
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
