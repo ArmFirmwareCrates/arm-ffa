@@ -1,0 +1,353 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "48cfba78_6cb7c3c3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "Some naming and coding convention comments. The general design and functionality looks good now.",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ff7bb0da_7e79fe7f",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "For any comment that you\u0027ve added to public types, variants, etc: please convert these to doc comments so it shows up in the rendered documentation",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "52f1fee2_ad8e6b0e",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "We don\u0027t need a new type for this, this is the same as FfaError",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c38ecbc6_fd70af64",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "I think these details are not relevant to the library user. Probably just say something like \"Contains the version returned by the SPMC or None\"",
+      "range": {
+        "startLine": 328,
+        "startChar": 7,
+        "endLine": 329,
+        "endChar": 71
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "87a90c58_3523739a",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "This is more of a notification than a request, I think it\u0027d be better to call it simply `VmCreated`",
+      "range": {
+        "startLine": 355,
+        "startChar": 4,
+        "endLine": 355,
+        "endChar": 15
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0447e4c9_5602ba00",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "This isn\u0027t relevant to the library user, we only have a u16 parameter here",
+      "range": {
+        "startLine": 361,
+        "startChar": 42,
+        "endLine": 361,
+        "endChar": 71
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9f9333ed_1f2b03ef",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 365,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "VmCreatedAck",
+      "range": {
+        "startLine": 365,
+        "startChar": 4,
+        "endLine": 365,
+        "endChar": 19
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "02db6b64_3eca758b",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "Please rename, in line with the vm creation message",
+      "range": {
+        "startLine": 369,
+        "startChar": 4,
+        "endLine": 369,
+        "endChar": 17
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "038757eb_7599ff27",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "Please use the `Handle` type",
+      "range": {
+        "startLine": 374,
+        "startChar": 16,
+        "endLine": 374,
+        "endChar": 19
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "447d0c8d_839c08fe",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 387,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "I think these comments don\u0027t add new info, the definition itself contains which bits are set",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1c0592bc_ac1c5085",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 395,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "We don\u0027t need two versions here, the flags field is always u32, regardless of the message itself being 32 or 64 bit",
+      "range": {
+        "startLine": 394,
+        "startChar": 4,
+        "endLine": 395,
+        "endChar": 73
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c3d3d5c4_2d78842f",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 403,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "Please rename these in line with the comments above",
+      "range": {
+        "startLine": 403,
+        "startChar": 10,
+        "endLine": 403,
+        "endChar": 23
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "577e7331_d14edd82",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 856,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "These framework message types are only defined for 32-bit direct messages, that you\u0027ve already handled above",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "838f2900_41c0e4f7",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "We shouldn\u0027t introduce a type for this, just return the raw u32 value and it will be the caller\u0027s job to decode it as a PSCI status code",
+      "range": {
+        "startLine": 868,
+        "startChar": 41,
+        "endLine": 868,
+        "endChar": 70
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c9c00275_38e873f9",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1215,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "Please use `.into()` instead of `as` when extending to wider types",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6428b9a5_4670696d",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1216,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "`a[3] \u003d u32::from(version).into();`",
+      "range": {
+        "startLine": 1216,
+        "startChar": 31,
+        "endLine": 1216,
+        "endChar": 75
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "55b0fa8a_72eb12f0",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1282,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T15:18:54Z",
+      "side": 1,
+      "message": "`a[3] \u003d (FfaError::NotSupported as u32).into();`",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
