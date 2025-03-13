@@ -72,6 +72,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "b727ab28_cad5bb18",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:49:36Z",
+      "side": 1,
+      "message": "What do you think of WarmBootType?\nDo I leave it for the user of the crate to parse?",
+      "parentUuid": "ec19851d_63a02087",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c38ecbc6_fd70af64",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -83,6 +101,30 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "I think these details are not relevant to the library user. Probably just say something like \"Contains the version returned by the SPMC or None\"",
+      "range": {
+        "startLine": 328,
+        "startChar": 7,
+        "endLine": 329,
+        "endChar": 71
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0d2f0fab_0657feed",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:49:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c38ecbc6_fd70af64",
       "range": {
         "startLine": 328,
         "startChar": 7,
