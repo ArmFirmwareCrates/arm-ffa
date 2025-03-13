@@ -124,6 +124,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0574e61f_52db36c3",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T17:44:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a83c135d_ea55d8cd",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "c38ecbc6_fd70af64",
@@ -679,6 +697,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "05373beb_8e87e298",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T17:44:19Z",
+      "side": 1,
+      "message": "The issue you are mentioning makes sense, but I think we can avoid this issue by doing the following two:\n\n1) In `arm-ffa`, we add `psci` as an optional dependency (version `x.y.z`).\n2) In `arm-ffa`, we add a feature flag `psci-feature`.\n\nHow this would look like:\n\nA) If `psci-feature` is enabled, we re-export the `ErrorCode` from `psci` crate version `x.y.z`.\nB) If `psci-feature` is not enabled, we use the `ErrorCode` from the `psci` crate that is provided externally.\n\nSo if a project wants to use a different version of `psci` along with `arm-ffa`, in its Cargo.toml it would add both `arm-ffa` (with `psci-feature` disabled) and `psci` (version `a.b.c` !\u003d `x.y.z`). This way the naming is consistent.\n\nWhat do you think?",
+      "parentUuid": "5c368e00_758742cd",
+      "range": {
+        "startLine": 868,
+        "startChar": 41,
+        "endLine": 868,
+        "endChar": 70
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9c00275_38e873f9",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -726,6 +768,24 @@
       "side": 1,
       "message": "AFAIK using `as` is a bit of a code smell in general, because it means that we\u0027re basically forcing a conversion that\u0027s otherwise maybe non-trivial and Rust\u0027s type system cannot figure it out on its own. Using into means that the type system knows what to do. I hope it makes sense what I\u0027m trying to say. Also, the existing code in the crate is in accordance with what I\u0027ve described.",
       "parentUuid": "71724192_45e6d1ca",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "630f507d_8ee3c4a6",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1215,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T17:44:19Z",
+      "side": 1,
+      "message": "That makes sense.\n\nJust to bring it to your attention just in case, I\u0027m doing this `as` type of conversion for cases like:\n`a[3] \u003d i32::from(FfaError::NotSupported) as u64`. From what I understand the binary representation won\u0027t get modified.\nLet me know what you think of this.",
+      "parentUuid": "98692f68_54774b06",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
