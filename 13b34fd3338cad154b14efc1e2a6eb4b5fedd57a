@@ -108,6 +108,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a83c135d_ea55d8cd",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T16:52:17Z",
+      "side": 1,
+      "message": "I have to correct myself, in fact we do need a new type here, because we must handle the success case too, which is not part of FfaError. In arm-psci there is already a good solution for a [similar situation](https://git.trustedfirmware.org/plugins/gitiles/rust-spmc/arm-psci/+/refs/heads/main/src/lib.rs#112), so we could replicate that by having\n\n```\nenum VmAvailabilityStatus {\n    Success,\n    Error(FfaError),\n}\n```\n\nand also implementing the to/from i32 traits like there.\n\nI think we\u0027re safe to just use FfaError here, and leave the checking of error codes to the library user. The caller has to check the error anyway, because it needs to understand if the SP was successfully notified, or it should resend the message. So it will likely have a match for the error code we return here, where it can catch if the SP is misbehaving and returned an unexpected error.\n\n\u003e What do you think of WarmBootType?\n\nIMO what you\u0027ve implemented for that is the right solution.",
+      "parentUuid": "b727ab28_cad5bb18",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c38ecbc6_fd70af64",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -637,6 +655,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "5c368e00_758742cd",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T16:52:17Z",
+      "side": 1,
+      "message": "Yes I was also thinking about using `ErrorCode` from arm-psci, but it fact that\u0027s a bit fragile. If the arm-psci crate version used by this crate and the version used in the caller differ, then Rust will treat the types from the two crates as different types. Even if the two crate versions are semver compatible and the type itself is bit-by-bit the same, it still won\u0027t compile. So if the crate versions are not exactly the same (which would be hard to keep in sync all the time), then caller would have to convert the arm_psci::ErrorCode we return here back into the raw type, and then parse it back to ErrorCode according to their version of the crate. So we might as well just return the raw type here instead",
+      "parentUuid": "84236527_3db7cb6a",
+      "range": {
+        "startLine": 868,
+        "startChar": 41,
+        "endLine": 868,
+        "endChar": 70
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9c00275_38e873f9",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -666,6 +708,24 @@
       "side": 1,
       "message": "Will do :)\nWhat\u0027s the idea behind it?",
       "parentUuid": "c9c00275_38e873f9",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "98692f68_54774b06",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1215,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-13T16:52:17Z",
+      "side": 1,
+      "message": "AFAIK using `as` is a bit of a code smell in general, because it means that we\u0027re basically forcing a conversion that\u0027s otherwise maybe non-trivial and Rust\u0027s type system cannot figure it out on its own. Using into means that the type system knows what to do. I hope it makes sense what I\u0027m trying to say. Also, the existing code in the crate is in accordance with what I\u0027ve described.",
+      "parentUuid": "71724192_45e6d1ca",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
