@@ -158,6 +158,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "65e793f0_4aae0669",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "87a90c58_3523739a",
+      "range": {
+        "startLine": 355,
+        "startChar": 4,
+        "endLine": 355,
+        "endChar": 15
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0447e4c9_5602ba00",
@@ -171,6 +195,30 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "This isn\u0027t relevant to the library user, we only have a u16 parameter here",
+      "range": {
+        "startLine": 361,
+        "startChar": 42,
+        "endLine": 361,
+        "endChar": 71
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "117186f9_344c11fa",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0447e4c9_5602ba00",
       "range": {
         "startLine": 361,
         "startChar": 42,
@@ -204,6 +252,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c980d498_57bcb2dc",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 365,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9f9333ed_1f2b03ef",
+      "range": {
+        "startLine": 365,
+        "startChar": 4,
+        "endLine": 365,
+        "endChar": 19
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "02db6b64_3eca758b",
@@ -217,6 +289,30 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "Please rename, in line with the vm creation message",
+      "range": {
+        "startLine": 369,
+        "startChar": 4,
+        "endLine": 369,
+        "endChar": 17
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ec0df37c_8ca69b9f",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "02db6b64_3eca758b",
       "range": {
         "startLine": 369,
         "startChar": 4,
@@ -250,6 +346,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "9702ae5e_d34dba9d",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "038757eb_7599ff27",
+      "range": {
+        "startLine": 374,
+        "startChar": 16,
+        "endLine": 374,
+        "endChar": 19
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "447d0c8d_839c08fe",
@@ -263,6 +383,24 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "I think these comments don\u0027t add new info, the definition itself contains which bits are set",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a56dc852_77926b07",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 387,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "447d0c8d_839c08fe",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -290,6 +428,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "9dae6f86_909ca8d0",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 395,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1c0592bc_ac1c5085",
+      "range": {
+        "startLine": 394,
+        "startChar": 4,
+        "endLine": 395,
+        "endChar": 73
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "c3d3d5c4_2d78842f",
@@ -303,6 +465,30 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "Please rename these in line with the comments above",
+      "range": {
+        "startLine": 403,
+        "startChar": 10,
+        "endLine": 403,
+        "endChar": 23
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a56107c0_a6a6352a",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 403,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c3d3d5c4_2d78842f",
       "range": {
         "startLine": 403,
         "startChar": 10,
@@ -362,6 +548,24 @@
       "side": 1,
       "message": "What I said is incorrect, will apply your comment.",
       "parentUuid": "e3ec7174_1c9ccabe",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c8c8a498_4c87a814",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 856,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8238bec5_7fba61bf",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -471,6 +675,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3e0f6519_6f346b4e",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1216,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6428b9a5_4670696d",
+      "range": {
+        "startLine": 1216,
+        "startChar": 31,
+        "endLine": 1216,
+        "endChar": 75
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "55b0fa8a_72eb12f0",
@@ -484,6 +712,24 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "`a[3] \u003d (FfaError::NotSupported as u32).into();`",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "942f84fc_56f9169a",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1282,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T16:38:57Z",
+      "side": 1,
+      "message": "FFaError is a i32 so I need to do\n\n`i32::from(FfaError::NotSupported) as u64`",
+      "parentUuid": "55b0fa8a_72eb12f0",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
