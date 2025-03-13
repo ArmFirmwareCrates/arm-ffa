@@ -18,6 +18,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a68e6331_77898f94",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6197ec72_460daf2d",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "50b78eab_8ee851f3",
@@ -31,6 +49,24 @@
       "writtenOn": "2025-03-12T11:01:20Z",
       "side": 1,
       "message": "The arguments of these calls are missing. I.e. VersionReq should contain the version from NWd, PowerPsciReq should have the PSCI function ID plus arguments, etc",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dda976a8_610b5caf",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 270,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "50b78eab_8ee851f3",
       "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -52,6 +88,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ba9533f0_1f017a4d",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "35fc67fd_95529021",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7ca6537b_50a60a0d",
@@ -65,6 +119,24 @@
       "writtenOn": "2025-03-12T11:01:20Z",
       "side": 1,
       "message": "I think this is not needed, and won\u0027t work when the arguments are added to the new DirectMsgArgs variants",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eb601f55_8c0c6051",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7ca6537b_50a60a0d",
       "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -86,6 +158,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "64129f29_70fe791d",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "368e5a6c_8f867dca",
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d7ee93d2_cc98f379",
@@ -99,6 +189,30 @@
       "writtenOn": "2025-03-12T11:01:20Z",
       "side": 1,
       "message": "Please define the framework msg bit and the bits [7:0] separately",
+      "range": {
+        "startLine": 311,
+        "startChar": 17,
+        "endLine": 311,
+        "endChar": 58
+      },
+      "revId": "17a59e9b94bd4b0a63539fabb6a09c5f0e841918",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "da83bf4a_172f028d",
+        "filename": "src/lib.rs",
+        "patchSetId": 6
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T12:02:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d7ee93d2_cc98f379",
       "range": {
         "startLine": 311,
         "startChar": 17,
