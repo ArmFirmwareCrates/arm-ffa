@@ -54,6 +54,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ec19851d_63a02087",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:45:39Z",
+      "side": 1,
+      "message": "I was thinking it\u0027s not strictly the same, there are certain FfaError values that are not valid for this case. There\u0027s some overlap but then some extra logic would have to be added to actually verify the values during runtime, which is not needed if a new type is added, leveraging on the Rust Type system.\n\nDo you think it\u0027s more convenient to leave the user to do this checking logic?\nAnother alternative that ocurred to me was to define the type but leave the underlying representation as the FfaError instead of a i32? What do you think?",
+      "parentUuid": "52f1fee2_ad8e6b0e",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c38ecbc6_fd70af64",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -272,6 +290,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e3ec7174_1c9ccabe",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 856,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:45:39Z",
+      "side": 1,
+      "message": "The value of `regs[2]` here can be a value related to DirectMsgArgs::Args64",
+      "parentUuid": "577e7331_d14edd82",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "838f2900_41c0e4f7",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -295,6 +331,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "84236527_3db7cb6a",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:45:39Z",
+      "side": 1,
+      "message": "I did have doubts of introducing this PSCI return status... I was thinking in the future we can use any definitions from the psci crate (when it does get published) for this and re-export those?",
+      "parentUuid": "838f2900_41c0e4f7",
+      "range": {
+        "startLine": 868,
+        "startChar": 41,
+        "endLine": 868,
+        "endChar": 70
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9c00275_38e873f9",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -306,6 +366,24 @@
       "writtenOn": "2025-03-13T15:18:54Z",
       "side": 1,
       "message": "Please use `.into()` instead of `as` when extending to wider types",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "71724192_45e6d1ca",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1215,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-13T15:45:39Z",
+      "side": 1,
+      "message": "Will do :)\nWhat\u0027s the idea behind it?",
+      "parentUuid": "c9c00275_38e873f9",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
