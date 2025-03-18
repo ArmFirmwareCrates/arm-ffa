@@ -18,6 +18,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0cf16441_bf9e953f",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T16:25:30Z",
+      "side": 1,
+      "message": "FWIW, this is not an anti-pattern as the document states that `bool` is represented like this (please see comment). It basically is the same as casting u32 to u64 (I could even use an `into()` for this) like we do elsewhere in the code.\n\nYour method is indeed easier to extend later when the reserved bits are not reserved any more.\nDone.",
+      "parentUuid": "10334dd3_47e65f1d",
+      "revId": "3c5f5f84a4566c633b70dd6532315536af94ff82",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "feed00f0_afad62f1",
@@ -31,6 +49,24 @@
       "writtenOn": "2025-03-18T15:06:03Z",
       "side": 1,
       "message": "Sorry, ignore my previous comment here. I\u0027ve just realized that passing flags to MsgWait was introduced in FF-A v1.2, so we should make it optional here. But to do that, it\u0027s better to treat all flags together in an `Option\u003cMsgWaitFlags\u003e`, instead of exposing the individual values.",
+      "revId": "3c5f5f84a4566c633b70dd6532315536af94ff82",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b24f1787_0dec23cd",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 523,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T16:25:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "feed00f0_afad62f1",
       "revId": "3c5f5f84a4566c633b70dd6532315536af94ff82",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
