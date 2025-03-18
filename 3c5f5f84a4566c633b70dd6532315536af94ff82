@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "10334dd3_47e65f1d",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T15:06:03Z",
+      "side": 1,
+      "message": "Please don\u0027t do this, it feels like an anti-pattern in Rust. We\u0027ll have to replace it anyway when another bit gets specified in this field. Just make it verbose, like\n```\nlet mut bits \u003d 0u32;\nif flags.retain_rx_buffer {\n    bits |\u003d RETAIN_RX_BUFFER;\n}\nbits\n```",
+      "revId": "3c5f5f84a4566c633b70dd6532315536af94ff82",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "feed00f0_afad62f1",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 523,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T15:06:03Z",
+      "side": 1,
+      "message": "Sorry, ignore my previous comment here. I\u0027ve just realized that passing flags to MsgWait was introduced in FF-A v1.2, so we should make it optional here. But to do that, it\u0027s better to treat all flags together in an `Option\u003cMsgWaitFlags\u003e`, instead of exposing the individual values.",
+      "revId": "3c5f5f84a4566c633b70dd6532315536af94ff82",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
