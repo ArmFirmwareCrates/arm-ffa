@@ -1,0 +1,159 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6fdcfb3f_d3fb1c99",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "Unrecognised VM availability status",
+      "range": {
+        "startLine": 38,
+        "startChar": 13,
+        "endLine": 38,
+        "endChar": 50
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "aa84259b_0308b3fd",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "VM availability messages.",
+      "range": {
+        "startLine": 279,
+        "startChar": 72,
+        "endLine": 280,
+        "endChar": 21
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eefea07f_467cc5fb",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "These comments on the variants are useful, should be converted to doc comments too",
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "edc50216_6ee39139",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "w[i]",
+      "range": {
+        "startLine": 345,
+        "startChar": 41,
+        "endLine": 345,
+        "endChar": 43
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "436a598b_35856351",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "x[i]",
+      "range": {
+        "startLine": 351,
+        "startChar": 41,
+        "endLine": 351,
+        "endChar": 43
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "49320924_db95e5ee",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "This was left out from the renaming",
+      "range": {
+        "startLine": 386,
+        "startChar": 4,
+        "endLine": 386,
+        "endChar": 21
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e5d084d2_9f48bae7",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 403,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T12:37:14Z",
+      "side": 1,
+      "message": "Please rename this too",
+      "range": {
+        "startLine": 403,
+        "startChar": 10,
+        "endLine": 403,
+        "endChar": 30
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
