@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "818937e3_cd6bf8d8",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6fdcfb3f_d3fb1c99",
+      "range": {
+        "startLine": 38,
+        "startChar": 13,
+        "endLine": 38,
+        "endChar": 50
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "aa84259b_0308b3fd",
@@ -37,6 +61,30 @@
       "writtenOn": "2025-03-18T12:37:14Z",
       "side": 1,
       "message": "VM availability messages.",
+      "range": {
+        "startLine": 279,
+        "startChar": 72,
+        "endLine": 280,
+        "endChar": 21
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c3c18986_59a96e34",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aa84259b_0308b3fd",
       "range": {
         "startLine": 279,
         "startChar": 72,
@@ -64,6 +112,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "958e4268_19e748e1",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eefea07f_467cc5fb",
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "edc50216_6ee39139",
@@ -77,6 +143,30 @@
       "writtenOn": "2025-03-18T12:37:14Z",
       "side": 1,
       "message": "w[i]",
+      "range": {
+        "startLine": 345,
+        "startChar": 41,
+        "endLine": 345,
+        "endChar": 43
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cc8324e4_24f84b5f",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "edc50216_6ee39139",
       "range": {
         "startLine": 345,
         "startChar": 41,
@@ -110,6 +200,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d96d0012_768b180a",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "436a598b_35856351",
+      "range": {
+        "startLine": 351,
+        "startChar": 41,
+        "endLine": 351,
+        "endChar": 43
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "49320924_db95e5ee",
@@ -133,6 +247,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1ecce23a_d48d8b1c",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "49320924_db95e5ee",
+      "range": {
+        "startLine": 386,
+        "startChar": 4,
+        "endLine": 386,
+        "endChar": 21
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e5d084d2_9f48bae7",
@@ -146,6 +284,30 @@
       "writtenOn": "2025-03-18T12:37:14Z",
       "side": 1,
       "message": "Please rename this too",
+      "range": {
+        "startLine": 403,
+        "startChar": 10,
+        "endLine": 403,
+        "endChar": 30
+      },
+      "revId": "5f2ae83800f7400f4f0fa8c68f407ee60466ab53",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d97ffda5_6d67606b",
+        "filename": "src/lib.rs",
+        "patchSetId": 10
+      },
+      "lineNbr": 403,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-18T13:17:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e5d084d2_9f48bae7",
       "range": {
         "startLine": 403,
         "startChar": 10,
