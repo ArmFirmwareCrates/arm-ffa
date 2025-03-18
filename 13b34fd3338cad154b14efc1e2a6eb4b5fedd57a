@@ -721,6 +721,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "5c1d7dc6_f2250a78",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T11:58:37Z",
+      "side": 1,
+      "message": "I\u0027d say let\u0027s stick with the raw types for now, since both this crate and arm-psci are still fresh and expected to get many new versions. We could add a TODO here to indicate that it might be worth using the specific type in the future, when we don\u0027t break compatibility every other week.",
+      "parentUuid": "05373beb_8e87e298",
+      "range": {
+        "startLine": 868,
+        "startChar": 41,
+        "endLine": 868,
+        "endChar": 70
+      },
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9c00275_38e873f9",
         "filename": "src/lib.rs",
         "patchSetId": 8
@@ -786,6 +810,24 @@
       "side": 1,
       "message": "That makes sense.\n\nJust to bring it to your attention just in case, I\u0027m doing this `as` type of conversion for cases like:\n`a[3] \u003d i32::from(FfaError::NotSupported) as u64`. From what I understand the binary representation won\u0027t get modified.\nLet me know what you think of this.",
       "parentUuid": "98692f68_54774b06",
+      "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9c2165fa_9ddd5172",
+        "filename": "src/lib.rs",
+        "patchSetId": 8
+      },
+      "lineNbr": 1215,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-18T11:58:37Z",
+      "side": 1,
+      "message": "Yes, I think that\u0027s necessary and correct.",
+      "parentUuid": "630f507d_8ee3c4a6",
       "revId": "13b34fd3338cad154b14efc1e2a6eb4b5fedd57a",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
