@@ -43,6 +43,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ba3fbe75_1d82735d",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-19T10:25:29Z",
+      "side": 1,
+      "message": "I don\u0027t think these are switched up:\n\nhttps://docs.rs/uuid/latest/src/uuid/builder.rs.html#254-256\n`pub const fn from_u64_pair(high_bits: u64, low_bits: u64) -\u003e Self {`\n\n```\nFFA_PARTITION_INFO_GET_REGS:\nuint64 UUID_Lo x1 Bytes[7:0] of the UUID with byte 0 in the low-order bits.\nuint64 UUID_Hi x2 Bytes[15:8] of the UUID with byte 8 in the low-order bits.\n```",
+      "parentUuid": "6eb2a0e5_5100633d",
+      "range": {
+        "startLine": 628,
+        "startChar": 46,
+        "endLine": 628,
+        "endChar": 62
+      },
+      "revId": "a394124cdd0b3a2a4ab88d96852c1b57c262b335",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "834aa979_12ed2497",
         "filename": "src/lib.rs",
         "patchSetId": 4
