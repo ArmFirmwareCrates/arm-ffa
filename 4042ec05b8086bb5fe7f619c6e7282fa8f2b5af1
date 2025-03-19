@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "99a8654a_62d3a390",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 12
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-19T10:01:48Z",
+      "side": 1,
+      "message": "One last bit, otherwise LGTM",
+      "revId": "4042ec05b8086bb5fe7f619c6e7282fa8f2b5af1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "16065f29_baf7acd1",
+        "filename": "src/lib.rs",
+        "patchSetId": 12
+      },
+      "lineNbr": 1229,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-19T10:01:48Z",
+      "side": 1,
+      "message": "We should only accept this for v1.2 and above, similar to how it\u0027s done in MemPermGet",
+      "revId": "4042ec05b8086bb5fe7f619c6e7282fa8f2b5af1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
