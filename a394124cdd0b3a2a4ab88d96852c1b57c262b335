@@ -67,6 +67,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "107b1341_f0f6c677",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-19T10:53:52Z",
+      "side": 1,
+      "message": "RFC4122 specifies UUID as big-endian, so usually byte 0 means MSB. Anyway, something is definitely wrong because if I do `Interface::PartitionInfoGetRegs` -\u003e `to_regs()` -\u003e `from_regs()` then I don\u0027t get back the original value",
+      "parentUuid": "ba3fbe75_1d82735d",
+      "range": {
+        "startLine": 628,
+        "startChar": 46,
+        "endLine": 628,
+        "endChar": 62
+      },
+      "revId": "a394124cdd0b3a2a4ab88d96852c1b57c262b335",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "834aa979_12ed2497",
         "filename": "src/lib.rs",
         "patchSetId": 4
