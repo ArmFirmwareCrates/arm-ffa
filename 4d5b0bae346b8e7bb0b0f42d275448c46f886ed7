@@ -1,4 +1,137 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a95c49eb_57816532",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 11
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "Please do a follow-up change and fix the listed issues.",
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1a4c1ca6_e591134a",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "This should be a single `params: [u32; 4]` array. Distinguishing the function ID is not relevant for the FF-A crate and the application that uses this crate would likely want to handle these parameters as a single variable.",
+      "range": {
+        "startLine": 340,
+        "startChar": 8,
+        "endLine": 342,
+        "endChar": 25
+      },
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "16968cd5_0c1153e4",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "Same as above.",
+      "range": {
+        "startLine": 346,
+        "startChar": 8,
+        "endLine": 348,
+        "endChar": 25
+      },
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8ce08569_83018c01",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "It is fine to have a raw i32 value here, there\u0027s no need for depending on the `arm-psci` crate. This is a good enough interface for decoupling the dependency.",
+      "range": {
+        "startLine": 358,
+        "startChar": 8,
+        "endLine": 358,
+        "endChar": 57
+      },
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4c9155f1_2ce12b0e",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 1278,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "This results in a sign extension when casting the negative i32 error code to u64. This means that the register will have a value of 0xffff_ffff_ffff_ffff instead of 0x0000_0000_ffff_ffff which is a problem, it is transmitted in a 32-bit FFA_MSG_SEND_DIRECT_RESP.\nThis should be `(i32::from(FfaError::NotSupported) as u32).into()`.\nThe same applies to lines 1284, 1288, 1292 too.",
+      "range": {
+        "startLine": 1278,
+        "startChar": 43,
+        "endLine": 1278,
+        "endChar": 84
+      },
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "07fd0630_19226d34",
+        "filename": "src/lib.rs",
+        "patchSetId": 11
+      },
+      "lineNbr": 1288,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-03-20T12:24:03Z",
+      "side": 1,
+      "message": "This should be a[3].",
+      "range": {
+        "startLine": 1288,
+        "startChar": 24,
+        "endLine": 1288,
+        "endChar": 28
+      },
+      "revId": "4d5b0bae346b8e7bb0b0f42d275448c46f886ed7",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ],
   "submitRequirementResults": []
 }
