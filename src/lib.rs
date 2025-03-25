@@ -1099,7 +1099,7 @@ impl Interface {
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                uuid: Uuid::from_u64_pair(regs[2], regs[3]),
+                uuid: Uuid::from_u64_pair(regs[2].to_be(), regs[3].to_be()),
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectResp64_2 => Self::MsgSendDirectResp2 {
@@ -1512,7 +1512,8 @@ impl Interface {
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                (a[2], a[3]) = uuid.as_u64_pair();
+                let (uuid_msb, uuid_lsb) = uuid.as_u64_pair();
+                (a[2], a[3]) = (u64::from_be(uuid_msb), u64::from_be(uuid_lsb));
                 a[4..18].copy_from_slice(&args.0[..14]);
             }
             Interface::MsgSendDirectResp2 {
@@ -1704,6 +1705,99 @@ mod tests {
             assert_eq!(regs[1], reg_x1);
             assert_eq!(regs[2], reg_x2);
             assert_eq!(regs[3], (test_info_tag << 16) | test_start_index);
+
+            assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
+        }
+    }
+
+    #[test]
+    fn msg_send_direct_req2() {
+        let uuid = Uuid::parse_str("a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8").unwrap();
+        let uuid_bytes = uuid.as_bytes();
+
+        // From spec:
+        // Bytes[0...7] of UUID with byte 0 in the low-order bits.
+        let mut uuid_lo: [u8; 8] = uuid_bytes[0..8].try_into().unwrap();
+        // Note: uuid_lo = from_le_bytes(uuid_lo), but instead here do a reverse and a
+        // u64::from_be_bytes(uuid_lo) just for the sake of following the logic of the spec.
+        uuid_lo.reverse();
+        let reg_x2 = u64::from_be_bytes(uuid_lo);
+        assert_eq!(uuid_lo[0], uuid.as_bytes()[7]);
+        assert_eq!(uuid_lo[1], uuid.as_bytes()[6]);
+        assert_eq!(uuid_lo[2], uuid.as_bytes()[5]);
+        assert_eq!(uuid_lo[3], uuid.as_bytes()[4]);
+        assert_eq!(uuid_lo[4], uuid.as_bytes()[3]);
+        assert_eq!(uuid_lo[5], uuid.as_bytes()[2]);
+        assert_eq!(uuid_lo[6], uuid.as_bytes()[1]);
+        assert_eq!(uuid_lo[7], uuid.as_bytes()[0]);
+
+        // From spec:
+        // Bytes[8...15] of UUID with byte 8 in the low-order bits.
+        let mut uuid_hi: [u8; 8] = uuid_bytes[8..16].try_into().unwrap();
+        uuid_hi.reverse();
+        let reg_x3 = u64::from_be_bytes(uuid_hi);
+        assert_eq!(uuid_hi[0], uuid.as_bytes()[15]);
+        assert_eq!(uuid_hi[1], uuid.as_bytes()[14]);
+        assert_eq!(uuid_hi[2], uuid.as_bytes()[13]);
+        assert_eq!(uuid_hi[3], uuid.as_bytes()[12]);
+        assert_eq!(uuid_hi[4], uuid.as_bytes()[11]);
+        assert_eq!(uuid_hi[5], uuid.as_bytes()[10]);
+        assert_eq!(uuid_hi[6], uuid.as_bytes()[9]);
+        assert_eq!(uuid_hi[7], uuid.as_bytes()[8]);
+
+        let test_sender = 0b1101_1101;
+        let test_receiver = 0b1101;
+        let test_sender_receiver = (test_sender << 16) | test_receiver;
+        let version = Version(1, 2);
+
+        // Test for regs -> Interface -> regs
+        {
+            let mut orig_regs = [0u64; 18];
+            orig_regs[0] = FuncId::MsgSendDirectReq64_2 as u64;
+            orig_regs[1] = test_sender_receiver;
+            orig_regs[2] = reg_x2;
+            orig_regs[3] = reg_x3;
+
+            let mut test_regs = orig_regs.clone();
+            let interface = Interface::from_regs(version, &mut test_regs).unwrap();
+            match &interface {
+                Interface::MsgSendDirectReq2 {
+                    dst_id,
+                    src_id,
+                    args: _,
+                    uuid: int_uuid,
+                } => {
+                    assert_eq!(u64::from(*src_id), test_sender);
+                    assert_eq!(u64::from(*dst_id), test_receiver);
+                    assert_eq!(*int_uuid, uuid);
+                }
+                _ => panic!("Expecting Interface::MsgSendDirectReq2!"),
+            }
+            test_regs.fill(0);
+            interface.to_regs(version, &mut test_regs);
+            assert_eq!(orig_regs, test_regs);
+        }
+
+        // Test for Interface -> regs -> Interface
+        {
+            let rest_of_regs: [u64; 14] = [0; 14];
+
+            let interface = Interface::MsgSendDirectReq2 {
+                src_id: test_sender.try_into().unwrap(),
+                dst_id: test_receiver.try_into().unwrap(),
+                uuid,
+                args: DirectMsg2Args(rest_of_regs),
+            };
+
+            let mut regs: [u64; 18] = [0; 18];
+            interface.to_regs(version, &mut regs);
+
+            assert_eq!(Some(FuncId::MsgSendDirectReq64_2), interface.function_id());
+            assert_eq!(regs[0], interface.function_id().unwrap() as u64);
+            assert_eq!(regs[1], test_sender_receiver);
+            assert_eq!(regs[2], reg_x2);
+            assert_eq!(regs[3], reg_x3);
+            assert_eq!(regs[4], 0);
 
             assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
         }
