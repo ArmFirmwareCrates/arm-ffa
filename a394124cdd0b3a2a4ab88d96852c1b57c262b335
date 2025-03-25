@@ -89,6 +89,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "fba3cc77_f2213499",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-25T14:59:46Z",
+      "side": 1,
+      "message": "I\u0027ve done some changes and added a test for what you\u0027ve stated, I hope this is ok, as I don\u0027t see any other tests for Interface conversions, so maybe the tests is being done elsewhere/ in another way.\n\nI\u0027ve also realized that this logic should be the same as `FFA_MSG_SEND_DIRECT_REQ2`, so I think I\u0027ve spotted a mistake on this function, which is resolved in the next commit on this series.",
+      "parentUuid": "107b1341_f0f6c677",
+      "range": {
+        "startLine": 628,
+        "startChar": 46,
+        "endLine": 628,
+        "endChar": 62
+      },
+      "revId": "a394124cdd0b3a2a4ab88d96852c1b57c262b335",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "834aa979_12ed2497",
@@ -102,6 +126,24 @@
       "writtenOn": "2025-03-19T09:57:18Z",
       "side": 1,
       "message": "Do we need `from_be()` here?",
+      "revId": "a394124cdd0b3a2a4ab88d96852c1b57c262b335",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f8cb4535_c2c62523",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 997,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-25T14:59:46Z",
+      "side": 1,
+      "message": "I\u0027ve done some changes now and I don\u0027t think we need this function now. Please let me know if you think otherwise.",
+      "parentUuid": "834aa979_12ed2497",
       "revId": "a394124cdd0b3a2a4ab88d96852c1b57c262b335",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
