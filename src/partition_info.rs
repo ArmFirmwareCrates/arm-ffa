@@ -20,12 +20,16 @@ const _: () = assert!(
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("Invalid buffer size")]
     InvalidBufferSize,
     #[error("Malformed descriptor")]
     MalformedDescriptor,
+    #[error("Invalid Information Tag")]
+    InvalidInformationTag,
+    #[error("Invalid Start Index")]
+    InvalidStartIndex,
 }
 
 impl From<Error> for crate::FfaError {
@@ -221,6 +225,52 @@ fn parse_partition_properties(
     (part_id_type, part_props)
 }
 
+/// Variables for the callee to store when dealing with an ongoing `FFA_PARTITION_INFO_GET_REGS`
+/// interface request.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PartitionInfoGetRegsInfo {
+    last_index: u16,
+    current_index: u16,
+    info_tag: u16,
+}
+
+impl PartitionInfoGetRegsInfo {
+    // Amount of registers to fill each time the `FFA_PARTITION_INFO_GET_REGS` interface is called.
+    const REGS_STEP: usize = 5;
+    // TAG value for the calle to call and identify its requests. This value is currently fixed.
+    const INFO_TAG: u16 = 0x7;
+
+    const LAST_INDEX_SHIFT: usize = 0;
+    const CURRENT_INDEX_SHIFT: usize = 16;
+    const INFO_TAG_SHIFT: usize = 32;
+    const DESC_ENTRY_SIZE_SHIFT: usize = 48;
+
+    #[allow(unused)]
+    fn new() -> Self {
+        Self {
+            last_index: 0,
+            current_index: 0,
+            info_tag: 0,
+        }
+    }
+}
+
+impl From<PartitionInfoGetRegsInfo> for u64 {
+    fn from(get_regs_status: PartitionInfoGetRegsInfo) -> u64 {
+        let PartitionInfoGetRegsInfo {
+            last_index,
+            current_index,
+            info_tag,
+        } = get_regs_status;
+
+        (u64::from(last_index) << PartitionInfoGetRegsInfo::LAST_INDEX_SHIFT)
+            | (u64::from(current_index) << PartitionInfoGetRegsInfo::CURRENT_INDEX_SHIFT)
+            | (u64::from(info_tag) << PartitionInfoGetRegsInfo::INFO_TAG_SHIFT)
+            | (u64::try_from(PartitionInfo::DESC_SIZE).unwrap()
+                << PartitionInfoGetRegsInfo::DESC_ENTRY_SIZE_SHIFT)
+    }
+}
+
 /// Partition information descriptor, returned by the `FFA_PARTITION_INFO_GET` interface.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PartitionInfo {
@@ -258,6 +308,79 @@ impl PartitionInfo {
             desc_raw.write_to_prefix(&mut buf[offset..]).unwrap();
             offset += Self::DESC_SIZE;
         }
+    }
+
+    /// Fill `regs` according to the logic of the `FFA_PARTITION_INFO_GET_REGS` interface.
+    /// Updates the PartitionInfoGetRegsInfo structure accordingly so that the user can keep track
+    /// of the status of their request.
+    /// The `fill_uuid` parameter controls whether the UUID field of the descriptor will be filled.
+    pub fn pack_in_regs(
+        version: Version,
+        descriptors: &[PartitionInfo],
+        start_index: u16,
+        get_regs_status: &mut PartitionInfoGetRegsInfo,
+        regs: &mut [u64],
+        fill_uuid: bool,
+    ) -> Result<(), Error> {
+        assert!(version >= Version(1, 2));
+        regs.fill(0);
+
+        let start_index = usize::from(start_index);
+        // Validate info tag
+        if (start_index == 0) && (get_regs_status.info_tag != 0)
+            || (start_index != 0 && get_regs_status.info_tag != PartitionInfoGetRegsInfo::INFO_TAG)
+        {
+            return Err(Error::InvalidInformationTag);
+        }
+
+        // Validate start index: It should be a valid index into the descriptors list
+        if !(0..descriptors.len()).contains(&start_index) {
+            return Err(Error::InvalidStartIndex);
+        }
+
+        get_regs_status.current_index = start_index.try_into().unwrap();
+        get_regs_status.last_index = u16::try_from(descriptors.len() - 1).unwrap();
+        // We know by the validation that if start_index != 0 the correct tag is already there.
+        get_regs_status.info_tag = PartitionInfoGetRegsInfo::INFO_TAG;
+
+        let end_of_iteration = core::cmp::min(
+            descriptors.len(),
+            start_index + PartitionInfoGetRegsInfo::REGS_STEP,
+        );
+        for (current_index, desc) in descriptors[start_index..end_of_iteration]
+            .iter()
+            .enumerate()
+        {
+            let regs_index = current_index * 3;
+            let (partition_props, exec_ctx_count_or_proxy_id) =
+                create_partition_properties(version, desc.partition_id_type, desc.props);
+
+            regs[regs_index] = (u64::from(partition_props) << 32)
+                | (u64::from(exec_ctx_count_or_proxy_id) << 16)
+                | u64::from(desc.partition_id);
+
+            if fill_uuid {
+                let uuid_bytes = desc.uuid.as_bytes();
+                // Bytes[0...7] of the UUID with byte 0 in the low-order bits.
+                let lo_bytes: [u8; 8] = uuid_bytes[0..8].try_into().unwrap();
+                // From spec:
+                // "Each descriptor is encoded in 3 registers in little endian format as described
+                // below." -> "Bytes[0...7] of the UUID with byte 0 in the low-order bits.""
+                regs[regs_index + 1] = u64::from_le_bytes(lo_bytes);
+                let hi_bytes: [u8; 8] = uuid_bytes[8..16].try_into().unwrap();
+                regs[regs_index + 2] = u64::from_le_bytes(hi_bytes);
+            } else {
+                (regs[regs_index + 2], regs[regs_index + 1]) = (0, 0);
+            }
+
+            get_regs_status.current_index += 1;
+        }
+
+        // We need current index to be the last array entry that could fit in the returned partition
+        // information.
+        get_regs_status.current_index -= 1;
+
+        Ok(())
     }
 }
 
@@ -384,5 +507,347 @@ mod tests {
 
         assert_eq!(desc1, desc1_check);
         assert_eq!(desc2, desc2_check);
+    }
+
+    #[test]
+    fn part_info_get_regs() {
+        let version = Version(1, 2);
+
+        let desc1 = PartitionInfo {
+            uuid: uuid!("12345678-1234-1234-1234-123456789abc"),
+            partition_id: 0x8001,
+            partition_id_type: PartitionIdType::PeEndpoint {
+                execution_ctx_count: 1,
+            },
+            props: PartitionProperties {
+                support_direct_req_rec: true,
+                support_direct_req_send: true,
+                support_indirect_msg: false,
+                support_notif_rec: false,
+                subscribe_vm_created: true,
+                subscribe_vm_destroyed: true,
+                is_aarch64: true,
+                support_direct_req2_rec: Some(true),
+                support_direct_req2_send: Some(true),
+            },
+        };
+
+        let desc2 = PartitionInfo {
+            uuid: uuid!("abcdef00-abcd-dcba-1234-abcdef012345"),
+            partition_id: 0x8002,
+            partition_id_type: PartitionIdType::SepidIndep,
+            props: PartitionProperties {
+                support_direct_req_rec: false,
+                support_direct_req_send: false,
+                support_indirect_msg: false,
+                support_notif_rec: false,
+                subscribe_vm_created: false,
+                subscribe_vm_destroyed: false,
+                is_aarch64: true,
+                support_direct_req2_rec: None,
+                support_direct_req2_send: None,
+            },
+        };
+
+        let (prop_bits_desc1, exec_ctx_count_or_proxy_id_desc1) =
+            create_partition_properties(version, desc1.partition_id_type, desc1.props);
+        let expected_x3_desc1 = (u64::from(prop_bits_desc1) << 32)
+            | (u64::from(exec_ctx_count_or_proxy_id_desc1) << 16)
+            | u64::from(desc1.partition_id);
+
+        let (prop_bits_desc2, exec_ctx_count_or_proxy_id_desc2) =
+            create_partition_properties(version, desc2.partition_id_type, desc2.props);
+        let expected_x3_desc2 = (u64::from(prop_bits_desc2) << 32)
+            | (u64::from(exec_ctx_count_or_proxy_id_desc2) << 16)
+            | u64::from(desc2.partition_id);
+        let descriptors = [desc1, desc2, desc1, desc2, desc1, desc2, desc2, desc1];
+
+        // Checks with Nil UUID:
+        {
+            let mut get_regs_status = PartitionInfoGetRegsInfo::new();
+
+            let mut output_regs: [u64; 15] = [0; 15];
+
+            PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                0,
+                &mut get_regs_status,
+                &mut output_regs,
+                true,
+            )
+            .unwrap();
+
+            // First, verify that get_regs_status: PartitionInfoGetRegsInfo has the correct
+            // information:
+            assert_eq!(
+                get_regs_status.last_index,
+                u16::try_from(descriptors.len() - 1).unwrap()
+            );
+            assert_eq!(get_regs_status.info_tag, PartitionInfoGetRegsInfo::INFO_TAG);
+            assert_eq!(
+                get_regs_status.current_index,
+                u16::try_from(PartitionInfoGetRegsInfo::REGS_STEP - 1).unwrap()
+            );
+
+            // Then, verify the contents of the output_regs
+            assert_eq!(desc1.uuid.as_bytes(), output_regs[1..3].as_bytes());
+            assert_eq!(desc2.uuid.as_bytes(), output_regs[4..6].as_bytes());
+
+            assert_eq!(
+                output_regs,
+                [
+                    expected_x3_desc1,
+                    output_regs[1], // already verified above
+                    output_regs[2], // already verified above
+                    expected_x3_desc2,
+                    output_regs[4], // already verified above
+                    output_regs[5], // already verified above
+                    expected_x3_desc1,
+                    output_regs[1], // already verified above
+                    output_regs[2], // already verified above
+                    expected_x3_desc2,
+                    output_regs[4], // already verified above
+                    output_regs[5], // already verified above
+                    expected_x3_desc1,
+                    output_regs[1], // already verified above
+                    output_regs[2], // already verified above
+                ]
+            );
+
+            PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                (get_regs_status.current_index + 1).into(),
+                &mut get_regs_status,
+                &mut output_regs,
+                true,
+            )
+            .unwrap();
+
+            // First, verify that get_regs_status: PartitionInfoGetRegsInfo has the correct
+            // information:
+            assert_eq!(
+                get_regs_status.last_index,
+                u16::try_from(descriptors.len() - 1).unwrap()
+            );
+            assert_eq!(get_regs_status.info_tag, PartitionInfoGetRegsInfo::INFO_TAG);
+            assert_eq!(get_regs_status.current_index, get_regs_status.last_index);
+
+            // Then, verify the contents of the output_regs
+            assert_eq!(desc2.uuid.as_bytes(), output_regs[1..3].as_bytes());
+            assert_eq!(desc1.uuid.as_bytes(), output_regs[7..9].as_bytes());
+
+            assert_eq!(
+                output_regs,
+                [
+                    expected_x3_desc2,
+                    output_regs[1], // already verified above
+                    output_regs[2], // already verified above
+                    expected_x3_desc2,
+                    output_regs[1], // already verified above
+                    output_regs[2], // already verified above
+                    expected_x3_desc1,
+                    output_regs[7], // already verified above
+                    output_regs[8], // already verified above
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]
+            );
+        }
+
+        // Checks with non-Nil UUID:
+        {
+            let mut get_regs_status = PartitionInfoGetRegsInfo::new();
+
+            let mut output_regs: [u64; 15] = [0; 15];
+
+            PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                0,
+                &mut get_regs_status,
+                &mut output_regs,
+                false,
+            )
+            .unwrap();
+
+            // First, verify that get_regs_status: PartitionInfoGetRegsInfo has the correct
+            // information:
+            assert_eq!(
+                get_regs_status.last_index,
+                u16::try_from(descriptors.len() - 1).unwrap()
+            );
+            assert_eq!(get_regs_status.info_tag, PartitionInfoGetRegsInfo::INFO_TAG);
+            assert_eq!(
+                get_regs_status.current_index,
+                u16::try_from(PartitionInfoGetRegsInfo::REGS_STEP - 1).unwrap()
+            );
+
+            // Then, verify the contents of the output_regs
+            assert_eq!(
+                output_regs,
+                [
+                    expected_x3_desc1,
+                    0,
+                    0,
+                    expected_x3_desc2,
+                    0,
+                    0,
+                    expected_x3_desc1,
+                    0,
+                    0,
+                    expected_x3_desc2,
+                    0,
+                    0,
+                    expected_x3_desc1,
+                    0,
+                    0,
+                ]
+            );
+
+            PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                (get_regs_status.current_index + 1).into(),
+                &mut get_regs_status,
+                &mut output_regs,
+                false,
+            )
+            .unwrap();
+
+            // First, verify that get_regs_status: PartitionInfoGetRegsInfo has the correct
+            // information:
+            assert_eq!(
+                get_regs_status.last_index,
+                u16::try_from(descriptors.len() - 1).unwrap()
+            );
+            assert_eq!(get_regs_status.info_tag, PartitionInfoGetRegsInfo::INFO_TAG);
+            assert_eq!(get_regs_status.current_index, get_regs_status.last_index);
+
+            // Then, verify the contents of the output_regs
+            assert_eq!(
+                output_regs,
+                [
+                    expected_x3_desc2,
+                    0,
+                    0,
+                    expected_x3_desc2,
+                    0,
+                    0,
+                    expected_x3_desc1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]
+            );
+        }
+    }
+    #[test]
+    fn info_get_regs_info_empty() {
+        let descriptors: [PartitionInfo; 0] = [];
+        let version = Version(1, 2);
+        let mut output_regs: [u64; 15] = [0; 15];
+
+        let mut get_regs_status = PartitionInfoGetRegsInfo::new();
+
+        let error = PartitionInfo::pack_in_regs(
+            version,
+            &descriptors,
+            0,
+            &mut get_regs_status,
+            &mut output_regs,
+            false,
+        );
+        assert!(error.is_err_and(|e| e == Error::InvalidStartIndex));
+    }
+
+    #[test]
+    fn info_get_regs_info_tag() {
+        let version = Version(1, 3);
+        let mut output_regs: [u64; 15] = [0; 15];
+
+        let desc1 = PartitionInfo {
+            uuid: uuid!("12345678-1234-1234-1234-123456789abc"),
+            partition_id: 0x8001,
+            partition_id_type: PartitionIdType::PeEndpoint {
+                execution_ctx_count: 1,
+            },
+            props: PartitionProperties {
+                support_direct_req_rec: true,
+                support_direct_req_send: true,
+                support_indirect_msg: false,
+                support_notif_rec: false,
+                subscribe_vm_created: true,
+                subscribe_vm_destroyed: true,
+                is_aarch64: true,
+                support_direct_req2_rec: Some(true),
+                support_direct_req2_send: Some(true),
+            },
+        };
+        let descriptors = [desc1, desc1, desc1, desc1, desc1, desc1];
+        {
+            let mut get_regs_status = PartitionInfoGetRegsInfo::new();
+            get_regs_status.info_tag = PartitionInfoGetRegsInfo::INFO_TAG;
+            let error = PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                0,
+                &mut get_regs_status,
+                &mut output_regs,
+                true,
+            );
+
+            assert!(error.is_err_and(|e| e == Error::InvalidInformationTag));
+        }
+
+        {
+            let mut get_regs_status = PartitionInfoGetRegsInfo::new();
+            PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                0,
+                &mut get_regs_status,
+                &mut output_regs,
+                true,
+            )
+            .unwrap();
+
+            assert_eq!(get_regs_status.info_tag, PartitionInfoGetRegsInfo::INFO_TAG);
+            assert_eq!(
+                usize::from(get_regs_status.current_index),
+                PartitionInfoGetRegsInfo::REGS_STEP - 1
+            );
+            get_regs_status.info_tag = !PartitionInfoGetRegsInfo::INFO_TAG;
+            let error = PartitionInfo::pack_in_regs(
+                version,
+                &descriptors,
+                get_regs_status.current_index + 1,
+                &mut get_regs_status,
+                &mut output_regs,
+                true,
+            );
+            assert!(error.is_err_and(|e| e == Error::InvalidInformationTag));
+        }
+    }
+
+    #[test]
+    fn info_get_regs_info_conversion() {
+        let mut info_get_regs = PartitionInfoGetRegsInfo::new();
+        info_get_regs.last_index = 12;
+        info_get_regs.current_index = 14;
+        info_get_regs.info_tag = 9;
+
+        let translate_value: u64 = (24 << 48) | (9 << 32) | (14 << 16) | 12;
+        assert_eq!(u64::from(info_get_regs), translate_value);
     }
 }
