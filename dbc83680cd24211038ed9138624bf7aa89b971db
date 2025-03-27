@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "caae6eb7_9f24ddbc",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-27T16:00:13Z",
+      "side": 1,
+      "message": "From what I understand and what I\u0027ve implemented:\n1) The UUID is Big Endian.\n2) `Lo: Bytes[0. . . 7] of the UUID with byte 0 in the low-order bits.`\n   *) This is a little endian byte-representation of the High/Low parts of UUID.\n3) Same applies as `(2)` applies for `Hi`.\n\nThe same representation is used in `PartitionInfoGetRegs`, where it states originally:\n\n`Each descriptor is encoded in 3 registers in little endian format as described below`\n\n`If the Nil UUID is specified as input. Bytes[0. . . 7] of the UUID with byte 0 in the low-order bits.`\n\nThis is what brought this fix and test to be.",
+      "revId": "dbc83680cd24211038ed9138624bf7aa89b971db",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
