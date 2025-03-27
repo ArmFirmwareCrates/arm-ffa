@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "328e33d1_5ec2a1f7",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 2
+      },
+      "lineNbr": 317,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-27T14:17:19Z",
+      "side": 1,
+      "message": "Should this be a function of `PartitionInfoGetRegsStatus` instead?",
+      "revId": "80aeec407e4a3bfe9d172dac22be11f5d6ba54cf",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
