@@ -23,7 +23,7 @@ pub const FFA_PAGE_SIZE_4K: usize = 4096;
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("Unrecognised FF-A function ID {0}")]
     UnrecognisedFunctionId(u32),
@@ -41,6 +41,8 @@ pub enum Error {
     UnrecognisedWarmBootType(u32),
     #[error("Invalid version {0}")]
     InvalidVersion(u32),
+    #[error("Invalid Information Tag {0}")]
+    InvalidInformationTag(u16),
 }
 
 impl From<Error> for FfaError {
@@ -49,6 +51,7 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
                 Self::NotSupported
             }
+            Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
@@ -522,7 +525,7 @@ pub enum Interface {
     PartitionInfoGetRegs {
         uuid: Uuid,
         start_index: u16,
-        info_tag: Option<u16>,
+        info_tag: u16,
     },
     IdGet,
     SpmIdGet,
@@ -1111,14 +1114,14 @@ impl Interface {
             FuncId::PartitionInfoGetRegs => {
                 // Bits[15:0]: Start index
                 let start_index = (regs[3] & 0xffff) as u16;
+                let info_tag = ((regs[3] >> 16) & 0xffff) as u16;
                 Self::PartitionInfoGetRegs {
                     uuid: Uuid::from_u64_pair(regs[1].swap_bytes(), regs[2].swap_bytes()),
                     start_index,
-                    info_tag: if start_index != 0 {
-                        // Bits[31:16]: Information tag for the queried UUID
-                        Some((regs[3] >> 16) as u16)
+                    info_tag: if start_index == 0 && info_tag != 0 {
+                        return Err(Error::InvalidInformationTag(info_tag));
                     } else {
-                        None
+                        info_tag
                     },
                 }
             }
@@ -1539,10 +1542,7 @@ impl Interface {
             } => {
                 (a[1], a[2]) = uuid.as_u64_pair();
                 (a[1], a[2]) = (a[1].swap_bytes(), a[2].swap_bytes());
-                a[3] = start_index.into();
-                if let Some(t) = info_tag {
-                    a[3] |= (t as u64) << 16;
-                }
+                a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
             _ => panic!("{:#x?} requires 8 registers", self),
         }
@@ -1653,6 +1653,33 @@ mod tests {
         assert_eq!(uuid_hi[6], uuid.as_bytes()[9]);
         assert_eq!(uuid_hi[7], uuid.as_bytes()[8]);
 
+        // First, test for wrong tag:
+        {
+            let regs: [u64; 18] = [
+                FuncId::PartitionInfoGetRegs as u64, // x0
+                reg_x1,                              // x1
+                reg_x2,                              // x2
+                (test_info_tag << 16),               // x3
+                0,                                   // x4
+                0,                                   // x5
+                0,                                   // x6
+                0,                                   // x7
+                0,                                   // x8
+                0,                                   // x9
+                0,                                   // x10
+                0,                                   // x11
+                0,                                   // x12
+                0,                                   // x13
+                0,                                   // x14
+                0,                                   // x15
+                0,                                   // x16
+                0,                                   // x17
+            ];
+            assert!(Interface::from_regs(version, &regs).is_err_and(
+                |e| e == Error::InvalidInformationTag(test_info_tag.try_into().unwrap())
+            ));
+        }
+
         // Test for regs -> Interface -> regs
         {
             let orig_regs: [u64; 18] = [
@@ -1684,7 +1711,7 @@ mod tests {
                     start_index,
                     uuid: int_uuid,
                 } => {
-                    assert_eq!(u64::from(info_tag.unwrap()), test_info_tag);
+                    assert_eq!(u64::from(*info_tag), test_info_tag);
                     assert_eq!(u64::from(*start_index), test_start_index);
                     assert_eq!(*int_uuid, uuid);
                 }
@@ -1698,7 +1725,7 @@ mod tests {
         // Test for Interface -> regs -> Interface
         {
             let interface = Interface::PartitionInfoGetRegs {
-                info_tag: Some(test_info_tag.try_into().unwrap()),
+                info_tag: test_info_tag.try_into().unwrap(),
                 start_index: test_start_index.try_into().unwrap(),
                 uuid,
             };
