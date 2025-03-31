@@ -53,6 +53,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "057a33e8_76898180",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 5
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T12:31:02Z",
+      "side": 1,
+      "message": "The spec itself talks about endianness:\n```\nEach descriptor is encoded in 3 registers in little\nendian format as described below\n```\n\nI\u0027ve editted/simplified the comment",
+      "parentUuid": "6b420f13_77b440ed",
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "4ca81084_bf317152",
