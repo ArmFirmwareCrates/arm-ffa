@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "9bede28d_b19de043",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 724,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "My thinking was that, even though it only needs 8 registers, this is was added in Version 1.2 of the spec that introduces the 18 registers.\nHappy to move it back, but just wanted to check if you\u0027d taken that into account?",
+      "parentUuid": "b57d4a89_b800b28a",
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "9464176c_be58ca0d",
         "filename": "src/lib.rs",
         "patchSetId": 7
@@ -31,6 +49,30 @@
       "writtenOn": "2025-03-31T09:01:21Z",
       "side": 1,
       "message": "Please use `to_be()` instead, as I\u0027ve originally suggested. It will end up doing the same, but it shows the reason why we need to do it",
+      "range": {
+        "startLine": 1119,
+        "startChar": 54,
+        "endLine": 1119,
+        "endChar": 64
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eeca9873_f19c60ef",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Yes, you are right, now I understand what you\u0027ve meant. Done",
+      "parentUuid": "9464176c_be58ca0d",
       "range": {
         "startLine": 1119,
         "startChar": 54,
@@ -64,6 +106,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "510a19f5_c748d9d6",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1541,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "This function does not return an error, so I\u0027m panicking in that case, which seems a bit extreme perhaps? Done.",
+      "parentUuid": "f4cc20e8_fd4b2387",
+      "range": {
+        "startLine": 1541,
+        "startChar": 16,
+        "endLine": 1541,
+        "endChar": 24
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "09f7637b_ee999873",
@@ -77,6 +143,30 @@
       "writtenOn": "2025-03-31T09:01:21Z",
       "side": 1,
       "message": "I think it\u0027d be cleaner to have `(uuid_msb, uuid_lsb) \u003d ...` here",
+      "range": {
+        "startLine": 1543,
+        "startChar": 16,
+        "endLine": 1543,
+        "endChar": 28
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9f6a72eb_5d589d74",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1543,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "09f7637b_ee999873",
       "range": {
         "startLine": 1543,
         "startChar": 16,
@@ -110,6 +200,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "14f4e9f0_5d90e2e9",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1544,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9e70fc63_f9131575",
+      "range": {
+        "startLine": 1544,
+        "startChar": 37,
+        "endLine": 1544,
+        "endChar": 47
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "6770cd24_f3fd39da",
@@ -123,6 +237,30 @@
       "writtenOn": "2025-03-31T10:01:21Z",
       "side": 1,
       "message": "A bit of nitpicking, but instead of converting with these functions and then doing asserts to see if the result is correct, I suggest just writing it down explicitly:\n\n```\nlet uuid_bytes \u003d uuid.as_bytes();\nlet reg_x1 \u003d (uuid_bytes[7] as u64) \u003c\u003c 56\n    | (uuid_bytes[6] as u64) \u003c\u003c 48\n    | (uuid_bytes[5] as u64) \u003c\u003c 40\n    | (uuid_bytes[4] as u64) \u003c\u003c 32\n    | (uuid_bytes[3] as u64) \u003c\u003c 24\n    | (uuid_bytes[2] as u64) \u003c\u003c 16\n    | (uuid_bytes[1] as u64) \u003c\u003c 8\n    | (uuid_bytes[0] as u64);\n```\n\nThis way it\u0027s clear from the code how the spec defines the register contents and it\u0027s guaranteed to be correct.",
+      "range": {
+        "startLine": 1626,
+        "startChar": 0,
+        "endLine": 1632,
+        "endChar": 49
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "776a1338_21e80f14",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1632,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6770cd24_f3fd39da",
       "range": {
         "startLine": 1626,
         "startChar": 0,
@@ -156,6 +294,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d884ee42_08aa21ab",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1633,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "78778de9_c141195b",
+      "range": {
+        "startLine": 1633,
+        "startChar": 31,
+        "endLine": 1633,
+        "endChar": 46
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "be69bcb8_1dde2f98",
@@ -173,6 +335,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bde740a8_d7f59e74",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1658,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "be69bcb8_1dde2f98",
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "134859dc_f25fa804",
@@ -186,6 +366,30 @@
       "writtenOn": "2025-03-31T09:01:21Z",
       "side": 1,
       "message": "I don\u0027t think these comments are helpful, please remove",
+      "range": {
+        "startLine": 1659,
+        "startChar": 53,
+        "endLine": 1659,
+        "endChar": 58
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "05234f98_df3cba56",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T10:51:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "134859dc_f25fa804",
       "range": {
         "startLine": 1659,
         "startChar": 53,
