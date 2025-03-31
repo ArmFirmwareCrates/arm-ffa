@@ -1,0 +1,7 @@
+Code-Review+2: Bálint Dobszay <balint.dobszay@arm.com>
+Submitted-by: Bálint Dobszay <balint.dobszay@arm.com>
+Submitted-at: Mon, 31 Mar 2025 14:52:45 +0200
+Reviewed-on: https://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/36544
+Comments-Total: 9
+Project: rust-spmc/arm-ffa
+Branch: refs/heads/main
