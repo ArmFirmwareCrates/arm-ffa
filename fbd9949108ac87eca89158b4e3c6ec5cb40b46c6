@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9f6c2782_9aeed2e0",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 5
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:36Z",
+      "side": 1,
+      "message": "Something like \"Fix UUID endianness in MsgSendDirectReq2\"?",
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fdc370fc_c738623f",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 5
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:36Z",
+      "side": 1,
+      "message": "I think the first half of description can be simplified, something like:\n\nThe uuid crate\u0027s from_u64_pair() and as_u64_pair() functions use big endian format, while the registers should contain little-endian, as defined in the FF-A spec.",
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4ca81084_bf317152",
+        "filename": "src/lib.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 1724,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:36Z",
+      "side": 1,
+      "message": "Please refactor this too, like in the previous patch",
+      "range": {
+        "startLine": 1720,
+        "startChar": 0,
+        "endLine": 1724,
+        "endChar": 49
+      },
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
