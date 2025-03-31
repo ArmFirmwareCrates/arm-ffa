@@ -1,0 +1,84 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "95ddc272_bcb62b25",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 8
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:32Z",
+      "side": 1,
+      "message": "Info is missing",
+      "range": {
+        "startLine": 7,
+        "startChar": 17,
+        "endLine": 7,
+        "endChar": 33
+      },
+      "revId": "dbf31408886328df9ad632b41ef398e6dcf577f8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1342fb18_2e2194ea",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 8
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:32Z",
+      "side": 1,
+      "message": "\"Also, add some tests for this interface:\"",
+      "revId": "dbf31408886328df9ad632b41ef398e6dcf577f8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3f9fff06_5a5f7d25",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 8
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:32Z",
+      "side": 1,
+      "message": "Backticks are not needed here, this is not markdown",
+      "range": {
+        "startLine": 11,
+        "startChar": 3,
+        "endLine": 11,
+        "endChar": 4
+      },
+      "revId": "dbf31408886328df9ad632b41ef398e6dcf577f8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6fc0806d_eee46c87",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 8
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T12:04:32Z",
+      "side": 1,
+      "message": "I think this last point is already covered by the previous, no need to call out separately",
+      "revId": "dbf31408886328df9ad632b41ef398e6dcf577f8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
