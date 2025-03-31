@@ -1,0 +1,176 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b57d4a89_b800b28a",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 724,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "Actually this call doesn\u0027t require 18 registers, so I think we could keep it in `unpack_regs8()` and `pack_regs8()` as you did it originally",
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9464176c_be58ca0d",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "Please use `to_be()` instead, as I\u0027ve originally suggested. It will end up doing the same, but it shows the reason why we need to do it",
+      "range": {
+        "startLine": 1119,
+        "startChar": 54,
+        "endLine": 1119,
+        "endChar": 64
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4cc20e8_fd4b2387",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1541,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "This MBZ if start index is 0, please add a check",
+      "range": {
+        "startLine": 1541,
+        "startChar": 16,
+        "endLine": 1541,
+        "endChar": 24
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "09f7637b_ee999873",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1543,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "I think it\u0027d be cleaner to have `(uuid_msb, uuid_lsb) \u003d ...` here",
+      "range": {
+        "startLine": 1543,
+        "startChar": 16,
+        "endLine": 1543,
+        "endChar": 28
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9e70fc63_f9131575",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1544,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "Please use `from_be()`",
+      "range": {
+        "startLine": 1544,
+        "startChar": 37,
+        "endLine": 1544,
+        "endChar": 47
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "78778de9_c141195b",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1633,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "You already have this stored in `uuid_bytes`, why not use that?",
+      "range": {
+        "startLine": 1633,
+        "startChar": 31,
+        "endLine": 1633,
+        "endChar": 46
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "be69bcb8_1dde2f98",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1658,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "I think it\u0027s easier to do `let mut regs \u003d [0u64; 18];` and then `regs[0] \u003d FuncId:: ...`",
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "134859dc_f25fa804",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T09:01:21Z",
+      "side": 1,
+      "message": "I don\u0027t think these comments are helpful, please remove",
+      "range": {
+        "startLine": 1659,
+        "startChar": 53,
+        "endLine": 1659,
+        "endChar": 58
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
