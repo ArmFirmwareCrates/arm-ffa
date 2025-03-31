@@ -18,6 +18,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8f39a486_c325d56d",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 5
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T12:35:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9f6c2782_9aeed2e0",
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "fdc370fc_c738623f",
@@ -84,6 +102,30 @@
       "writtenOn": "2025-03-31T12:04:36Z",
       "side": 1,
       "message": "Please refactor this too, like in the previous patch",
+      "range": {
+        "startLine": 1720,
+        "startChar": 0,
+        "endLine": 1724,
+        "endChar": 49
+      },
+      "revId": "fbd9949108ac87eca89158b4e3c6ec5cb40b46c6",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d4675971_b9e7b857",
+        "filename": "src/lib.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 1724,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T12:35:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4ca81084_bf317152",
       "range": {
         "startLine": 1720,
         "startChar": 0,
