@@ -36,6 +36,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "21932d29_b16727fa",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 724,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-03-31T11:45:53Z",
+      "side": 1,
+      "message": "Yes, I was thinking about that. But on second thought you\u0027re right, because when we have to unpack this interface then we always do it from 18 regs input, and at packing the receiver shouldn\u0027t be affected by zeroing out all other regs up to x17. So all in all never mind, let\u0027s keep it as is.",
+      "parentUuid": "9bede28d_b19de043",
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9464176c_be58ca0d",
