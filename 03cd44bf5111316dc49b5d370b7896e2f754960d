@@ -151,6 +151,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ffa447db_34237078",
+        "filename": "src/lib.rs",
+        "patchSetId": 7
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-03-31T12:19:08Z",
+      "side": 1,
+      "message": "Re-applied. I won\u0027t resolve the thread, awaiting for Balint\u0027s confirmation",
+      "parentUuid": "6e7e54ac_3f8a4dc2",
+      "range": {
+        "startLine": 1119,
+        "startChar": 54,
+        "endLine": 1119,
+        "endChar": 64
+      },
+      "revId": "03cd44bf5111316dc49b5d370b7896e2f754960d",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f4cc20e8_fd4b2387",
         "filename": "src/lib.rs",
         "patchSetId": 7
