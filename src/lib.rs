@@ -195,6 +195,11 @@ impl From<TargetInfo> for u32 {
 /// Arguments for the `FFA_SUCCESS` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
+    /// Variant where the Success Arguments should not be interpreted in any way and are all zero.
+    /// Use Result32 variant when the contained argument values do have a meaning (for example, an
+    /// interrupt ID=0)
+    /// The 64-bit variant where all arguments are 0 is not allowed by the spec.
+    Empty32,
     Result32([u32; 6]),
     Result64([u64; 6]),
     Result64_2([u64; 16]),
@@ -783,7 +788,7 @@ impl Interface {
         match self {
             Interface::Error { .. } => Some(FuncId::Error),
             Interface::Success { args, .. } => match args {
-                SuccessArgs::Result32(..) => Some(FuncId::Success32),
+                SuccessArgs::Result32(..) | SuccessArgs::Empty32 => Some(FuncId::Success32),
                 SuccessArgs::Result64(..) | SuccessArgs::Result64_2(..) => Some(FuncId::Success64),
             },
             Interface::Interrupt { .. } => Some(FuncId::Interrupt),
@@ -1414,6 +1419,9 @@ impl Interface {
                         a[6] = regs[4].into();
                         a[7] = regs[5].into();
                     }
+                    SuccessArgs::Empty32 => {
+                        a[2..8].fill(0);
+                    }
                     SuccessArgs::Result64(regs) => {
                         a[2] = regs[0];
                         a[3] = regs[1];
@@ -1820,22 +1828,6 @@ impl Interface {
                 a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
             _ => panic!("{:#x?} requires 8 registers", self),
-        }
-    }
-
-    /// Helper function to create an `FFA_SUCCESS` interface without any arguments.
-    pub fn success32_noargs() -> Self {
-        Self::Success {
-            target_info: 0,
-            args: SuccessArgs::Result32([0, 0, 0, 0, 0, 0]),
-        }
-    }
-
-    /// Helper function to create an `FFA_SUCCESS` interface without any arguments.
-    pub fn success64_noargs() -> Self {
-        Self::Success {
-            target_info: 0,
-            args: SuccessArgs::Result64([0, 0, 0, 0, 0, 0]),
         }
     }
 
