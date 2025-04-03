@@ -43,6 +43,10 @@ pub enum Error {
     InvalidVersion(u32),
     #[error("Invalid Information Tag {0}")]
     InvalidInformationTag(u16),
+    #[error("Invalid Flag for Notification Set")]
+    InvalidNotificationSetFlag(u32),
+    #[error("Invalid Vm ID")]
+    InvalidVmId(u32),
 }
 
 impl From<Error> for FfaError {
@@ -57,6 +61,8 @@ impl From<Error> for FfaError {
             | Error::InvalidVersion(_)
             | Error::InvalidMsgWaitFlag(_)
             | Error::UnrecognisedVmAvailabilityStatus(_)
+            | Error::InvalidNotificationSetFlag(_)
+            | Error::InvalidVmId(_)
             | Error::UnrecognisedWarmBootType(_) => Self::InvalidParameters,
         }
     }
@@ -482,6 +488,135 @@ pub enum ConsoleLogChars {
     Reg64([u64; 16]),
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct NotificationBindFlags {
+    per_vcpu_notification: bool,
+}
+
+impl NotificationBindFlags {
+    const PER_VCPU_NOTIFICATION: u32 = 1;
+}
+
+impl From<NotificationBindFlags> for u32 {
+    fn from(flags: NotificationBindFlags) -> Self {
+        let mut bits: u32 = 0;
+        if flags.per_vcpu_notification {
+            bits |= NotificationBindFlags::PER_VCPU_NOTIFICATION;
+        }
+        bits
+    }
+}
+
+impl From<u32> for NotificationBindFlags {
+    fn from(flags: u32) -> Self {
+        Self {
+            per_vcpu_notification: flags & Self::PER_VCPU_NOTIFICATION != 0,
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct NotificationSetFlags {
+    delay_schedule_receiver: bool,
+    vcpu_id: Option<u16>,
+}
+
+impl NotificationSetFlags {
+    const PER_VCP_NOTIFICATION: u32 = 1 << 0;
+    const DELAY_SCHEDULE_RECEIVER: u32 = 1 << 1;
+    const VCPU_ID_SHIFT: u32 = 16;
+
+    const MBZ_BITS: u32 = 0xfffc;
+}
+
+impl From<NotificationSetFlags> for u32 {
+    fn from(flags: NotificationSetFlags) -> Self {
+        let mut bits: u32 = 0;
+
+        if flags.delay_schedule_receiver {
+            bits |= NotificationSetFlags::DELAY_SCHEDULE_RECEIVER;
+        }
+        if let Some(vcpu_id) = flags.vcpu_id {
+            bits |= NotificationSetFlags::PER_VCP_NOTIFICATION;
+            bits |= u32::from(vcpu_id) << NotificationSetFlags::VCPU_ID_SHIFT;
+        }
+
+        bits
+    }
+}
+
+impl TryFrom<u32> for NotificationSetFlags {
+    type Error = Error;
+
+    fn try_from(flags: u32) -> Result<Self, Self::Error> {
+        if (flags & Self::MBZ_BITS) != 0 {
+            return Err(Error::InvalidNotificationSetFlag(flags));
+        }
+
+        let tentative_vcpu_id = (flags >> Self::VCPU_ID_SHIFT) as u16;
+
+        let vcpu_id = if (flags & Self::PER_VCP_NOTIFICATION) != 0 {
+            Some(tentative_vcpu_id)
+        } else {
+            if tentative_vcpu_id != 0 {
+                return Err(Error::InvalidNotificationSetFlag(flags));
+            }
+            None
+        };
+
+        Ok(Self {
+            delay_schedule_receiver: (flags & Self::DELAY_SCHEDULE_RECEIVER) != 0,
+            vcpu_id,
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct NotificationGetFlags {
+    sp_bitmap_id: bool,
+    vm_bitmap_id: bool,
+    spm_bitmap_id: bool,
+    hyp_bitmap_id: bool,
+}
+
+impl NotificationGetFlags {
+    const SP_BITMAP_ID: u32 = 1;
+    const VM_BITMAP_ID: u32 = 1 << 1;
+    const SPM_BITMAP_ID: u32 = 1 << 2;
+    const HYP_BITMAP_ID: u32 = 1 << 3;
+}
+
+impl From<NotificationGetFlags> for u32 {
+    fn from(flags: NotificationGetFlags) -> Self {
+        let mut bits: u32 = 0;
+        if flags.sp_bitmap_id {
+            bits |= NotificationGetFlags::SP_BITMAP_ID;
+        }
+        if flags.vm_bitmap_id {
+            bits |= NotificationGetFlags::VM_BITMAP_ID;
+        }
+        if flags.spm_bitmap_id {
+            bits |= NotificationGetFlags::SPM_BITMAP_ID;
+        }
+        if flags.hyp_bitmap_id {
+            bits |= NotificationGetFlags::HYP_BITMAP_ID;
+        }
+        bits
+    }
+}
+
+impl From<u32> for NotificationGetFlags {
+    // This is a "from" instead of a "try_from" because Reserved Bits are SBZ, *not* MBZ.
+    fn from(flags: u32) -> Self {
+        Self {
+            sp_bitmap_id: (flags & Self::SP_BITMAP_ID) != 0,
+            vm_bitmap_id: (flags & Self::VM_BITMAP_ID) != 0,
+            spm_bitmap_id: (flags & Self::SPM_BITMAP_ID) != 0,
+            hyp_bitmap_id: (flags & Self::HYP_BITMAP_ID) != 0,
+        }
+    }
+}
+
 /// FF-A "message types", the terminology used by the spec is "interfaces".
 ///
 /// The interfaces are used by FF-A components for communication at an FF-A instance. The spec also
@@ -612,6 +747,38 @@ pub enum Interface {
         char_cnt: u8,
         char_lists: ConsoleLogChars,
     },
+    NotificationBitmapCreate {
+        vm_id: u16,
+        vcpu_cnt: u32,
+    },
+    NotificationBitmapDestroy {
+        vm_id: u16,
+    },
+    NotificationBind {
+        sender_id: u16,
+        receiver_id: u16,
+        flags: NotificationBindFlags,
+        bitmap: u64,
+    },
+    NotificationUnBind {
+        sender_id: u16,
+        receiver_id: u16,
+        bitmap: u64,
+    },
+    NotificationSet {
+        sender_id: u16,
+        receiver_id: u16,
+        flags: NotificationSetFlags,
+        bitmap: u64,
+    },
+    NotificationGet {
+        vcpu_id: u16,
+        endpoint_id: u16,
+        flags: NotificationGetFlags,
+    },
+    NotificationInfoGet {
+        is_32bit: bool,
+    },
 }
 
 impl Interface {
@@ -699,6 +866,16 @@ impl Interface {
             Interface::ConsoleLog { char_lists, .. } => match char_lists {
                 ConsoleLogChars::Reg32(_) => Some(FuncId::ConsoleLog32),
                 ConsoleLogChars::Reg64(_) => Some(FuncId::ConsoleLog64),
+            },
+            Interface::NotificationBitmapCreate { .. } => Some(FuncId::NotificationBitmapCreate),
+            Interface::NotificationBitmapDestroy { .. } => Some(FuncId::NotificationBitmapDestroy),
+            Interface::NotificationBind { .. } => Some(FuncId::NotificationBind),
+            Interface::NotificationUnBind { .. } => Some(FuncId::NotificationUnbind),
+            Interface::NotificationSet { .. } => Some(FuncId::NotificationSet),
+            Interface::NotificationGet { .. } => Some(FuncId::NotificationGet),
+            Interface::NotificationInfoGet { is_32bit } => match is_32bit {
+                true => Some(FuncId::NotificationInfoGet32),
+                false => Some(FuncId::NotificationInfoGet64),
             },
         }
     }
@@ -1085,6 +1262,49 @@ impl Interface {
                     regs[7] as u32,
                 ]),
             },
+            FuncId::NotificationBitmapCreate => {
+                let tentative_vm_id = regs[1] as u32;
+                if (tentative_vm_id >> 16) != 0 {
+                    return Err(Error::InvalidVmId(tentative_vm_id));
+                }
+                Self::NotificationBitmapCreate {
+                    vm_id: tentative_vm_id as u16,
+                    vcpu_cnt: regs[2].try_into().unwrap(),
+                }
+            }
+            FuncId::NotificationBitmapDestroy => {
+                let tentative_vm_id = regs[1] as u32;
+                if (tentative_vm_id >> 16) != 0 {
+                    return Err(Error::InvalidVmId(tentative_vm_id));
+                }
+                Self::NotificationBitmapDestroy {
+                    vm_id: tentative_vm_id.try_into().unwrap(),
+                }
+            }
+            FuncId::NotificationBind => Self::NotificationBind {
+                sender_id: (regs[1] >> 16) as u16,
+                receiver_id: regs[1] as u16,
+                flags: (regs[2] as u32).into(),
+                bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
+            },
+            FuncId::NotificationUnbind => Self::NotificationUnBind {
+                sender_id: (regs[1] >> 16) as u16,
+                receiver_id: regs[1] as u16,
+                bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
+            },
+            FuncId::NotificationSet => Self::NotificationSet {
+                sender_id: (regs[1] >> 16) as u16,
+                receiver_id: regs[1] as u16,
+                flags: (regs[2] as u32).try_into()?,
+                bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
+            },
+            FuncId::NotificationGet => Self::NotificationGet {
+                vcpu_id: (regs[1] >> 16) as u16,
+                endpoint_id: regs[1] as u16,
+                flags: (regs[2] as u32).into(),
+            },
+            FuncId::NotificationInfoGet32 => Self::NotificationInfoGet { is_32bit: true },
+            FuncId::NotificationInfoGet64 => Self::NotificationInfoGet { is_32bit: false },
             _ => panic!("Invalid number of registers (8) for function {:#x?}", fid),
         };
 
@@ -1493,6 +1713,55 @@ impl Interface {
                     _ => panic!("{:#x?} requires 18 registers", char_lists),
                 }
             }
+            Interface::NotificationBitmapCreate { vm_id, vcpu_cnt } => {
+                a[1] = vm_id.into();
+                a[2] = vcpu_cnt.into();
+            }
+            Interface::NotificationBitmapDestroy { vm_id } => {
+                a[1] = vm_id.into();
+            }
+            Interface::NotificationBind {
+                sender_id,
+                receiver_id,
+                flags,
+                bitmap,
+            } => {
+                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
+                a[2] = u32::from(flags).into();
+                a[3] = bitmap & 0xffff;
+                a[4] = bitmap >> 32;
+            }
+            Interface::NotificationUnBind {
+                sender_id,
+                receiver_id,
+                bitmap,
+            } => {
+                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
+                // Reserved (SBZ)
+                a[2] = 0;
+                a[3] = bitmap & 0xffff;
+                a[4] = bitmap >> 32;
+            }
+            Interface::NotificationSet {
+                sender_id,
+                receiver_id,
+                flags,
+                bitmap,
+            } => {
+                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
+                a[2] = u32::from(flags).into();
+                a[3] = bitmap & 0xffff;
+                a[4] = bitmap >> 32;
+            }
+            Interface::NotificationGet {
+                vcpu_id,
+                endpoint_id,
+                flags,
+            } => {
+                a[1] = (u64::from(vcpu_id) << 16) | u64::from(endpoint_id);
+                a[2] = u32::from(flags).into();
+            }
+            Interface::NotificationInfoGet { .. } => {}
             _ => panic!("{:#x?} requires 18 registers", self),
         }
     }
