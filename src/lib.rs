@@ -617,6 +617,43 @@ impl From<u32> for NotificationGetFlags {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum EndpointId {
+    Secure(u16),
+    NonSecure(u16),
+}
+
+impl EndpointId {
+    // Bit[15]: Partition type identifier.
+    //  * b'1: Bits[14:0] are reserved for use by the SPM to identify an SP.
+    // The SPM if Bit[15] = b’1.
+    const SECURE_ID: u16 = 1 << 15;
+}
+
+impl From<u16> for EndpointId {
+    fn from(id: u16) -> Self {
+        if (id & Self::SECURE_ID) != 0 {
+            EndpointId::Secure(id)
+        } else {
+            EndpointId::NonSecure(id)
+        }
+    }
+}
+
+impl From<EndpointId> for u16 {
+    fn from(id: EndpointId) -> Self {
+        match id {
+            EndpointId::NonSecure(id) | EndpointId::Secure(id) => id,
+        }
+    }
+}
+
+impl From<EndpointId> for u64 {
+    fn from(id: EndpointId) -> Self {
+        u64::from(u16::from(id))
+    }
+}
+
 /// FF-A "message types", the terminology used by the spec is "interfaces".
 ///
 /// The interfaces are used by FF-A components for communication at an FF-A instance. The spec also
@@ -685,24 +722,24 @@ pub enum Interface {
         flags: u32,
     },
     MsgSendDirectReq {
-        src_id: u16,
-        dst_id: u16,
+        src_id: EndpointId,
+        dst_id: EndpointId,
         args: DirectMsgArgs,
     },
     MsgSendDirectResp {
-        src_id: u16,
-        dst_id: u16,
+        src_id: EndpointId,
+        dst_id: EndpointId,
         args: DirectMsgArgs,
     },
     MsgSendDirectReq2 {
-        src_id: u16,
-        dst_id: u16,
+        src_id: EndpointId,
+        dst_id: EndpointId,
         uuid: Uuid,
         args: DirectMsg2Args,
     },
     MsgSendDirectResp2 {
-        src_id: u16,
-        dst_id: u16,
+        src_id: EndpointId,
+        dst_id: EndpointId,
         args: DirectMsg2Args,
     },
     MemDonate {
@@ -1018,8 +1055,8 @@ impl Interface {
                 flags: regs[2] as u32,
             },
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
                     match regs[2] as u32 {
                         DirectMsgArgs::VERSION_REQ => DirectMsgArgs::VersionReq {
@@ -1063,8 +1100,8 @@ impl Interface {
                 },
             },
             FuncId::MsgSendDirectReq64 => Self::MsgSendDirectReq {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
                     match regs[2] as u32 {
                         DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq64 {
@@ -1077,8 +1114,8 @@ impl Interface {
                 },
             },
             FuncId::MsgSendDirectResp32 => Self::MsgSendDirectResp {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
                     match regs[2] as u32 {
                         DirectMsgArgs::VERSION_RESP => {
@@ -1112,8 +1149,8 @@ impl Interface {
                 },
             },
             FuncId::MsgSendDirectResp64 => Self::MsgSendDirectResp {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
                     return Err(Error::UnrecognisedFwkMsg(regs[2] as u32));
                 } else {
@@ -1322,14 +1359,14 @@ impl Interface {
                 args: SuccessArgs::Result64_2(regs[2..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 uuid: Uuid::from_u64_pair(regs[2].swap_bytes(), regs[3].swap_bytes()),
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectResp64_2 => Self::MsgSendDirectResp2 {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
+                src_id: EndpointId::from((regs[1] >> 16) as u16),
+                dst_id: EndpointId::from(regs[1] as u16),
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
             FuncId::ConsoleLog64 => Self::ConsoleLog {
@@ -1508,7 +1545,7 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = (u64::from(src_id) << 16) | u64::from(dst_id);
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -1568,7 +1605,7 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = (u64::from(src_id) << 16) | u64::from(dst_id);
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -1786,7 +1823,7 @@ impl Interface {
                 uuid,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = (u64::from(src_id) << 16) | u64::from(dst_id);
                 let (uuid_msb, uuid_lsb) = uuid.as_u64_pair();
                 (a[2], a[3]) = (uuid_msb.swap_bytes(), uuid_lsb.swap_bytes());
                 a[4..18].copy_from_slice(&args.0[..14]);
@@ -1796,7 +1833,7 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = (u64::from(src_id) << 16) | u64::from(dst_id);
                 a[2] = 0;
                 a[3] = 0;
                 a[4..18].copy_from_slice(&args.0[..14]);
@@ -2034,8 +2071,8 @@ mod tests {
             let rest_of_regs: [u64; 14] = [0; 14];
 
             let interface = Interface::MsgSendDirectReq2 {
-                src_id: test_sender.try_into().unwrap(),
-                dst_id: test_receiver.try_into().unwrap(),
+                src_id: u16::try_from(test_sender).unwrap().into(),
+                dst_id: u16::try_from(test_receiver).unwrap().into(),
                 uuid,
                 args: DirectMsg2Args(rest_of_regs),
             };
