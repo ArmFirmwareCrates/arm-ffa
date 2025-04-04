@@ -22,6 +22,29 @@
       },
       "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "41bfcfcf_2272d59b",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 955,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T13:36:07Z",
+      "side": 1,
+      "message": "This works with 8 registers. Please remove this and move the handling of this interface into the pack/unpack_regs8 functions.",
+      "range": {
+        "startLine": 955,
+        "startChar": 22,
+        "endLine": 955,
+        "endChar": 48
+      },
+      "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
