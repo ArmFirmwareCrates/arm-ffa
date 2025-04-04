@@ -816,6 +816,7 @@ pub enum Interface {
     NotificationInfoGet {
         is_32bit: bool,
     },
+    El3IntrHandle,
 }
 
 impl Interface {
@@ -914,6 +915,7 @@ impl Interface {
                 true => Some(FuncId::NotificationInfoGet32),
                 false => Some(FuncId::NotificationInfoGet64),
             },
+            Interface::El3IntrHandle { .. } => Some(FuncId::El3IntrHandle),
         }
     }
 
@@ -940,7 +942,8 @@ impl Interface {
                     | FuncId::Success64
                     | FuncId::MsgSendDirectReq64_2
                     | FuncId::MsgSendDirectResp64_2
-                    | FuncId::PartitionInfoGetRegs => {
+                    | FuncId::PartitionInfoGetRegs
+                    | FuncId::El3IntrHandle => {
                         Interface::unpack_regs18(version, regs.try_into().unwrap())?
                     }
                     _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap())?,
@@ -1387,6 +1390,7 @@ impl Interface {
                     },
                 }
             }
+            FuncId::El3IntrHandle => Self::El3IntrHandle,
             _ => panic!("Invalid number of registers (18) for function {:#x?}", fid),
         };
 
@@ -1862,6 +1866,7 @@ impl Interface {
                 (a[1], a[2]) = (uuid_msb.swap_bytes(), uuid_lsb.swap_bytes());
                 a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
+            Interface::El3IntrHandle => {}
             _ => panic!("{:#x?} requires 8 registers", self),
         }
     }
