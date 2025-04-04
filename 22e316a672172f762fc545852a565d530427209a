@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "771c5b24_02b8a0a8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T13:22:19Z",
+      "side": 1,
+      "message": "* This split between SPM and Hypervisor own IDs is not mandatory by the spec, so `arm-ffa` should not enforce it. The endpoint ID is implementation defined.\n* In its current form it can instantiate and use invalid IDs like `EndpointId::NonSecure(0x8001)`.\n* At most this can be a wrapper type around u16 to designate endpoint values.",
+      "revId": "22e316a672172f762fc545852a565d530427209a",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
