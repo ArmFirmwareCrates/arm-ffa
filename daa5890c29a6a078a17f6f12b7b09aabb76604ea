@@ -142,6 +142,47 @@
       },
       "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "45a5a2ec_ca04ae7a",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 793,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T13:33:46Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4613c2f3_151db3a7",
+      "range": {
+        "startLine": 793,
+        "startChar": 23,
+        "endLine": 793,
+        "endChar": 26
+      },
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "98893c6c_722d0efc",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 793,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T13:33:46Z",
+      "side": 1,
+      "message": "`NotificationInfoGet` rather needs an `is_32bit` parameter, otherwise there\u0027s no way of knowing if it needs a 32 bit or 64 bit response.",
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
