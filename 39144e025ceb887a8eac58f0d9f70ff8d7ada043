@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca70b674_a05bdd6f",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 831,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T13:23:14Z",
+      "side": 1,
+      "message": "`{}` is not necessary here and below.",
+      "range": {
+        "startLine": 831,
+        "startChar": 18,
+        "endLine": 831,
+        "endChar": 20
+      },
+      "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
