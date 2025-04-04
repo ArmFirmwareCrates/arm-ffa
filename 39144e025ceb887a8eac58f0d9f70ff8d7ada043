@@ -69,6 +69,30 @@
       },
       "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a6483664_d7e04481",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 955,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T14:37:16Z",
+      "side": 1,
+      "message": "This interface has appeared in version 1.2, which is the one that introduces 18 registers, so I thought it made sense to have them in the case of 18 regs only. This is consistent with what I did in `PartitionInfoGetRegs`",
+      "parentUuid": "41bfcfcf_2272d59b",
+      "range": {
+        "startLine": 955,
+        "startChar": 22,
+        "endLine": 955,
+        "endChar": 48
+      },
+      "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
