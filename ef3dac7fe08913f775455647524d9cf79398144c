@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3a0b9df6_e57056b7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-04T12:44:43Z",
+      "side": 1,
+      "message": "This won\u0027t fly. There\u0027s no way of distinguishing between cases where the `FFA_SUCCESS` has arguments but they happen to be zero and cases where the it doesn\u0027t have arguments.\nFor example if an application does a `FFA_FEATURES/Notification pending interrupt` query, it would get a `None32` if the interrupt ID is actually zero, while it should always get `Result32` regardless of the interrupt ID.\nI agree that the success argument handling needs some overhaul, but not this way. Please stand by for some design plans.",
+      "revId": "ef3dac7fe08913f775455647524d9cf79398144c",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
