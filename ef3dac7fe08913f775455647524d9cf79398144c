@@ -34,6 +34,24 @@
       "parentUuid": "3a0b9df6_e57056b7",
       "revId": "ef3dac7fe08913f775455647524d9cf79398144c",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "688811e7_50bbbcd7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T14:35:48Z",
+      "side": 1,
+      "message": "If I understand correctly, we can partially-resolve this by:\n\n1) Allowing the Arguments\n2) Renaming `None32` to something else that is clearer, for example: `Empty32` and changing the comments for when to use it. This way, the user should only use `Empty` when the actual SuccessArgs should not be interpreted in any way.\n\nI\u0027ve done the change, please let me know if this makes sense or I should drop this patch.\n\nWe could make any further changes in a following patch if this needs more precision.",
+      "parentUuid": "d4f51068_19d64150",
+      "revId": "ef3dac7fe08913f775455647524d9cf79398144c",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
