@@ -93,6 +93,30 @@
       },
       "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a05140a0_54a5dad8",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 955,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-04T16:52:09Z",
+      "side": 1,
+      "message": "The difference is that `PartitionInfoGetRegs` only has a 64-bit variant, and since it\u0027s FF-A v1.2+, it will indeed always be parsed from 18 registers. This interface however has a 32-bit variant so it\u0027s valid to be parsed from 8 registers (e.g. in case of an AArch32 caller).",
+      "parentUuid": "a6483664_d7e04481",
+      "range": {
+        "startLine": 955,
+        "startChar": 22,
+        "endLine": 955,
+        "endChar": 48
+      },
+      "revId": "39144e025ceb887a8eac58f0d9f70ff8d7ada043",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
