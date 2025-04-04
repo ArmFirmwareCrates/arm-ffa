@@ -18,6 +18,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b9103ee2_b6f04db1",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0ebd4488_4aac5062",
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b521c9c0_77edbbfd",
@@ -35,6 +53,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "64cb255b_b461a767",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 490,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b521c9c0_77edbbfd",
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b41ff194_a463052b",
@@ -48,6 +84,30 @@
       "writtenOn": "2025-04-04T12:57:01Z",
       "side": 1,
       "message": "Please use `1 \u003c\u003c n`. It is easier to match with \u0027Bit[n]\u0027 descriptions of the spec and it scales better if n is larger.",
+      "range": {
+        "startLine": 496,
+        "startChar": 3,
+        "endLine": 497,
+        "endChar": 46
+      },
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6f7ace66_5c8b86b1",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 497,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b41ff194_a463052b",
       "range": {
         "startLine": 496,
         "startChar": 3,
@@ -81,6 +141,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6f63ce86_afb33f88",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 570,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a396ec0f_f8c456d0",
+      "range": {
+        "startLine": 567,
+        "startChar": 2,
+        "endLine": 570,
+        "endChar": 38
+      },
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "bb8ff623_5906004d",
@@ -100,6 +184,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "51dc3ce4_c486412a",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "I was following the lead of the other Interfaces, where they say:\n`page_cnt`\n`char_cnt`\n\nShould I change them as well?",
+      "parentUuid": "bb8ff623_5906004d",
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f4c18223_3b7d6a0e",
         "filename": "src/lib.rs",
         "patchSetId": 1
@@ -111,6 +213,30 @@
       "writtenOn": "2025-04-04T12:57:01Z",
       "side": 1,
       "message": "bitmap is a single parameter split into two registers. `Interface` should treat this as a single u64. This applies to all the other notification calls below.",
+      "range": {
+        "startLine": 772,
+        "startChar": 2,
+        "endLine": 773,
+        "endChar": 23
+      },
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9cc65731_29c2aba9",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 773,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f4c18223_3b7d6a0e",
       "range": {
         "startLine": 772,
         "startChar": 2,
@@ -181,6 +307,24 @@
       "writtenOn": "2025-04-04T13:33:46Z",
       "side": 1,
       "message": "`NotificationInfoGet` rather needs an `is_32bit` parameter, otherwise there\u0027s no way of knowing if it needs a 32 bit or 64 bit response.",
+      "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7b5d8de6_3b117d8c",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 793,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-04T16:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "98893c6c_722d0efc",
       "revId": "daa5890c29a6a078a17f6f12b7b09aabb76604ea",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
