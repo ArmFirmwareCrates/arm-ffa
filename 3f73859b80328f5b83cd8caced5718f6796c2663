@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fa4497d4_95ae95b9",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 525,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T08:48:01Z",
+      "side": 1,
+      "message": "This should be `1 \u003c\u003c 0` for consistency.",
+      "range": {
+        "startLine": 525,
+        "startChar": 38,
+        "endLine": 525,
+        "endChar": 40
+      },
+      "revId": "3f73859b80328f5b83cd8caced5718f6796c2663",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "61b15fb9_e6e760c4",
+        "filename": "src/lib.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 1288,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T08:48:01Z",
+      "side": 1,
+      "message": "You still have to mask the upper bits of each bitmap register. Some goes to the unbind and set.",
+      "revId": "3f73859b80328f5b83cd8caced5718f6796c2663",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
