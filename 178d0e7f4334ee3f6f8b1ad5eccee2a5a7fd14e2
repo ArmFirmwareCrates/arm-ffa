@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5f4a0735_a65fc9cf",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1272,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T12:27:50Z",
+      "side": 1,
+      "message": "Please avoid `try_into().unwrap()` and just mask it or use `as u16`.",
+      "range": {
+        "startLine": 1272,
+        "startChar": 37,
+        "endLine": 1272,
+        "endChar": 58
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b10515dd_dc365856",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1281,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T12:27:50Z",
+      "side": 1,
+      "message": "Same here.",
+      "range": {
+        "startLine": 1281,
+        "startChar": 43,
+        "endLine": 1281,
+        "endChar": 63
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "37215e79_34847df1",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1731,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T12:27:50Z",
+      "side": 1,
+      "message": "This mask is incorrect and the same applies to lines 1742 and 1753 too.",
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bcad6541_581e6f1d",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1741,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-07T12:27:50Z",
+      "side": 1,
+      "message": "This is not needed, the `fill()` call in line 1395 takes care of this.",
+      "range": {
+        "startLine": 1740,
+        "startChar": 15,
+        "endLine": 1741,
+        "endChar": 25
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
