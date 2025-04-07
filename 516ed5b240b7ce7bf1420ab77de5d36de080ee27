@@ -147,6 +147,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f87eca18_3046f795",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 19
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T11:04:22Z",
+      "side": 1,
+      "message": "This implementation is common to all the users of the `FFA_PARTITION_INFO_GET_REGS` interface.",
+      "parentUuid": "769a6b8a_f02a25a3",
+      "revId": "516ed5b240b7ce7bf1420ab77de5d36de080ee27",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "1abeabb6_7b7bb2b3",
@@ -160,6 +178,24 @@
       "writtenOn": "2025-04-04T12:38:06Z",
       "side": 1,
       "message": "This should also implement `unpack` that returns `(Self, PartitionInfoIterator)`",
+      "revId": "516ed5b240b7ce7bf1420ab77de5d36de080ee27",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b3578afb_e9078708",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 19
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T11:04:22Z",
+      "side": 1,
+      "message": "If you get some regs you can just call `PartitionInfoIterator::new(.., regs, count)` to iterate over all the register provided, what extra functionality would this provide?",
+      "parentUuid": "1abeabb6_7b7bb2b3",
       "revId": "516ed5b240b7ce7bf1420ab77de5d36de080ee27",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
@@ -277,6 +313,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "41f9f66d_bc0bc2de",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 19
+      },
+      "lineNbr": 293,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T11:04:22Z",
+      "side": 1,
+      "message": "Do I understand correctly that you want to perform the logic of the current index and last index update in the SPMC?",
+      "parentUuid": "16196eda_21bbd57a",
+      "revId": "516ed5b240b7ce7bf1420ab77de5d36de080ee27",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2c033470_7d0c6790",
         "filename": "src/partition_info.rs",
         "patchSetId": 19
@@ -335,6 +389,30 @@
       "writtenOn": "2025-04-04T12:38:06Z",
       "side": 1,
       "message": "This is duplicate code. This data is stored in the registers in the same way as it would be in the RXTX buffers in case of PARTITION_INFO_GET.\nPlease use:\n```\nlet buf: \u0026mut [u8; 8 * 16] \u003d transmute_mut!(regs);\nPartitionInfo::pack(\n    version,\n    \u0026descriptors[start_index..end_of_iteration],\n    \u0026mut buf[8..],\n    fill_uuid,\n);\n```",
+      "range": {
+        "startLine": 319,
+        "startChar": 0,
+        "endLine": 347,
+        "endChar": 9
+      },
+      "revId": "516ed5b240b7ce7bf1420ab77de5d36de080ee27",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "51c70eee_330e72df",
+        "filename": "src/partition_info.rs",
+        "patchSetId": 19
+      },
+      "lineNbr": 347,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T11:04:22Z",
+      "side": 1,
+      "message": "I needed to change the assertion in `pack` for this. Hope this is ok.\nDone.",
+      "parentUuid": "b47cd49d_61d293d4",
       "range": {
         "startLine": 319,
         "startChar": 0,
