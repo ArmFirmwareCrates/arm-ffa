@@ -621,6 +621,7 @@ pub enum Interface {
     Error {
         target_info: TargetInfo,
         error_code: FfaError,
+        error_arg: u32,
     },
     Success {
         target_info: u32,
@@ -922,6 +923,7 @@ impl Interface {
             FuncId::Error => Self::Error {
                 target_info: (regs[1] as u32).into(),
                 error_code: FfaError::try_from(regs[2] as i32)?,
+                error_arg: regs[3] as u32,
             },
             FuncId::Success32 => Self::Success {
                 target_info: regs[1] as u32,
@@ -1399,9 +1401,11 @@ impl Interface {
             Interface::Error {
                 target_info,
                 error_code,
+                error_arg,
             } => {
                 a[1] = u32::from(target_info).into();
                 a[2] = (error_code as u32).into();
+                a[3] = error_arg.into();
             }
             Interface::Success { target_info, args } => {
                 a[1] = target_info.into();
@@ -1847,6 +1851,7 @@ impl Interface {
                 vcpu_id: 0,
             },
             error_code,
+            error_arg: 0,
         }
     }
 }
