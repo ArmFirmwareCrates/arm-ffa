@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "62d83ce9_df7f1edd",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1272,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T12:37:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5f4a0735_a65fc9cf",
+      "range": {
+        "startLine": 1272,
+        "startChar": 37,
+        "endLine": 1272,
+        "endChar": 58
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b10515dd_dc365856",
@@ -37,6 +61,30 @@
       "writtenOn": "2025-04-07T12:27:50Z",
       "side": 1,
       "message": "Same here.",
+      "range": {
+        "startLine": 1281,
+        "startChar": 43,
+        "endLine": 1281,
+        "endChar": 63
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e741b98c_a1633f9e",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1281,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T12:37:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b10515dd_dc365856",
       "range": {
         "startLine": 1281,
         "startChar": 43,
@@ -64,6 +112,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "506719a4_6a45d0af",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1731,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T12:37:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "37215e79_34847df1",
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "bcad6541_581e6f1d",
@@ -77,6 +143,30 @@
       "writtenOn": "2025-04-07T12:27:50Z",
       "side": 1,
       "message": "This is not needed, the `fill()` call in line 1395 takes care of this.",
+      "range": {
+        "startLine": 1740,
+        "startChar": 15,
+        "endLine": 1741,
+        "endChar": 25
+      },
+      "revId": "178d0e7f4334ee3f6f8b1ad5eccee2a5a7fd14e2",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3e0099e5_892aab62",
+        "filename": "src/lib.rs",
+        "patchSetId": 4
+      },
+      "lineNbr": 1741,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-07T12:37:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bcad6541_581e6f1d",
       "range": {
         "startLine": 1740,
         "startChar": 15,
