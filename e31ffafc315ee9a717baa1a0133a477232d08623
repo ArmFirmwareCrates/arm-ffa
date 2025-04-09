@@ -16,6 +16,24 @@
       "message": "I think we should do `regs.fill(0);` in line 1361 instead.",
       "revId": "e31ffafc315ee9a717baa1a0133a477232d08623",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e0781de4_95a09f0a",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1387,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-09T11:48:12Z",
+      "side": 1,
+      "message": "At that point we haven\u0027t checked yet what we have received, and I think we should first make sure it\u0027s valid (i.e. not something like `[u64; 16358]`...)",
+      "parentUuid": "8b4c7922_08cffa42",
+      "revId": "e31ffafc315ee9a717baa1a0133a477232d08623",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
