@@ -1384,6 +1384,7 @@ impl Interface {
                     }
                     _ => {
                         self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
+                        regs[8..18].fill(0);
                     }
                 }
             }
