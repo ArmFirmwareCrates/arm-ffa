@@ -1363,10 +1363,13 @@ impl Interface {
         match reg_cnt {
             8 => {
                 assert!(version <= Version(1, 1));
+                regs.fill(0);
+
                 self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
             }
             18 => {
                 assert!(version >= Version(1, 2));
+                regs.fill(0);
 
                 match self {
                     Interface::ConsoleLog {
@@ -1392,7 +1395,6 @@ impl Interface {
     }
 
     fn pack_regs8(&self, version: Version, a: &mut [u64; 8]) {
-        a.fill(0);
         if let Some(function_id) = self.function_id() {
             a[0] = function_id as u64;
         }
@@ -1767,7 +1769,6 @@ impl Interface {
     fn pack_regs18(&self, version: Version, a: &mut [u64; 18]) {
         assert!(version >= Version(1, 2));
 
-        a.fill(0);
         if let Some(function_id) = self.function_id() {
             a[0] = function_id as u64;
         }
