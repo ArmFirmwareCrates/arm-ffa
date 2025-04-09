@@ -34,6 +34,24 @@
       "parentUuid": "8b4c7922_08cffa42",
       "revId": "e31ffafc315ee9a717baa1a0133a477232d08623",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "057bfb8a_53a3b692",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1387,
+      "author": {
+        "id": 1001350
+      },
+      "writtenOn": "2025-04-09T11:57:07Z",
+      "side": 1,
+      "message": "This way we have different `.fill(0)` spread around (even inside the `pack_regs` functions themselves).\nI think it may be better to just do one `fill(0)` at the beginning of `to_regs` and just remove the rest of the fills. If the original size is a concern, we can do a check for that at the beginning and even slice it up (at the end of the day this is already when calling the different `pack_regs` functions with `regs.try_into.unwrap()`).\n\nSo something like:\n\n```\nassert!(reg_cnt \u003d\u003d 8 || reg_cnt \u003d\u003d 18);\nregs.fill(0);\n```\n\nor any variation of that",
+      "parentUuid": "e0781de4_95a09f0a",
+      "revId": "e31ffafc315ee9a717baa1a0133a477232d08623",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }
