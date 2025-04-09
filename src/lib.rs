@@ -141,7 +141,7 @@ pub enum FuncId {
 impl FuncId {
     /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
     pub fn is_32bit(&self) -> bool {
-        u32::from(*self) & (1 << 30) != 0
+        u32::from(*self) & (1 << 30) == 0
     }
 }
 
@@ -2069,5 +2069,22 @@ mod tests {
 
             assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
         }
+    }
+
+    #[test]
+    fn is_32bit() {
+        let interface_64 = Interface::MsgSendDirectReq {
+            src_id: 0,
+            dst_id: 1,
+            args: DirectMsgArgs::Args64([0, 0, 0, 0, 0]),
+        };
+        assert!(!interface_64.is_32bit());
+
+        let interface_32 = Interface::MsgSendDirectReq {
+            src_id: 0,
+            dst_id: 1,
+            args: DirectMsgArgs::Args32([0, 0, 0, 0, 0]),
+        };
+        assert!(interface_32.is_32bit());
     }
 }
