@@ -47,6 +47,8 @@ pub enum Error {
     InvalidNotificationSetFlag(u32),
     #[error("Invalid Vm ID")]
     InvalidVmId(u32),
+    #[error("Invalid FF-A Partition Info Get Flag {0}")]
+    InvalidPartitionInfoGetFlag(u32),
 }
 
 impl From<Error> for FfaError {
@@ -63,7 +65,8 @@ impl From<Error> for FfaError {
             | Error::UnrecognisedVmAvailabilityStatus(_)
             | Error::InvalidNotificationSetFlag(_)
             | Error::InvalidVmId(_)
-            | Error::UnrecognisedWarmBootType(_) => Self::InvalidParameters,
+            | Error::UnrecognisedWarmBootType(_)
+            | Error::InvalidPartitionInfoGetFlag(_) => Self::InvalidParameters,
         }
     }
 }
@@ -300,6 +303,41 @@ impl From<Feature> for u32 {
 pub enum RxTxAddr {
     Addr32 { rx: u32, tx: u32 },
     Addr64 { rx: u64, tx: u64 },
+}
+
+/// Flags of the `FFA_PARTITION_INFO_GET` interface.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct PartitionInfoGetFlags {
+    pub count_only: bool,
+}
+
+impl PartitionInfoGetFlags {
+    const RETURN_INFORMATION_TYPE_FLAG: u32 = 1 << 0;
+    const MBZ_BITS: u32 = 0xffff_fffe;
+}
+
+impl TryFrom<u32> for PartitionInfoGetFlags {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(Error::InvalidPartitionInfoGetFlag(val))
+        } else {
+            Ok(Self {
+                count_only: val & Self::RETURN_INFORMATION_TYPE_FLAG != 0,
+            })
+        }
+    }
+}
+
+impl From<PartitionInfoGetFlags> for u32 {
+    fn from(flags: PartitionInfoGetFlags) -> Self {
+        let mut bits: u32 = 0;
+        if flags.count_only {
+            bits |= PartitionInfoGetFlags::RETURN_INFORMATION_TYPE_FLAG;
+        }
+        bits
+    }
 }
 
 /// Composite type for capturing success and error return codes for the VM availability messages.
@@ -656,7 +694,7 @@ pub enum Interface {
     },
     PartitionInfoGet {
         uuid: Uuid,
-        flags: u32,
+        flags: PartitionInfoGetFlags,
     },
     PartitionInfoGetRegs {
         uuid: Uuid,
@@ -989,7 +1027,7 @@ impl Interface {
                 }
                 Self::PartitionInfoGet {
                     uuid: Uuid::from_bytes(bytes),
-                    flags: regs[5] as u32,
+                    flags: PartitionInfoGetFlags::try_from(regs[5] as u32)?,
                 }
             }
             FuncId::IdGet => Self::IdGet,
@@ -1477,7 +1515,7 @@ impl Interface {
                 a[2] = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]).into();
                 a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
                 a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
-                a[5] = flags.into();
+                a[5] = u32::from(flags).into();
             }
             Interface::MsgWait { flags } => {
                 if version >= Version(1, 2) {
