@@ -205,6 +205,8 @@ impl From<TargetInfo> for u32 {
 ///
 /// The current specialized success arguments types are:
 /// * `FFA_FEATURES` - [`SuccessArgsFeatures`]
+/// * `FFA_ID_GET` - [`SuccessArgsIdGet`]
+/// * `FFA_SPM_ID_GET` - [`SuccessArgsSpmIdGet`]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
@@ -366,6 +368,48 @@ impl TryFrom<SuccessArgs> for SuccessArgsFeatures {
 pub enum RxTxAddr {
     Addr32 { rx: u32, tx: u32 },
     Addr64 { rx: u64, tx: u64 },
+}
+
+/// `FFA_ID_GET` specific success argument structure.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsIdGet {
+    pub id: u16,
+}
+
+impl From<SuccessArgsIdGet> for SuccessArgs {
+    fn from(value: SuccessArgsIdGet) -> Self {
+        SuccessArgs::Args32([value.id as u32, 0, 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsIdGet {
+    type Error = Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = value.try_get_args32()?;
+        Ok(Self { id: args[0] as u16 })
+    }
+}
+
+/// `FFA_SPM_ID_GET` specific success argument structure.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsSpmIdGet {
+    pub id: u16,
+}
+
+impl From<SuccessArgsSpmIdGet> for SuccessArgs {
+    fn from(value: SuccessArgsSpmIdGet) -> Self {
+        SuccessArgs::Args32([value.id as u32, 0, 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsSpmIdGet {
+    type Error = Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = value.try_get_args32()?;
+        Ok(Self { id: args[0] as u16 })
+    }
 }
 
 /// Flags of the `FFA_PARTITION_INFO_GET` interface.
