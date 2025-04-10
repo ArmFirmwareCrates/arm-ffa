@@ -10,6 +10,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
 use uuid::Uuid;
+use zerocopy::transmute;
 
 pub mod boot_info;
 mod ffa_v1_1;
@@ -209,6 +210,8 @@ impl From<TargetInfo> for u32 {
 /// * `FFA_SPM_ID_GET` - [`SuccessArgsSpmIdGet`]
 /// * `FFA_PARTITION_INFO_GET` - [`partition_info::SuccessArgsPartitionInfoGet`]
 /// * `FFA_NOTIFICATION_GET` - [`SuccessArgsNotificationGet`]
+/// * `FFA_NOTIFICATION_GET_INFO_32` - [`SuccessArgsNotificationGetInfo32`]
+/// * `FFA_NOTIFICATION_GET_INFO_64` - [`SuccessArgsNotificationGetInfo64`]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
@@ -814,6 +817,194 @@ impl TryFrom<(NotificationGetFlags, SuccessArgs)> for SuccessArgsNotificationGet
         })
     }
 }
+
+pub struct SuccessArgsNotificationGetInfo<const MAX_COUNT: usize> {
+    pub more_pending_notifications: bool,
+    list_count: usize,
+    id_counts: [u8; MAX_COUNT],
+    ids: [u16; MAX_COUNT],
+}
+
+impl<const MAX_COUNT: usize> Default for SuccessArgsNotificationGetInfo<MAX_COUNT> {
+    fn default() -> Self {
+        Self {
+            more_pending_notifications: false,
+            list_count: 0,
+            id_counts: [0; MAX_COUNT],
+            ids: [0; MAX_COUNT],
+        }
+    }
+}
+
+impl<const MAX_COUNT: usize> SuccessArgsNotificationGetInfo<MAX_COUNT> {
+    const MORE_PENDING_NOTIFICATIONS_FLAG: u64 = 1 << 0;
+    const LIST_COUNT_SHIFT: usize = 7;
+    const LIST_COUNT_MASK: u64 = 0x1f;
+    const ID_COUNT_SHIFT: usize = 12;
+    const ID_COUNT_MASK: u64 = 0x03;
+
+    pub fn add_list(&mut self, endpoint: u16, ids: &[u16]) -> Result<(), Error> {
+        if self.list_count >= MAX_COUNT || ids.len() > MAX_COUNT {
+            return Err(Error::InvalidSuccessArgs); // TODO: stuff
+        }
+
+        let mut index = self.id_counts.iter().sum::<u8>() as usize;
+        if index + ids.len() > MAX_COUNT {
+            return Err(Error::InvalidSuccessArgs);
+        }
+
+        self.id_counts[self.list_count] = ids.len() as u8;
+        self.list_count += 1;
+
+        self.ids[index] = endpoint;
+        index += 1;
+
+        self.ids[index..index + ids.len()].copy_from_slice(ids);
+
+        Ok(())
+    }
+
+    pub fn iter(&self) -> NotificationGetInfoIterator<'_> {
+        NotificationGetInfoIterator {
+            list_index: 0,
+            id_index: 0,
+            id_count: &self.id_counts[0..self.list_count],
+            ids: &self.ids,
+        }
+    }
+
+    fn pack(self) -> (u64, [u16; MAX_COUNT]) {
+        let mut flags = if self.more_pending_notifications {
+            Self::MORE_PENDING_NOTIFICATIONS_FLAG
+        } else {
+            0
+        };
+
+        flags |= (self.list_count as u64) << Self::LIST_COUNT_SHIFT;
+        for (count, shift) in self
+            .id_counts
+            .iter()
+            .take(self.list_count)
+            .zip((12..52).step_by(2))
+        {
+            flags |= u64::from(*count) << shift;
+        }
+
+        (flags, self.ids)
+    }
+
+    fn unpack(flags: u64, ids: [u16; MAX_COUNT]) -> Result<Self, Error> {
+        let count_of_lists = ((flags >> Self::LIST_COUNT_SHIFT) & Self::LIST_COUNT_MASK) as usize;
+
+        if count_of_lists > MAX_COUNT {
+            return Err(Error::InvalidSuccessArgs);
+        }
+
+        let mut count_of_ids = [0; MAX_COUNT];
+        let mut count_of_ids_bits = flags >> Self::ID_COUNT_SHIFT;
+
+        for id in count_of_ids.iter_mut().take(count_of_lists) {
+            *id = (count_of_ids_bits & Self::ID_COUNT_MASK) as u8;
+            count_of_ids_bits >>= 2;
+        }
+
+        Ok(Self {
+            more_pending_notifications: (flags & Self::MORE_PENDING_NOTIFICATIONS_FLAG) != 0,
+            list_count: count_of_lists,
+            id_counts: count_of_ids,
+            ids,
+        })
+    }
+}
+
+/// `FFA_NOTIFICATION_GET_32` specific success argument structure.
+pub type SuccessArgsNotificationGetInfo32 = SuccessArgsNotificationGetInfo<10>;
+
+impl From<SuccessArgsNotificationGetInfo32> for SuccessArgs {
+    fn from(value: SuccessArgsNotificationGetInfo32) -> Self {
+        let (flags, ids) = value.pack();
+        let id_regs: [u32; 5] = transmute!(ids);
+
+        let mut args = [0; 6];
+        args[0] = flags as u32;
+        args[1..].copy_from_slice(&id_regs);
+
+        SuccessArgs::Args32(args)
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsNotificationGetInfo32 {
+    type Error = Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = match value {
+            SuccessArgs::Args32(args) => args,
+            SuccessArgs::Args64(_) | SuccessArgs::Args64_2(_) => Err(Error::InvalidSuccessArgs)?,
+        };
+
+        let flags = args[0].into();
+        let id_regs: [u32; 5] = args[1..6].try_into().unwrap();
+        Self::unpack(flags, transmute!(id_regs))
+    }
+}
+
+/// `FFA_NOTIFICATION_GET_64` specific success argument structure.
+pub type SuccessArgsNotificationGetInfo64 = SuccessArgsNotificationGetInfo<20>;
+
+impl From<SuccessArgsNotificationGetInfo64> for SuccessArgs {
+    fn from(value: SuccessArgsNotificationGetInfo64) -> Self {
+        let (flags, ids) = value.pack();
+        let id_regs: [u64; 5] = transmute!(ids);
+
+        let mut args = [0; 6];
+        args[0] = flags;
+        args[1..].copy_from_slice(&id_regs);
+
+        SuccessArgs::Args64(args)
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsNotificationGetInfo64 {
+    type Error = Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = match value {
+            SuccessArgs::Args64(args) => args,
+            SuccessArgs::Args32(_) | SuccessArgs::Args64_2(_) => Err(Error::InvalidSuccessArgs)?,
+        };
+
+        let flags = args[0];
+        let id_regs: [u64; 5] = args[1..6].try_into().unwrap();
+        Self::unpack(flags, transmute!(id_regs))
+    }
+}
+
+pub struct NotificationGetInfoIterator<'a> {
+    list_index: usize,
+    id_index: usize,
+    id_count: &'a [u8],
+    ids: &'a [u16],
+}
+
+impl<'a> Iterator for NotificationGetInfoIterator<'a> {
+    type Item = (u16, &'a [u16]);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.list_index < self.id_count.len() {
+            let partition_id = self.ids[self.id_index];
+            let id_range =
+                (self.id_index + 1)..(self.id_index + self.id_count[self.list_index] as usize);
+
+            self.id_index += 1 + self.id_count[self.list_index] as usize;
+            self.list_index += 1;
+
+            Some((partition_id, &self.ids[id_range]))
+        } else {
+            None
+        }
+    }
+}
+
 /// FF-A "message types", the terminology used by the spec is "interfaces".
 ///
 /// The interfaces are used by FF-A components for communication at an FF-A instance. The spec also
