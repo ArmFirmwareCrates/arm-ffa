@@ -208,6 +208,7 @@ impl From<TargetInfo> for u32 {
 /// * `FFA_ID_GET` - [`SuccessArgsIdGet`]
 /// * `FFA_SPM_ID_GET` - [`SuccessArgsSpmIdGet`]
 /// * `FFA_PARTITION_INFO_GET` - [`partition_info::SuccessArgsPartitionInfoGet`]
+/// * `FFA_NOTIFICATION_GET` - [`SuccessArgsNotificationGet`]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
@@ -758,6 +759,80 @@ impl From<u32> for NotificationGetFlags {
     }
 }
 
+/// `FFA_NOTIFICATION_GET` specific success argument structure.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsNotificationGet {
+    pub sp_notifications: Option<u64>,
+    pub vm_notifications: Option<u64>,
+    pub spm_notifications: Option<u32>,
+    pub hypervisor_notifications: Option<u32>,
+}
+
+impl From<SuccessArgsNotificationGet> for SuccessArgs {
+    fn from(value: SuccessArgsNotificationGet) -> Self {
+        let mut args = [0; 6];
+
+        if let Some(bitmap) = value.sp_notifications {
+            args[0] = bitmap as u32;
+            args[1] = (bitmap >> 32) as u32;
+        }
+
+        if let Some(bitmap) = value.vm_notifications {
+            args[2] = bitmap as u32;
+            args[3] = (bitmap >> 32) as u32;
+        }
+
+        if let Some(bitmap) = value.spm_notifications {
+            args[4] = bitmap;
+        }
+
+        if let Some(bitmap) = value.hypervisor_notifications {
+            args[5] = bitmap;
+        }
+
+        Self::Args32(args)
+    }
+}
+
+impl TryFrom<(NotificationGetFlags, SuccessArgs)> for SuccessArgsNotificationGet {
+    type Error = Error;
+
+    fn try_from(value: (NotificationGetFlags, SuccessArgs)) -> Result<Self, Self::Error> {
+        let (flags, value) = value;
+        let args = value.try_get_args32()?;
+
+        let sp_notifications = if flags.sp_bitmap_id {
+            Some(u64::from(args[0]) | (u64::from(args[1]) << 32))
+        } else {
+            None
+        };
+
+        let vm_notifications = if flags.vm_bitmap_id {
+            Some(u64::from(args[2]) | (u64::from(args[3]) << 32))
+        } else {
+            None
+        };
+
+        let spm_notifications = if flags.spm_bitmap_id {
+            Some(args[4])
+        } else {
+            None
+        };
+
+        let hypervisor_notifications = if flags.hyp_bitmap_id {
+            Some(args[5])
+        } else {
+            None
+        };
+
+        Ok(Self {
+            sp_notifications,
+            vm_notifications,
+            spm_notifications,
+            hypervisor_notifications,
+        })
+    }
+}
 /// FF-A "message types", the terminology used by the spec is "interfaces".
 ///
 /// The interfaces are used by FF-A components for communication at an FF-A instance. The spec also
