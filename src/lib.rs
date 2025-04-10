@@ -198,9 +198,9 @@ impl From<TargetInfo> for u32 {
 /// Arguments for the `FFA_SUCCESS` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
-    Result32([u32; 6]),
-    Result64([u64; 6]),
-    Result64_2([u64; 16]),
+    Args32([u32; 6]),
+    Args64([u64; 6]),
+    Args64_2([u64; 16]),
 }
 
 /// Entrypoint address argument for `FFA_SECONDARY_EP_REGISTER` interface.
@@ -822,8 +822,8 @@ impl Interface {
         match self {
             Interface::Error { .. } => Some(FuncId::Error),
             Interface::Success { args, .. } => match args {
-                SuccessArgs::Result32(..) => Some(FuncId::Success32),
-                SuccessArgs::Result64(..) | SuccessArgs::Result64_2(..) => Some(FuncId::Success64),
+                SuccessArgs::Args32(..) => Some(FuncId::Success32),
+                SuccessArgs::Args64(..) | SuccessArgs::Args64_2(..) => Some(FuncId::Success64),
             },
             Interface::Interrupt { .. } => Some(FuncId::Interrupt),
             Interface::Version { .. } => Some(FuncId::Version),
@@ -965,7 +965,7 @@ impl Interface {
             },
             FuncId::Success32 => Self::Success {
                 target_info: regs[1] as u32,
-                args: SuccessArgs::Result32([
+                args: SuccessArgs::Args32([
                     regs[2] as u32,
                     regs[3] as u32,
                     regs[4] as u32,
@@ -976,7 +976,7 @@ impl Interface {
             },
             FuncId::Success64 => Self::Success {
                 target_info: regs[1] as u32,
-                args: SuccessArgs::Result64([regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]]),
+                args: SuccessArgs::Args64([regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]]),
             },
             FuncId::Interrupt => Self::Interrupt {
                 target_info: (regs[1] as u32).into(),
@@ -1357,7 +1357,7 @@ impl Interface {
         let msg = match fid {
             FuncId::Success64 => Self::Success {
                 target_info: regs[1] as u32,
-                args: SuccessArgs::Result64_2(regs[2..18].try_into().unwrap()),
+                args: SuccessArgs::Args64_2(regs[2..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
                 src_id: (regs[1] >> 16) as u16,
@@ -1412,7 +1412,7 @@ impl Interface {
                         ..
                     }
                     | Interface::Success {
-                        args: SuccessArgs::Result64_2(_),
+                        args: SuccessArgs::Args64_2(_),
                         ..
                     }
                     | Interface::MsgSendDirectReq2 { .. }
@@ -1448,7 +1448,7 @@ impl Interface {
             Interface::Success { target_info, args } => {
                 a[1] = target_info.into();
                 match args {
-                    SuccessArgs::Result32(regs) => {
+                    SuccessArgs::Args32(regs) => {
                         a[2] = regs[0].into();
                         a[3] = regs[1].into();
                         a[4] = regs[2].into();
@@ -1456,7 +1456,7 @@ impl Interface {
                         a[6] = regs[4].into();
                         a[7] = regs[5].into();
                     }
-                    SuccessArgs::Result64(regs) => {
+                    SuccessArgs::Args64(regs) => {
                         a[2] = regs[0];
                         a[3] = regs[1];
                         a[4] = regs[2];
@@ -1814,7 +1814,7 @@ impl Interface {
             Interface::Success { target_info, args } => {
                 a[1] = target_info.into();
                 match args {
-                    SuccessArgs::Result64_2(regs) => a[2..18].copy_from_slice(&regs[..16]),
+                    SuccessArgs::Args64_2(regs) => a[2..18].copy_from_slice(&regs[..16]),
                     _ => panic!("{:#x?} requires 8 registers", args),
                 }
             }
@@ -1869,7 +1869,7 @@ impl Interface {
     pub fn success32_noargs() -> Self {
         Self::Success {
             target_info: 0,
-            args: SuccessArgs::Result32([0, 0, 0, 0, 0, 0]),
+            args: SuccessArgs::Args32([0; 6]),
         }
     }
 
@@ -1877,7 +1877,7 @@ impl Interface {
     pub fn success64_noargs() -> Self {
         Self::Success {
             target_info: 0,
-            args: SuccessArgs::Result64([0, 0, 0, 0, 0, 0]),
+            args: SuccessArgs::Args64([0; 6]),
         }
     }
 
