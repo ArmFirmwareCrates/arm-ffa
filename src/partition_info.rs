@@ -10,7 +10,7 @@ use zerocopy::{FromBytes, IntoBytes};
 // This module uses FF-A v1.1 types by default.
 // FF-A v1.2 specified some previously reserved bits in the partition info properties field, but
 // this doesn't change the descriptor format.
-use crate::{ffa_v1_1::partition_info_descriptor, Version};
+use crate::{ffa_v1_1::partition_info_descriptor, PartitionInfoGetFlags, SuccessArgs, Version};
 
 // Sanity check to catch if the descriptor format is changed.
 const _: () = assert!(
@@ -258,6 +258,39 @@ impl PartitionInfo {
             desc_raw.write_to_prefix(&mut buf[offset..]).unwrap();
             offset += Self::DESC_SIZE;
         }
+    }
+}
+
+/// `FFA_PARTITION_INFO_GET` specific success args structure.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsPartitionInfoGet {
+    pub count: u32,
+    pub size: Option<u32>,
+}
+
+impl From<SuccessArgsPartitionInfoGet> for SuccessArgs {
+    fn from(value: SuccessArgsPartitionInfoGet) -> Self {
+        SuccessArgs::Args32([value.count, value.size.unwrap_or(0), 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<(PartitionInfoGetFlags, SuccessArgs)> for SuccessArgsPartitionInfoGet {
+    type Error = crate::Error;
+
+    fn try_from(value: (PartitionInfoGetFlags, SuccessArgs)) -> Result<Self, Self::Error> {
+        let (flags, value) = value;
+        let args = value.try_get_args32()?;
+
+        let size = if !flags.count_only {
+            Some(args[1])
+        } else {
+            None
+        };
+
+        Ok(Self {
+            count: args[0],
+            size,
+        })
     }
 }
 

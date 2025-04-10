@@ -207,6 +207,7 @@ impl From<TargetInfo> for u32 {
 /// * `FFA_FEATURES` - [`SuccessArgsFeatures`]
 /// * `FFA_ID_GET` - [`SuccessArgsIdGet`]
 /// * `FFA_SPM_ID_GET` - [`SuccessArgsSpmIdGet`]
+/// * `FFA_PARTITION_INFO_GET` - [`partition_info::SuccessArgsPartitionInfoGet`]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
