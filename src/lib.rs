@@ -49,6 +49,8 @@ pub enum Error {
     InvalidVmId(u32),
     #[error("Invalid FF-A Partition Info Get Flag {0}")]
     InvalidPartitionInfoGetFlag(u32),
+    #[error("Invalid success argument variant")]
+    InvalidSuccessArgs,
 }
 
 impl From<Error> for FfaError {
@@ -66,7 +68,8 @@ impl From<Error> for FfaError {
             | Error::InvalidNotificationSetFlag(_)
             | Error::InvalidVmId(_)
             | Error::UnrecognisedWarmBootType(_)
-            | Error::InvalidPartitionInfoGetFlag(_) => Self::InvalidParameters,
+            | Error::InvalidPartitionInfoGetFlag(_)
+            | Error::InvalidSuccessArgs => Self::InvalidParameters,
         }
     }
 }
@@ -195,7 +198,13 @@ impl From<TargetInfo> for u32 {
     }
 }
 
-/// Arguments for the `FFA_SUCCESS` interface.
+/// Generic arguments of the `FFA_SUCCESS` interface. The interpretation of the arguments depends on
+/// the interface that initiated the request. The application code has knowledge of the request, so
+/// it has to convert `SuccessArgs` into/from a specific success args structure that matches the
+/// request.
+///
+/// The current specialized success arguments types are:
+/// * `FFA_FEATURES` - [`SuccessArgsFeatures`]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
@@ -295,6 +304,34 @@ impl From<Feature> for u32 {
             Feature::FeatureId(feature_id) => feature_id as u32,
             Feature::Unknown(id) => panic!("Unknown feature or function ID {:#x?}", id),
         }
+    }
+}
+
+/// `FFA_FEATURES` specific success argument structure. This type needs further specialization based
+/// on 'FF-A function ID or Feature ID' field of the preceeding `FFA_FEATURES` request.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsFeatures {
+    pub properties: [u32; 2],
+}
+
+impl From<SuccessArgsFeatures> for SuccessArgs {
+    fn from(value: SuccessArgsFeatures) -> Self {
+        Self::Args32([value.properties[0], value.properties[1], 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsFeatures {
+    type Error = Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = match value {
+            SuccessArgs::Args32(args) => args,
+            SuccessArgs::Args64(_) | SuccessArgs::Args64_2(_) => Err(Error::InvalidSuccessArgs)?,
+        };
+
+        Ok(Self {
+            properties: [args[0], args[1]],
+        })
     }
 }
 
