@@ -54,6 +54,8 @@ pub enum Error {
     InvalidSuccessArgsVariant,
     #[error("Invalid notification count")]
     InvalidNotificationCount,
+    #[error("Invalid Partition Info Get Regs response")]
+    InvalidPartitionInfoGetRegsResponse,
 }
 
 impl From<Error> for FfaError {
@@ -73,7 +75,8 @@ impl From<Error> for FfaError {
             | Error::UnrecognisedWarmBootType(_)
             | Error::InvalidPartitionInfoGetFlag(_)
             | Error::InvalidSuccessArgsVariant
-            | Error::InvalidNotificationCount => Self::InvalidParameters,
+            | Error::InvalidNotificationCount
+            | Error::InvalidPartitionInfoGetRegsResponse => Self::InvalidParameters,
         }
     }
 }
@@ -212,6 +215,7 @@ impl From<TargetInfo> for u32 {
 /// * `FFA_ID_GET` - [`SuccessArgsIdGet`]
 /// * `FFA_SPM_ID_GET` - [`SuccessArgsSpmIdGet`]
 /// * `FFA_PARTITION_INFO_GET` - [`partition_info::SuccessArgsPartitionInfoGet`]
+/// * `FFA_PARTITION_INFO_GET_REGS` - [`partition_info::SuccessArgsPartitionInfoGetRegs`]
 /// * `FFA_NOTIFICATION_GET` - [`SuccessArgsNotificationGet`]
 /// * `FFA_NOTIFICATION_GET_INFO_32` - [`SuccessArgsNotificationGetInfo32`]
 /// * `FFA_NOTIFICATION_GET_INFO_64` - [`SuccessArgsNotificationGetInfo64`]
