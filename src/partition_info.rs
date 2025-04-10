@@ -5,7 +5,7 @@
 
 use thiserror::Error;
 use uuid::Uuid;
-use zerocopy::{FromBytes, IntoBytes};
+use zerocopy::{transmute, FromBytes, IntoBytes};
 
 // This module uses FF-A v1.1 types by default.
 // FF-A v1.2 specified some previously reserved bits in the partition info properties field, but
@@ -290,6 +290,76 @@ impl TryFrom<(PartitionInfoGetFlags, SuccessArgs)> for SuccessArgsPartitionInfoG
         Ok(Self {
             count: args[0],
             size,
+        })
+    }
+}
+
+/// `FFA_PARTITION_INFO_GET_REGS` specific success args structure.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct SuccessArgsPartitionInfoGetRegs {
+    pub last_index: u16,
+    pub current_index: u16,
+    pub info_tag: u16,
+    pub descriptor_data: [u8; Self::DESCRIPTOR_REG_COUNT * 8],
+}
+
+impl SuccessArgsPartitionInfoGetRegs {
+    const DESCRIPTOR_REG_COUNT: usize = 15;
+    const LAST_INDEX_SHIFT: usize = 0;
+    const CURRENT_INDEX_SHIFT: usize = 16;
+    const INFO_TAG_SHIFT: usize = 32;
+    const SIZE_SHIFT: usize = 48;
+}
+
+impl From<SuccessArgsPartitionInfoGetRegs> for SuccessArgs {
+    fn from(value: SuccessArgsPartitionInfoGetRegs) -> Self {
+        let mut args = [0; 16];
+
+        args[0] = (value.last_index as u64) << SuccessArgsPartitionInfoGetRegs::LAST_INDEX_SHIFT
+            | ((value.current_index as u64)
+                << SuccessArgsPartitionInfoGetRegs::CURRENT_INDEX_SHIFT)
+            | ((value.info_tag as u64) << SuccessArgsPartitionInfoGetRegs::INFO_TAG_SHIFT)
+            | ((PartitionInfo::DESC_SIZE as u64) << SuccessArgsPartitionInfoGetRegs::SIZE_SHIFT);
+
+        let descriptor_regs: [u64; SuccessArgsPartitionInfoGetRegs::DESCRIPTOR_REG_COUNT] =
+            transmute!(value.descriptor_data);
+        args[1..].copy_from_slice(&descriptor_regs);
+
+        Self::Args64_2(args)
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsPartitionInfoGetRegs {
+    type Error = crate::Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let args = value.try_get_args64_2()?;
+
+        // Validate size
+        let size = (args[0] >> Self::SIZE_SHIFT) as u16;
+        if size as usize != PartitionInfo::DESC_SIZE {
+            return Err(Self::Error::InvalidPartitionInfoGetRegsResponse);
+        }
+
+        // Validate inidices
+        let last_index = (args[0] >> Self::LAST_INDEX_SHIFT) as u16;
+        let current_index = (args[0] >> Self::CURRENT_INDEX_SHIFT) as u16;
+        if last_index < current_index {
+            return Err(Self::Error::InvalidPartitionInfoGetRegsResponse);
+        }
+
+        let info_tag = (args[0] >> Self::INFO_TAG_SHIFT) as u16;
+
+        // Convert registers into byte array
+        let descriptor_regs: [u64; SuccessArgsPartitionInfoGetRegs::DESCRIPTOR_REG_COUNT] =
+            args[1..].try_into().unwrap();
+        let descriptor_data = transmute!(descriptor_regs);
+
+        Ok(Self {
+            last_index,
+            current_index,
+            info_tag,
+            descriptor_data,
         })
     }
 }
