@@ -1592,7 +1592,7 @@ impl Interface {
                     }
                     DirectMsgArgs::PowerPsciResp { psci_status } => {
                         a[2] = DirectMsgArgs::POWER_PSCI_RESP.into();
-                        a[3] = psci_status as u64;
+                        a[3] = (psci_status as u32).into();
                     }
                     DirectMsgArgs::VmCreatedAck { sp_status } => {
                         a[2] = DirectMsgArgs::VM_CREATED_ACK.into();
