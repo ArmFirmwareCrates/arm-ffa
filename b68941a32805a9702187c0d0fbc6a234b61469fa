@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca3fd1cb_a47bab54",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-11T16:07:31Z",
+      "side": 1,
+      "message": "You can abandon this patch if you rather want to handle this by checking the minimum FF-A version for each function ID.",
+      "revId": "b68941a32805a9702187c0d0fbc6a234b61469fa",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
