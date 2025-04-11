@@ -56,6 +56,8 @@ pub enum Error {
     InvalidNotificationCount,
     #[error("Invalid Partition Info Get Regs response")]
     InvalidPartitionInfoGetRegsResponse,
+    #[error("Invalid register count for {0:?}")]
+    InvalidRegisterCount(FuncId),
 }
 
 impl From<Error> for FfaError {
@@ -76,7 +78,8 @@ impl From<Error> for FfaError {
             | Error::InvalidPartitionInfoGetFlag(_)
             | Error::InvalidSuccessArgsVariant
             | Error::InvalidNotificationCount
-            | Error::InvalidPartitionInfoGetRegsResponse => Self::InvalidParameters,
+            | Error::InvalidPartitionInfoGetRegsResponse
+            | Error::InvalidRegisterCount(..) => Self::InvalidParameters,
         }
     }
 }
@@ -155,6 +158,17 @@ impl FuncId {
     /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
     pub fn is_32bit(&self) -> bool {
         u32::from(*self) & (1 << 30) == 0
+    }
+
+    pub fn is_18_register_abi(&self) -> bool {
+        match self {
+            FuncId::ConsoleLog64
+            | FuncId::Success64
+            | FuncId::MsgSendDirectReq64_2
+            | FuncId::MsgSendDirectResp64_2
+            | FuncId::PartitionInfoGetRegs => true,
+            _ => false,
+        }
     }
 }
 
@@ -1309,31 +1323,31 @@ impl Interface {
     pub fn from_regs(version: Version, regs: &[u64]) -> Result<Self, Error> {
         let reg_cnt = regs.len();
 
-        let msg = match reg_cnt {
+        let func_id = FuncId::try_from(regs[0] as u32)?;
+        let is_18_regs_only = func_id.is_18_register_abi();
+
+        match reg_cnt {
             8 => {
                 assert!(version <= Version(1, 1));
-                Interface::unpack_regs8(version, regs.try_into().unwrap())?
+                if !is_18_regs_only {
+                    Interface::unpack_regs8(version, regs.try_into().unwrap())
+                } else {
+                    Err(Error::InvalidRegisterCount(func_id))
+                }
             }
             18 => {
                 assert!(version >= Version(1, 2));
-                match FuncId::try_from(regs[0] as u32)? {
-                    FuncId::ConsoleLog64
-                    | FuncId::Success64
-                    | FuncId::MsgSendDirectReq64_2
-                    | FuncId::MsgSendDirectResp64_2
-                    | FuncId::PartitionInfoGetRegs => {
-                        Interface::unpack_regs18(version, regs.try_into().unwrap())?
-                    }
-                    _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap())?,
+                if !is_18_regs_only {
+                    Interface::unpack_regs8(version, regs[..8].try_into().unwrap())
+                } else {
+                    Interface::unpack_regs18(version, regs.try_into().unwrap())
                 }
             }
             _ => panic!(
                 "Invalid number of registers ({}) for FF-A version {}",
                 reg_cnt, version
             ),
-        };
-
-        Ok(msg)
+        }
     }
 
     fn unpack_regs8(version: Version, regs: &[u64; 8]) -> Result<Self, Error> {
@@ -1791,23 +1805,11 @@ impl Interface {
                 assert!(version >= Version(1, 2));
                 regs.fill(0);
 
-                match self {
-                    Interface::ConsoleLog {
-                        char_lists: ConsoleLogChars::Reg64(_),
-                        ..
-                    }
-                    | Interface::Success {
-                        args: SuccessArgs::Args64_2(_),
-                        ..
-                    }
-                    | Interface::MsgSendDirectReq2 { .. }
-                    | Interface::MsgSendDirectResp2 { .. }
-                    | Interface::PartitionInfoGetRegs { .. } => {
-                        self.pack_regs18(version, regs.try_into().unwrap());
-                    }
-                    _ => {
-                        self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
-                    }
+                let is_18_reg_only = self.function_id().unwrap().is_18_register_abi();
+                if !is_18_reg_only {
+                    self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
+                } else {
+                    self.pack_regs18(version, regs.try_into().unwrap());
                 }
             }
             _ => panic!("Invalid number of registers {}", reg_cnt),
