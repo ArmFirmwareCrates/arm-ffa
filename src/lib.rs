@@ -290,7 +290,7 @@ impl From<Feature> for u32 {
         match value {
             Feature::FuncId(func_id) => (1 << 31) | func_id as u32,
             Feature::FeatureId(feature_id) => feature_id as u32,
-            Feature::Unknown(id) => panic!("Unknown feature or function ID {:#x?}", id),
+            Feature::Unknown(id) => id,
         }
     }
 }
