@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "arm-ffa-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+zerocopy = "0.8"
+
+[dependencies.arm-ffa]
+path = ".."
+
+[[bin]]
+name = "boot_info_v1_1"
+path = "fuzz_targets/boot_info_v1_1.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "boot_info_v1_2"
+path = "fuzz_targets/boot_info_v1_2.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "interface_v1_1"
+path = "fuzz_targets/interface_v1_1.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "interface_v1_2"
+path = "fuzz_targets/interface_v1_2.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "mem_relinquish_desc"
+path = "fuzz_targets/mem_relinquish_desc.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "mem_transaction_desc"
+path = "fuzz_targets/mem_transaction_desc.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "notification_info_get32"
+path = "fuzz_targets/notification_info_get32.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "notification_info_get64"
+path = "fuzz_targets/notification_info_get64.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "partition_info"
+path = "fuzz_targets/partition_info.rs"
+test = false
+doc = false
+bench = false
