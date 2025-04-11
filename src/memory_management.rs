@@ -521,7 +521,7 @@ impl MemTransactionDesc {
         constituents: &[ConstituentMemRegion],
         access_descriptors: &[MemAccessPerm],
         buf: &mut [u8],
-    ) -> usize {
+    ) -> Result<usize, Error> {
         let mem_access_desc_size = size_of::<endpoint_memory_access_descriptor>();
         let mem_access_desc_cnt = access_descriptors.len();
 
@@ -566,7 +566,7 @@ impl MemTransactionDesc {
             offset += mem_access_desc_size;
         }
 
-        let mut total_page_count = 0;
+        let mut total_page_count: u32 = 0;
 
         offset = composite_offset + Self::CONSTITUENT_ARRAY_OFFSET;
         for constituent in constituents {
@@ -579,7 +579,9 @@ impl MemTransactionDesc {
             constituent_raw.write_to_prefix(&mut buf[offset..]).unwrap();
             offset += size_of::<constituent_memory_region_descriptor>();
 
-            total_page_count += constituent_raw.page_count;
+            total_page_count = total_page_count
+                .checked_add(constituent_raw.page_count)
+                .ok_or(Error::MalformedDescriptor)?;
         }
 
         let composite_desc_raw = composite_memory_region_descriptor {
@@ -592,7 +594,7 @@ impl MemTransactionDesc {
             .write_to_prefix(&mut buf[composite_offset..])
             .unwrap();
 
-        offset
+        Ok(offset)
     }
 
     /// Deserialize a memory transaction descriptor from a buffer and return an interator of the
