@@ -49,6 +49,8 @@ pub enum Error {
     InvalidVmId(u32),
     #[error("Invalid FF-A Partition Info Get Flag {0}")]
     InvalidPartitionInfoGetFlag(u32),
+    #[error("Invalid success argument variant")]
+    InvalidSuccessArgsVariant,
 }
 
 impl From<Error> for FfaError {
@@ -66,7 +68,8 @@ impl From<Error> for FfaError {
             | Error::InvalidNotificationSetFlag(_)
             | Error::InvalidVmId(_)
             | Error::UnrecognisedWarmBootType(_)
-            | Error::InvalidPartitionInfoGetFlag(_) => Self::InvalidParameters,
+            | Error::InvalidPartitionInfoGetFlag(_)
+            | Error::InvalidSuccessArgsVariant => Self::InvalidParameters,
         }
     }
 }
@@ -195,12 +198,44 @@ impl From<TargetInfo> for u32 {
     }
 }
 
-/// Arguments for the `FFA_SUCCESS` interface.
+/// Generic arguments of the `FFA_SUCCESS` interface. The interpretation of the arguments depends on
+/// the interface that initiated the request. The application code has knowledge of the request, so
+/// it has to convert `SuccessArgs` into/from a specific success args structure that matches the
+/// request.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
     Args64([u64; 6]),
     Args64_2([u64; 16]),
+}
+
+impl SuccessArgs {
+    fn try_get_args32(self) -> Result<[u32; 6], Error> {
+        match self {
+            SuccessArgs::Args32(args) => Ok(args),
+            SuccessArgs::Args64(_) | SuccessArgs::Args64_2(_) => {
+                Err(Error::InvalidSuccessArgsVariant)
+            }
+        }
+    }
+
+    fn try_get_args64(self) -> Result<[u64; 6], Error> {
+        match self {
+            SuccessArgs::Args64(args) => Ok(args),
+            SuccessArgs::Args32(_) | SuccessArgs::Args64_2(_) => {
+                Err(Error::InvalidSuccessArgsVariant)
+            }
+        }
+    }
+
+    fn try_get_args64_2(self) -> Result<[u64; 16], Error> {
+        match self {
+            SuccessArgs::Args64_2(args) => Ok(args),
+            SuccessArgs::Args32(_) | SuccessArgs::Args64(_) => {
+                Err(Error::InvalidSuccessArgsVariant)
+            }
+        }
+    }
 }
 
 /// Entrypoint address argument for `FFA_SECONDARY_EP_REGISTER` interface.
