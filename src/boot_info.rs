@@ -524,10 +524,17 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                     }
                 }
 
-                BootInfoContentsFormat::Value => BootInfoContents::Value {
-                    val: desc_raw.contents,
-                    len: desc_raw.size as usize,
-                },
+                BootInfoContentsFormat::Value => {
+                    let len = desc_raw.size as usize;
+                    if (1..=8).contains(&len) {
+                        BootInfoContents::Value {
+                            val: desc_raw.contents,
+                            len,
+                        }
+                    } else {
+                        return Some(Err(Error::MalformedDescriptor));
+                    }
+                }
             };
 
             return Some(Ok(BootInfo {
