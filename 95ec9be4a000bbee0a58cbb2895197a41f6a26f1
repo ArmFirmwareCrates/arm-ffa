@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7f904cb1_742a2ec6",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 584,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-14T14:38:45Z",
+      "side": 1,
+      "message": "I think we can just panic on error, since it\u0027s considered a programmer error, like for the rest of the checks in this function.",
+      "revId": "95ec9be4a000bbee0a58cbb2895197a41f6a26f1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
