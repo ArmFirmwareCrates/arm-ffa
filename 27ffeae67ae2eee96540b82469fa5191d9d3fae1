@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ee2413b7_f6b4a4ee",
+        "filename": "src/lib.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 843,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-14T14:11:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f18e1d36_331d41ce",
+      "range": {
+        "startLine": 843,
+        "startChar": 5,
+        "endLine": 843,
+        "endChar": 30
+      },
+      "revId": "27ffeae67ae2eee96540b82469fa5191d9d3fae1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "dcf9d7eb_ebdb16da",
@@ -41,6 +65,24 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b31ef94f_3c63e544",
+        "filename": "src/lib.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 877,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-14T14:11:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dcf9d7eb_ebdb16da",
+      "revId": "27ffeae67ae2eee96540b82469fa5191d9d3fae1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "976ef3b9_f7d029e5",
@@ -54,6 +96,30 @@
       "writtenOn": "2025-04-14T13:53:27Z",
       "side": 1,
       "message": "info_get",
+      "range": {
+        "startLine": 2509,
+        "startChar": 33,
+        "endLine": 2509,
+        "endChar": 41
+      },
+      "revId": "27ffeae67ae2eee96540b82469fa5191d9d3fae1",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "07f95e2f_76e2138c",
+        "filename": "src/lib.rs",
+        "patchSetId": 5
+      },
+      "lineNbr": 2509,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-04-14T14:11:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "976ef3b9_f7d029e5",
       "range": {
         "startLine": 2509,
         "startChar": 33,
