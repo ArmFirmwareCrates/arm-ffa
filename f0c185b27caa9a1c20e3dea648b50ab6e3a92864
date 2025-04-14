@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e39e17c4_8778bad0",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-14T08:12:09Z",
+      "side": 1,
+      "message": "`FFA_NOTIFICATION_INFO_GET`",
+      "range": {
+        "startLine": 7,
+        "startChar": 21,
+        "endLine": 7,
+        "endChar": 46
+      },
+      "revId": "f0c185b27caa9a1c20e3dea648b50ab6e3a92864",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
