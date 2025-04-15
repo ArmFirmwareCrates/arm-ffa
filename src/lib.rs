@@ -957,6 +957,11 @@ impl<const MAX_COUNT: usize> SuccessArgsNotificationInfoGet<MAX_COUNT> {
             count_of_ids_bits >>= Self::ID_COUNT_BITS;
         }
 
+        let id_field_count = count_of_lists + count_of_ids.iter().sum::<u8>() as usize;
+        if id_field_count > MAX_COUNT {
+            return Err(Error::InvalidNotificationCount);
+        }
+
         Ok(Self {
             more_pending_notifications: (flags & Self::MORE_PENDING_NOTIFICATIONS_FLAG) != 0,
             list_count: count_of_lists,
