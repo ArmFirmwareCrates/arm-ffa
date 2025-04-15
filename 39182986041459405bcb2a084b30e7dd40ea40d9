@@ -1,0 +1,6 @@
+Code-Review+2: Kis Imre <imre.kis@arm.com>
+Submitted-by: Bálint Dobszay <balint.dobszay@arm.com>
+Submitted-at: Tue, 15 Apr 2025 22:53:55 +0200
+Reviewed-on: https://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/37402
+Project: rust-spmc/arm-ffa
+Branch: refs/heads/main
