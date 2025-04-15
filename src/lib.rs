@@ -2337,14 +2337,6 @@ impl Interface {
         }
     }
 
-    /// Helper function to create an `FFA_SUCCESS` interface without any arguments.
-    pub fn success64_noargs() -> Self {
-        Self::Success {
-            target_info: 0,
-            args: SuccessArgs::Args64([0; 6]),
-        }
-    }
-
     /// Helper function to create an `FFA_ERROR` interface with an error code.
     pub fn error(error_code: FfaError) -> Self {
         Self::Error {
