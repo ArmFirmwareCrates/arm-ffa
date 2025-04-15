@@ -24,6 +24,30 @@
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4621b99d_8851c9d2",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-15T09:11:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a3236b3d_c22bee45",
+      "range": {
+        "startLine": 59,
+        "startChar": 4,
+        "endLine": 60,
+        "endChar": 42
+      },
+      "revId": "2d566206b212c29c9a21a80280abd8a20b967700",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ab85e79e_e0cf5d73",
@@ -37,6 +61,30 @@
       "writtenOn": "2025-04-15T08:53:38Z",
       "side": 1,
       "message": "If the error arguments are typed the `into()` calls are not needed.",
+      "range": {
+        "startLine": 1382,
+        "startChar": 16,
+        "endLine": 1383,
+        "endChar": 31
+      },
+      "revId": "2d566206b212c29c9a21a80280abd8a20b967700",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "61cc81fc_4c8d08bb",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1383,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-04-15T09:11:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab85e79e_e0cf5d73",
       "range": {
         "startLine": 1382,
         "startChar": 16,
