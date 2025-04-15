@@ -56,14 +56,16 @@ pub enum Error {
     InvalidNotificationCount,
     #[error("Invalid Partition Info Get Regs response")]
     InvalidPartitionInfoGetRegsResponse,
+    #[error("Invalid FF-A version {0} for function ID {0}")]
+    InvalidVersionForFunctionId(u32, u32),
 }
 
 impl From<Error> for FfaError {
     fn from(value: Error) -> Self {
         match value {
-            Error::UnrecognisedFunctionId(_) | Error::UnrecognisedFeatureId(_) => {
-                Self::NotSupported
-            }
+            Error::UnrecognisedFunctionId(_)
+            | Error::UnrecognisedFeatureId(_)
+            | Error::InvalidVersionForFunctionId(..) => Self::NotSupported,
             Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
@@ -155,6 +157,68 @@ impl FuncId {
     /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
     pub fn is_32bit(&self) -> bool {
         u32::from(*self) & (1 << 30) == 0
+    }
+
+    /// Returns the FF-A version that has introduced the function ID.
+    pub fn minimum_ffa_version(&self) -> Version {
+        match self {
+            FuncId::Error
+            | FuncId::Success32
+            | FuncId::Success64
+            | FuncId::Interrupt
+            | FuncId::Version
+            | FuncId::Features
+            | FuncId::RxRelease
+            | FuncId::RxTxMap32
+            | FuncId::RxTxMap64
+            | FuncId::RxTxUnmap
+            | FuncId::PartitionInfoGet
+            | FuncId::IdGet
+            | FuncId::MsgWait
+            | FuncId::Yield
+            | FuncId::Run
+            | FuncId::NormalWorldResume
+            | FuncId::MsgSendDirectReq32
+            | FuncId::MsgSendDirectReq64
+            | FuncId::MsgSendDirectResp32
+            | FuncId::MsgSendDirectResp64
+            | FuncId::MemDonate32
+            | FuncId::MemDonate64
+            | FuncId::MemLend32
+            | FuncId::MemLend64
+            | FuncId::MemShare32
+            | FuncId::MemShare64
+            | FuncId::MemRetrieveReq32
+            | FuncId::MemRetrieveReq64
+            | FuncId::MemRetrieveResp
+            | FuncId::MemRelinquish
+            | FuncId::MemReclaim => Version(1, 0),
+
+            FuncId::RxAcquire
+            | FuncId::SpmIdGet
+            | FuncId::MsgSend2
+            | FuncId::MemPermGet32
+            | FuncId::MemPermGet64
+            | FuncId::MemPermSet32
+            | FuncId::MemPermSet64
+            | FuncId::NotificationBitmapCreate
+            | FuncId::NotificationBitmapDestroy
+            | FuncId::NotificationBind
+            | FuncId::NotificationUnbind
+            | FuncId::NotificationSet
+            | FuncId::NotificationGet
+            | FuncId::NotificationInfoGet32
+            | FuncId::NotificationInfoGet64
+            | FuncId::SecondaryEpRegister32
+            | FuncId::SecondaryEpRegister64 => Version(1, 1),
+
+            FuncId::PartitionInfoGetRegs
+            | FuncId::ConsoleLog32
+            | FuncId::ConsoleLog64
+            | FuncId::MsgSendDirectReq64_2
+            | FuncId::MsgSendDirectResp64_2
+            | FuncId::El3IntrHandle => Version(1, 2),
+        }
     }
 }
 
@@ -1304,9 +1368,22 @@ impl Interface {
         self.function_id().unwrap().is_32bit()
     }
 
+    /// Returns the FF-A version that has introduced the function ID.
+    pub fn minimum_ffa_version(&self) -> Version {
+        self.function_id().unwrap().minimum_ffa_version()
+    }
+
     /// Parse interface from register contents. The caller must ensure that the `regs` argument has
     /// the correct length: 8 registers for FF-A v1.1 and lower, 18 registers for v1.2 and higher.
     pub fn from_regs(version: Version, regs: &[u64]) -> Result<Self, Error> {
+        let func_id = FuncId::try_from(regs[0] as u32)?;
+        if version < func_id.minimum_ffa_version() {
+            return Err(Error::InvalidVersionForFunctionId(
+                version.into(),
+                func_id.into(),
+            ));
+        }
+
         let reg_cnt = regs.len();
 
         let msg = match reg_cnt {
@@ -1316,7 +1393,7 @@ impl Interface {
             }
             18 => {
                 assert!(version >= Version(1, 2));
-                match FuncId::try_from(regs[0] as u32)? {
+                match func_id {
                     FuncId::ConsoleLog64
                     | FuncId::Success64
                     | FuncId::MsgSendDirectReq64_2
@@ -1778,6 +1855,8 @@ impl Interface {
 
     /// Create register contents for an interface.
     pub fn to_regs(&self, version: Version, regs: &mut [u64]) {
+        assert!(self.minimum_ffa_version() <= version);
+
         let reg_cnt = regs.len();
 
         match reg_cnt {
