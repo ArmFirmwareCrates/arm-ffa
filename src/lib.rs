@@ -2399,24 +2399,24 @@ mod tests {
 
         // From spec:
         // Bytes[0...7] of UUID with byte 0 in the low-order bits.
-        let reg_x1 = (uuid_bytes[7] as u64) << 56
-            | (uuid_bytes[6] as u64) << 48
-            | (uuid_bytes[5] as u64) << 40
-            | (uuid_bytes[4] as u64) << 32
-            | (uuid_bytes[3] as u64) << 24
-            | (uuid_bytes[2] as u64) << 16
-            | (uuid_bytes[1] as u64) << 8
+        let reg_x1 = ((uuid_bytes[7] as u64) << 56)
+            | ((uuid_bytes[6] as u64) << 48)
+            | ((uuid_bytes[5] as u64) << 40)
+            | ((uuid_bytes[4] as u64) << 32)
+            | ((uuid_bytes[3] as u64) << 24)
+            | ((uuid_bytes[2] as u64) << 16)
+            | ((uuid_bytes[1] as u64) << 8)
             | (uuid_bytes[0] as u64);
 
         // From spec:
         // Bytes[8...15] of UUID with byte 8 in the low-order bits.
-        let reg_x2 = (uuid_bytes[15] as u64) << 56
-            | (uuid_bytes[14] as u64) << 48
-            | (uuid_bytes[13] as u64) << 40
-            | (uuid_bytes[12] as u64) << 32
-            | (uuid_bytes[11] as u64) << 24
-            | (uuid_bytes[10] as u64) << 16
-            | (uuid_bytes[9] as u64) << 8
+        let reg_x2 = ((uuid_bytes[15] as u64) << 56)
+            | ((uuid_bytes[14] as u64) << 48)
+            | ((uuid_bytes[13] as u64) << 40)
+            | ((uuid_bytes[12] as u64) << 32)
+            | ((uuid_bytes[11] as u64) << 24)
+            | ((uuid_bytes[10] as u64) << 16)
+            | ((uuid_bytes[9] as u64) << 8)
             | (uuid_bytes[8] as u64);
 
         // First, test for wrong tag:
@@ -2440,8 +2440,8 @@ mod tests {
             orig_regs[2] = reg_x2;
             orig_regs[3] = start_index_and_tag;
 
-            let mut test_regs = orig_regs.clone();
-            let interface = Interface::from_regs(version, &mut test_regs).unwrap();
+            let mut test_regs = orig_regs;
+            let interface = Interface::from_regs(version, &test_regs).unwrap();
             match &interface {
                 Interface::PartitionInfoGetRegs {
                     info_tag,
@@ -2487,24 +2487,24 @@ mod tests {
 
         // From spec:
         // Bytes[0...7] of UUID with byte 0 in the low-order bits.
-        let reg_x2 = (uuid_bytes[7] as u64) << 56
-            | (uuid_bytes[6] as u64) << 48
-            | (uuid_bytes[5] as u64) << 40
-            | (uuid_bytes[4] as u64) << 32
-            | (uuid_bytes[3] as u64) << 24
-            | (uuid_bytes[2] as u64) << 16
-            | (uuid_bytes[1] as u64) << 8
+        let reg_x2 = ((uuid_bytes[7] as u64) << 56)
+            | ((uuid_bytes[6] as u64) << 48)
+            | ((uuid_bytes[5] as u64) << 40)
+            | ((uuid_bytes[4] as u64) << 32)
+            | ((uuid_bytes[3] as u64) << 24)
+            | ((uuid_bytes[2] as u64) << 16)
+            | ((uuid_bytes[1] as u64) << 8)
             | (uuid_bytes[0] as u64);
 
         // From spec:
         // Bytes[8...15] of UUID with byte 8 in the low-order bits.
-        let reg_x3 = (uuid_bytes[15] as u64) << 56
-            | (uuid_bytes[14] as u64) << 48
-            | (uuid_bytes[13] as u64) << 40
-            | (uuid_bytes[12] as u64) << 32
-            | (uuid_bytes[11] as u64) << 24
-            | (uuid_bytes[10] as u64) << 16
-            | (uuid_bytes[9] as u64) << 8
+        let reg_x3 = ((uuid_bytes[15] as u64) << 56)
+            | ((uuid_bytes[14] as u64) << 48)
+            | ((uuid_bytes[13] as u64) << 40)
+            | ((uuid_bytes[12] as u64) << 32)
+            | ((uuid_bytes[11] as u64) << 24)
+            | ((uuid_bytes[10] as u64) << 16)
+            | ((uuid_bytes[9] as u64) << 8)
             | (uuid_bytes[8] as u64);
 
         let test_sender = 0b1101_1101;
@@ -2520,8 +2520,8 @@ mod tests {
             orig_regs[2] = reg_x2;
             orig_regs[3] = reg_x3;
 
-            let mut test_regs = orig_regs.clone();
-            let interface = Interface::from_regs(version, &mut test_regs).unwrap();
+            let mut test_regs = orig_regs;
+            let interface = Interface::from_regs(version, &test_regs).unwrap();
             match &interface {
                 Interface::MsgSendDirectReq2 {
                     dst_id,

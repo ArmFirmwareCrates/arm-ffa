@@ -315,7 +315,7 @@ impl From<SuccessArgsPartitionInfoGetRegs> for SuccessArgs {
     fn from(value: SuccessArgsPartitionInfoGetRegs) -> Self {
         let mut args = [0; 16];
 
-        args[0] = (value.last_index as u64) << SuccessArgsPartitionInfoGetRegs::LAST_INDEX_SHIFT
+        args[0] = ((value.last_index as u64) << SuccessArgsPartitionInfoGetRegs::LAST_INDEX_SHIFT)
             | ((value.current_index as u64)
                 << SuccessArgsPartitionInfoGetRegs::CURRENT_INDEX_SHIFT)
             | ((value.info_tag as u64) << SuccessArgsPartitionInfoGetRegs::INFO_TAG_SHIFT)
