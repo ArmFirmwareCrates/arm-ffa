@@ -10,7 +10,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
 use uuid::Uuid;
-use zerocopy::transmute;
+use zerocopy::{transmute, IntoBytes};
 
 pub mod boot_info;
 mod ffa_v1_1;
@@ -2374,17 +2374,13 @@ pub fn parse_console_log(
             if !(1..=CONSOLE_LOG_32_MAX_CHAR_CNT).contains(&char_cnt) {
                 return Err(FfaError::InvalidParameters);
             }
-            for (i, reg) in regs.iter().enumerate() {
-                log_bytes[4 * i..4 * (i + 1)].copy_from_slice(&reg.to_le_bytes());
-            }
+            log_bytes[..char_cnt.into()].copy_from_slice(&regs.as_bytes()[0..char_cnt.into()]);
         }
         ConsoleLogChars::Reg64(regs) => {
             if !(1..=CONSOLE_LOG_64_MAX_CHAR_CNT).contains(&char_cnt) {
                 return Err(FfaError::InvalidParameters);
             }
-            for (i, reg) in regs.iter().enumerate() {
-                log_bytes[8 * i..8 * (i + 1)].copy_from_slice(&reg.to_le_bytes());
-            }
+            log_bytes[..char_cnt.into()].copy_from_slice(&regs.as_bytes()[0..char_cnt.into()]);
         }
     }
 
