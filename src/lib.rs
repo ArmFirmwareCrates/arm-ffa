@@ -1309,7 +1309,7 @@ impl Interface {
                 DirectMsgArgs::PowerWarmBootReq { .. } => Some(FuncId::MsgSendDirectReq32),
                 DirectMsgArgs::VmCreated { .. } => Some(FuncId::MsgSendDirectReq32),
                 DirectMsgArgs::VmDestructed { .. } => Some(FuncId::MsgSendDirectReq32),
-                _ => None,
+                _ => panic!("Invalid direct request arguments: {:#?}", args),
             },
             Interface::MsgSendDirectResp { args, .. } => match args {
                 DirectMsgArgs::Args32(_) => Some(FuncId::MsgSendDirectResp32),
@@ -1318,7 +1318,7 @@ impl Interface {
                 DirectMsgArgs::PowerPsciResp { .. } => Some(FuncId::MsgSendDirectResp32),
                 DirectMsgArgs::VmCreatedAck { .. } => Some(FuncId::MsgSendDirectResp32),
                 DirectMsgArgs::VmDestructedAck { .. } => Some(FuncId::MsgSendDirectResp32),
-                _ => None,
+                _ => panic!("Invalid direct response arguments: {:#?}", args),
             },
             Interface::MsgSendDirectReq2 { .. } => Some(FuncId::MsgSendDirectReq64_2),
             Interface::MsgSendDirectResp2 { .. } => Some(FuncId::MsgSendDirectResp64_2),
@@ -1369,12 +1369,19 @@ impl Interface {
 
     /// Returns true if this is a 32-bit call, or false if it is a 64-bit call.
     pub fn is_32bit(&self) -> bool {
-        // TODO: self should always have a function ID?
+        if matches!(self, Self::VersionOut { .. }) {
+            return true;
+        }
+
         self.function_id().unwrap().is_32bit()
     }
 
     /// Returns the FF-A version that has introduced the function ID.
     pub fn minimum_ffa_version(&self) -> Version {
+        if matches!(self, Self::VersionOut { .. }) {
+            return Version(1, 0);
+        }
+
         self.function_id().unwrap().minimum_ffa_version()
     }
 
