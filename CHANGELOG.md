@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+Minor bugfixes for parse_console_log() function and VersionOut interface handling.
+
 ## 0.2.0
 
 - Implement missing FF-A interfaces:
