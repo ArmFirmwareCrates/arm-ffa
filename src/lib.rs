@@ -10,7 +10,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
 pub use uuid::Uuid;
-use zerocopy::{transmute, IntoBytes};
+use zerocopy::{transmute, FromBytes, Immutable, IntoBytes};
 
 pub mod boot_info;
 mod ffa_v1_1;
@@ -58,6 +58,8 @@ pub enum Error {
     InvalidPartitionInfoGetRegsResponse,
     #[error("Invalid FF-A version {0} for function ID {1:?}")]
     InvalidVersionForFunctionId(Version, FuncId),
+    #[error("Invalid character count {0}")]
+    InvalidCharacterCount(u8),
 }
 
 impl From<Error> for FfaError {
@@ -78,7 +80,8 @@ impl From<Error> for FfaError {
             | Error::InvalidPartitionInfoGetFlag(_)
             | Error::InvalidSuccessArgsVariant
             | Error::InvalidNotificationCount
-            | Error::InvalidPartitionInfoGetRegsResponse => Self::InvalidParameters,
+            | Error::InvalidPartitionInfoGetRegsResponse
+            | Error::InvalidCharacterCount(_) => Self::InvalidParameters,
         }
     }
 }
@@ -700,9 +703,58 @@ pub enum MemAddr {
 /// Argument for the `FFA_CONSOLE_LOG` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ConsoleLogChars {
-    Reg32([u32; 6]),
-    Reg64([u64; 16]),
+    Chars32(ConsoleLogChars32),
+    Chars64(ConsoleLogChars64),
 }
+
+/// Generic type for storing `FFA_CONSOLE_LOG` character payload and its length in bytes.
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
+pub struct LogChars<T>
+where
+    T: IntoBytes + FromBytes + Immutable,
+{
+    char_cnt: u8,
+    char_lists: T,
+}
+
+impl<T> LogChars<T>
+where
+    T: IntoBytes + FromBytes + Immutable,
+{
+    const MAX_LENGTH: u8 = core::mem::size_of::<T>() as u8;
+
+    /// Returns true if there are no characters in the structure.
+    pub fn empty(&self) -> bool {
+        self.char_cnt == 0
+    }
+
+    /// Returns true if the structure is full.
+    pub fn full(&self) -> bool {
+        self.char_cnt as usize >= core::mem::size_of::<T>()
+    }
+
+    /// Returns the payload bytes.
+    pub fn bytes(&self) -> &[u8] {
+        &self.char_lists.as_bytes()[..self.char_cnt as usize]
+    }
+
+    /// Append byte slice to the end of the characters.
+    pub fn push(&mut self, source: &[u8]) -> usize {
+        let empty_area = &mut self.char_lists.as_mut_bytes()[self.char_cnt.into()..];
+        let len = empty_area.len().min(source.len());
+
+        empty_area[..len].copy_from_slice(&source[..len]);
+        self.char_cnt += len as u8;
+
+        len
+    }
+}
+
+/// Specialized type for 32-bit `FFA_CONSOLE_LOG` payload.
+pub type ConsoleLogChars32 = LogChars<[u32; 6]>;
+
+/// Specialized type for 64-bit `FFA_CONSOLE_LOG` payload.
+pub type ConsoleLogChars64 = LogChars<[u64; 16]>;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationBindFlags {
@@ -1229,8 +1281,7 @@ pub enum Interface {
         mem_perm: u32,
     },
     ConsoleLog {
-        char_cnt: u8,
-        char_lists: ConsoleLogChars,
+        chars: ConsoleLogChars,
     },
     NotificationBitmapCreate {
         vm_id: u16,
@@ -1349,9 +1400,9 @@ impl Interface {
                 MemAddr::Addr32(_) => Some(FuncId::MemPermSet32),
                 MemAddr::Addr64(_) => Some(FuncId::MemPermSet64),
             },
-            Interface::ConsoleLog { char_lists, .. } => match char_lists {
-                ConsoleLogChars::Reg32(_) => Some(FuncId::ConsoleLog32),
-                ConsoleLogChars::Reg64(_) => Some(FuncId::ConsoleLog64),
+            Interface::ConsoleLog { chars, .. } => match chars {
+                ConsoleLogChars::Chars32(_) => Some(FuncId::ConsoleLog32),
+                ConsoleLogChars::Chars64(_) => Some(FuncId::ConsoleLog64),
             },
             Interface::NotificationBitmapCreate { .. } => Some(FuncId::NotificationBitmapCreate),
             Interface::NotificationBitmapDestroy { .. } => Some(FuncId::NotificationBitmapDestroy),
@@ -1756,17 +1807,26 @@ impl Interface {
                 page_cnt: regs[2] as u32,
                 mem_perm: regs[3] as u32,
             },
-            FuncId::ConsoleLog32 => Self::ConsoleLog {
-                char_cnt: regs[1] as u8,
-                char_lists: ConsoleLogChars::Reg32([
-                    regs[2] as u32,
-                    regs[3] as u32,
-                    regs[4] as u32,
-                    regs[5] as u32,
-                    regs[6] as u32,
-                    regs[7] as u32,
-                ]),
-            },
+            FuncId::ConsoleLog32 => {
+                let char_cnt = regs[1] as u8;
+                if char_cnt > ConsoleLogChars32::MAX_LENGTH {
+                    return Err(Error::InvalidCharacterCount(char_cnt));
+                }
+
+                Self::ConsoleLog {
+                    chars: ConsoleLogChars::Chars32(ConsoleLogChars32 {
+                        char_cnt,
+                        char_lists: [
+                            regs[2] as u32,
+                            regs[3] as u32,
+                            regs[4] as u32,
+                            regs[5] as u32,
+                            regs[6] as u32,
+                            regs[7] as u32,
+                        ],
+                    }),
+                }
+            }
             FuncId::NotificationBitmapCreate => {
                 let tentative_vm_id = regs[1] as u32;
                 if (tentative_vm_id >> 16) != 0 {
@@ -1838,10 +1898,19 @@ impl Interface {
                 dst_id: regs[1] as u16,
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
-            FuncId::ConsoleLog64 => Self::ConsoleLog {
-                char_cnt: regs[1] as u8,
-                char_lists: ConsoleLogChars::Reg64(regs[2..18].try_into().unwrap()),
-            },
+            FuncId::ConsoleLog64 => {
+                let char_cnt = regs[1] as u8;
+                if char_cnt > ConsoleLogChars64::MAX_LENGTH {
+                    return Err(Error::InvalidCharacterCount(char_cnt));
+                }
+
+                Self::ConsoleLog {
+                    chars: ConsoleLogChars::Chars64(ConsoleLogChars64 {
+                        char_cnt,
+                        char_lists: regs[2..18].try_into().unwrap(),
+                    }),
+                }
+            }
             FuncId::PartitionInfoGetRegs => {
                 // Bits[15:0]: Start index
                 let start_index = (regs[3] & 0xffff) as u16;
@@ -1881,7 +1950,7 @@ impl Interface {
 
                 match self {
                     Interface::ConsoleLog {
-                        char_lists: ConsoleLogChars::Reg64(_),
+                        chars: ConsoleLogChars::Chars64(_),
                         ..
                     }
                     | Interface::Success {
@@ -2205,23 +2274,21 @@ impl Interface {
                 a[2] = page_cnt.into();
                 a[3] = mem_perm.into();
             }
-            Interface::ConsoleLog {
-                char_cnt,
-                char_lists,
-            } => {
-                a[1] = char_cnt.into();
-                match char_lists {
-                    ConsoleLogChars::Reg32(regs) => {
-                        a[2] = regs[0].into();
-                        a[3] = regs[1].into();
-                        a[4] = regs[2].into();
-                        a[5] = regs[3].into();
-                        a[6] = regs[4].into();
-                        a[7] = regs[5].into();
-                    }
-                    _ => panic!("{:#x?} requires 18 registers", char_lists),
+            Interface::ConsoleLog { chars } => match chars {
+                ConsoleLogChars::Chars32(ConsoleLogChars32 {
+                    char_cnt,
+                    char_lists,
+                }) => {
+                    a[1] = char_cnt.into();
+                    a[2] = char_lists[0].into();
+                    a[3] = char_lists[1].into();
+                    a[4] = char_lists[2].into();
+                    a[5] = char_lists[3].into();
+                    a[6] = char_lists[4].into();
+                    a[7] = char_lists[5].into();
                 }
-            }
+                _ => panic!("{:#x?} requires 18 registers", chars),
+            },
             Interface::NotificationBitmapCreate { vm_id, vcpu_cnt } => {
                 a[1] = vm_id.into();
                 a[2] = vcpu_cnt.into();
@@ -2310,16 +2377,16 @@ impl Interface {
                 a[3] = 0;
                 a[4..18].copy_from_slice(&args.0[..14]);
             }
-            Interface::ConsoleLog {
-                char_cnt,
-                char_lists,
-            } => {
-                a[1] = char_cnt.into();
-                match char_lists {
-                    ConsoleLogChars::Reg64(regs) => a[2..18].copy_from_slice(&regs[..16]),
-                    _ => panic!("{:#x?} requires 8 registers", char_lists),
+            Interface::ConsoleLog { chars: char_lists } => match char_lists {
+                ConsoleLogChars::Chars64(ConsoleLogChars64 {
+                    char_cnt,
+                    char_lists,
+                }) => {
+                    a[1] = char_cnt.into();
+                    a[2..18].copy_from_slice(&char_lists[..16])
                 }
-            }
+                _ => panic!("{:#x?} requires 8 registers", char_lists),
+            },
             Interface::PartitionInfoGetRegs {
                 uuid,
                 start_index,
@@ -2355,36 +2422,6 @@ impl Interface {
             error_arg: 0,
         }
     }
-}
-
-/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG32` message.
-pub const CONSOLE_LOG_32_MAX_CHAR_CNT: u8 = 24;
-/// Maximum number of characters transmitted in a single `FFA_CONSOLE_LOG64` message.
-pub const CONSOLE_LOG_64_MAX_CHAR_CNT: u8 = 128;
-
-/// Helper function to convert the "Tightly packed list of characters" format used by the
-/// `FFA_CONSOLE_LOG` interface into a byte slice.
-pub fn parse_console_log(
-    char_cnt: u8,
-    char_lists: &ConsoleLogChars,
-    log_bytes: &mut [u8],
-) -> Result<(), FfaError> {
-    match char_lists {
-        ConsoleLogChars::Reg32(regs) => {
-            if !(1..=CONSOLE_LOG_32_MAX_CHAR_CNT).contains(&char_cnt) {
-                return Err(FfaError::InvalidParameters);
-            }
-            log_bytes[..char_cnt.into()].copy_from_slice(&regs.as_bytes()[0..char_cnt.into()]);
-        }
-        ConsoleLogChars::Reg64(regs) => {
-            if !(1..=CONSOLE_LOG_64_MAX_CHAR_CNT).contains(&char_cnt) {
-                return Err(FfaError::InvalidParameters);
-            }
-            log_bytes[..char_cnt.into()].copy_from_slice(&regs.as_bytes()[0..char_cnt.into()]);
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
