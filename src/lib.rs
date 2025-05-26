@@ -1245,7 +1245,7 @@ pub enum Interface {
         flags: NotificationBindFlags,
         bitmap: u64,
     },
-    NotificationUnBind {
+    NotificationUnbind {
         sender_id: u16,
         receiver_id: u16,
         bitmap: u64,
@@ -1356,7 +1356,7 @@ impl Interface {
             Interface::NotificationBitmapCreate { .. } => Some(FuncId::NotificationBitmapCreate),
             Interface::NotificationBitmapDestroy { .. } => Some(FuncId::NotificationBitmapDestroy),
             Interface::NotificationBind { .. } => Some(FuncId::NotificationBind),
-            Interface::NotificationUnBind { .. } => Some(FuncId::NotificationUnbind),
+            Interface::NotificationUnbind { .. } => Some(FuncId::NotificationUnbind),
             Interface::NotificationSet { .. } => Some(FuncId::NotificationSet),
             Interface::NotificationGet { .. } => Some(FuncId::NotificationGet),
             Interface::NotificationInfoGet { is_32bit } => match is_32bit {
@@ -1792,7 +1792,7 @@ impl Interface {
                 flags: (regs[2] as u32).into(),
                 bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
             },
-            FuncId::NotificationUnbind => Self::NotificationUnBind {
+            FuncId::NotificationUnbind => Self::NotificationUnbind {
                 sender_id: (regs[1] >> 16) as u16,
                 receiver_id: regs[1] as u16,
                 bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
@@ -2240,7 +2240,7 @@ impl Interface {
                 a[3] = bitmap & 0xffff_ffff;
                 a[4] = bitmap >> 32;
             }
-            Interface::NotificationUnBind {
+            Interface::NotificationUnbind {
                 sender_id,
                 receiver_id,
                 bitmap,
