@@ -9,7 +9,7 @@
 use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
-use uuid::Uuid;
+pub use uuid::Uuid;
 use zerocopy::{transmute, IntoBytes};
 
 pub mod boot_info;
