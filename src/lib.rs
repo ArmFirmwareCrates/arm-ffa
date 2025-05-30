@@ -646,11 +646,11 @@ impl DirectMsgArgs {
 
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}2` interfaces.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub struct DirectMsg2Args([u64; 14]);
+pub struct DirectMsg2Args(pub [u64; 14]);
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct MsgWaitFlags {
-    retain_rx_buffer: bool,
+    pub retain_rx_buffer: bool,
 }
 
 impl MsgWaitFlags {
@@ -758,7 +758,7 @@ pub type ConsoleLogChars64 = LogChars<[u64; 16]>;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationBindFlags {
-    per_vcpu_notification: bool,
+    pub per_vcpu_notification: bool,
 }
 
 impl NotificationBindFlags {
@@ -785,8 +785,8 @@ impl From<u32> for NotificationBindFlags {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationSetFlags {
-    delay_schedule_receiver: bool,
-    vcpu_id: Option<u16>,
+    pub delay_schedule_receiver: bool,
+    pub vcpu_id: Option<u16>,
 }
 
 impl NotificationSetFlags {
@@ -841,10 +841,10 @@ impl TryFrom<u32> for NotificationSetFlags {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationGetFlags {
-    sp_bitmap_id: bool,
-    vm_bitmap_id: bool,
-    spm_bitmap_id: bool,
-    hyp_bitmap_id: bool,
+    pub sp_bitmap_id: bool,
+    pub vm_bitmap_id: bool,
+    pub spm_bitmap_id: bool,
+    pub hyp_bitmap_id: bool,
 }
 
 impl NotificationGetFlags {
