@@ -12,10 +12,13 @@
 //! - The Owner can reclaim access to a memory region after the FF-A endpoints that were granted
 //!   access to that memory region have relinquished their access.
 
-use crate::ffa_v1_1::{
-    composite_memory_region_descriptor, constituent_memory_region_descriptor,
-    endpoint_memory_access_descriptor, memory_access_permission_descriptor,
-    memory_relinquish_descriptor, memory_transaction_descriptor,
+use crate::{
+    ffa_v1_1::{
+        composite_memory_region_descriptor, constituent_memory_region_descriptor,
+        endpoint_memory_access_descriptor, memory_access_permission_descriptor,
+        memory_relinquish_descriptor, memory_transaction_descriptor,
+    },
+    SuccessArgs,
 };
 use core::mem::size_of;
 use thiserror::Error;
@@ -783,6 +786,32 @@ impl TryFrom<&[u8]> for MemRelinquishDesc {
 
 impl MemRelinquishDesc {
     const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
+}
+
+/// Success argument structure for `FFA_MEM_DONATE`, `FFA_MEM_LEND` and `FFA_MEM_SHARE`.
+pub struct SuccessArgsMemOp {
+    handle: Handle,
+}
+
+impl From<SuccessArgsMemOp> for SuccessArgs {
+    fn from(value: SuccessArgsMemOp) -> Self {
+        let [handle_lo, handle_hi]: [u32; 2] = value.handle.into();
+        SuccessArgs::Args32([handle_lo, handle_hi, 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsMemOp {
+    type Error = crate::Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let [handle_lo, handle_hi, ..] = value.try_get_args32()?;
+        Ok(Self {
+            handle: [handle_lo, handle_hi].into(),
+        })
+    }
+}
+        })
+    }
 }
 
 #[cfg(test)]
