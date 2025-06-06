@@ -26,7 +26,7 @@ use zerocopy::{FromBytes, IntoBytes};
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("Invalid cacheability attribute {0}")]
     InvalidCacheability(u16),
@@ -50,6 +50,12 @@ pub enum Error {
     InvalidBufferSize,
     #[error("Malformed descriptor")]
     MalformedDescriptor,
+    #[error("Invalid get/set instruction access permission {0}")]
+    InvalidInstrAccessPermGetSet(u32),
+    #[error("Invalid get/set instruction data permission {0}")]
+    InvalidDataAccessPermGetSet(u32),
+    #[error("Invalid page count")]
+    InvalidPageCount,
 }
 
 impl From<Error> for crate::FfaError {
@@ -807,6 +813,112 @@ impl TryFrom<SuccessArgs> for SuccessArgsMemOp {
         let [handle_lo, handle_hi, ..] = value.try_get_args32()?;
         Ok(Self {
             handle: [handle_lo, handle_hi].into(),
+        })
+    }
+}
+
+/// Data access permission enum for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_SET` calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum DataAccessPermGetSet {
+    NoAccess = Self::NO_ACCESS << Self::SHIFT,
+    ReadWrite = Self::READ_WRITE << Self::SHIFT,
+    ReadOnly = Self::READ_ONLY << Self::SHIFT,
+}
+
+impl DataAccessPermGetSet {
+    const SHIFT: usize = 0;
+    const MASK: u32 = 0b11;
+    const NO_ACCESS: u32 = 0b00;
+    const READ_WRITE: u32 = 0b01;
+    const READ_ONLY: u32 = 0b11;
+}
+
+impl TryFrom<u32> for DataAccessPermGetSet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match (value >> Self::SHIFT) & Self::MASK {
+            Self::NO_ACCESS => Ok(Self::NoAccess),
+            Self::READ_WRITE => Ok(Self::ReadWrite),
+            Self::READ_ONLY => Ok(Self::ReadOnly),
+            _ => Err(Error::InvalidDataAccessPermGetSet(value)),
+        }
+    }
+}
+
+/// Instructions access permission enum for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_SET` calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum InstructionAccessPermGetSet {
+    Executable = Self::EXECUTABLE << Self::SHIFT,
+    NonExecutable = Self::NON_EXECUTABLE << Self::SHIFT,
+}
+
+impl InstructionAccessPermGetSet {
+    const SHIFT: usize = 2;
+    const MASK: u32 = 0b1;
+    const EXECUTABLE: u32 = 0b0;
+    const NON_EXECUTABLE: u32 = 0b1;
+}
+
+impl TryFrom<u32> for InstructionAccessPermGetSet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match (value >> Self::SHIFT) & Self::MASK {
+            Self::EXECUTABLE => Ok(Self::Executable),
+            Self::NON_EXECUTABLE => Ok(Self::NonExecutable),
+            _ => Err(Error::InvalidInstrAccessPermGetSet(value)),
+        }
+    }
+}
+
+/// Memory permission structure for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_SET` calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MemPermissionsGetSet {
+    pub data_access: DataAccessPermGetSet,
+    pub instr_access: InstructionAccessPermGetSet,
+}
+
+impl TryFrom<u32> for MemPermissionsGetSet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(Self {
+            data_access: value.try_into()?,
+            instr_access: value.try_into()?,
+        })
+    }
+}
+
+impl From<MemPermissionsGetSet> for u32 {
+    fn from(value: MemPermissionsGetSet) -> Self {
+        value.data_access as u32 | value.instr_access as u32
+    }
+}
+
+/// Success argument structure for `FFA_MEM_PERM_GET`.
+pub struct SuccessArgsMemPermGet {
+    pub perm: MemPermissionsGetSet,
+    pub page_cnt: u32,
+}
+
+impl From<SuccessArgsMemPermGet> for SuccessArgs {
+    fn from(value: SuccessArgsMemPermGet) -> Self {
+        assert_ne!(value.page_cnt, 0);
+        SuccessArgs::Args32([value.perm.into(), value.page_cnt - 1, 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsMemPermGet {
+    type Error = crate::Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let [perm, page_cnt, ..] = value.try_get_args32()?;
+        Ok(Self {
+            perm: perm.try_into()?,
+            page_cnt: page_cnt.checked_add(1).ok_or(Error::InvalidPageCount)?,
         })
     }
 }

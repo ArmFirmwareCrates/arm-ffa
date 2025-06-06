@@ -60,6 +60,8 @@ pub enum Error {
     InvalidVersionForFunctionId(Version, FuncId),
     #[error("Invalid character count {0}")]
     InvalidCharacterCount(u8),
+    #[error("Memory management error")]
+    MemoryManagementError(#[from] memory_management::Error),
 }
 
 impl From<Error> for FfaError {
@@ -81,7 +83,8 @@ impl From<Error> for FfaError {
             | Error::InvalidSuccessArgsVariant
             | Error::InvalidNotificationCount
             | Error::InvalidPartitionInfoGetRegsResponse
-            | Error::InvalidCharacterCount(_) => Self::InvalidParameters,
+            | Error::InvalidCharacterCount(_)
+            | Error::MemoryManagementError(_) => Self::InvalidParameters,
         }
     }
 }
@@ -1278,7 +1281,7 @@ pub enum Interface {
     MemPermSet {
         addr: MemAddr,
         page_cnt: u32,
-        mem_perm: u32,
+        mem_perm: memory_management::MemPermissionsGetSet,
     },
     ConsoleLog {
         chars: ConsoleLogChars,
@@ -1800,12 +1803,12 @@ impl Interface {
             FuncId::MemPermSet32 => Self::MemPermSet {
                 addr: MemAddr::Addr32(regs[1] as u32),
                 page_cnt: regs[2] as u32,
-                mem_perm: regs[3] as u32,
+                mem_perm: (regs[3] as u32).try_into()?,
             },
             FuncId::MemPermSet64 => Self::MemPermSet {
                 addr: MemAddr::Addr64(regs[1]),
                 page_cnt: regs[2] as u32,
-                mem_perm: regs[3] as u32,
+                mem_perm: (regs[3] as u32).try_into()?,
             },
             FuncId::ConsoleLog32 => {
                 let char_cnt = regs[1] as u8;
@@ -2272,7 +2275,7 @@ impl Interface {
                     MemAddr::Addr64(addr) => addr,
                 };
                 a[2] = page_cnt.into();
-                a[3] = mem_perm.into();
+                a[3] = u32::from(mem_perm).into();
             }
             Interface::ConsoleLog { chars } => match chars {
                 ConsoleLogChars::Chars32(ConsoleLogChars32 {
