@@ -60,6 +60,8 @@ pub enum Error {
     InvalidVersionForFunctionId(Version, FuncId),
     #[error("Invalid character count {0}")]
     InvalidCharacterCount(u8),
+    #[error("Invalid Mem Perm Get response")]
+    InvalidMemPermGetResponse,
 }
 
 impl From<Error> for FfaError {
@@ -81,7 +83,8 @@ impl From<Error> for FfaError {
             | Error::InvalidSuccessArgsVariant
             | Error::InvalidNotificationCount
             | Error::InvalidPartitionInfoGetRegsResponse
-            | Error::InvalidCharacterCount(_) => Self::InvalidParameters,
+            | Error::InvalidCharacterCount(_)
+            | Error::InvalidMemPermGetResponse => Self::InvalidParameters,
         }
     }
 }
