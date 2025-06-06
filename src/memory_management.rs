@@ -50,6 +50,10 @@ pub enum Error {
     InvalidBufferSize,
     #[error("Malformed descriptor")]
     MalformedDescriptor,
+    #[error("Invalid get/set instruction access permission {0}")]
+    InvalidInstrAccessPermGetSet(u32),
+    #[error("Invalid get/set instruction data permission {0}")]
+    InvalidDataAccessPermGetSet(u32),
 }
 
 impl From<Error> for crate::FfaError {
@@ -807,6 +811,110 @@ impl TryFrom<SuccessArgs> for SuccessArgsMemOp {
         let [handle_lo, handle_hi, ..] = value.try_get_args32()?;
         Ok(Self {
             handle: [handle_lo, handle_hi].into(),
+        })
+    }
+}
+
+// Data access pirmession enum for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_GET` calls.
+#[derive(Debug, Clone, Copy)]
+#[repr(u32)]
+pub enum DataAccessPermGetSet {
+    NoAccess,
+    ReadWrite,
+    ReadOnly,
+}
+
+impl DataAccessPermGetSet {
+    const SHIFT: usize = 0;
+    const MASK: u32 = 0b11;
+    const NO_ACCESS: u32 = 0b00;
+    const READ_WRITE: u32 = 0b01;
+    const READ_ONLY: u32 = 0b11;
+}
+
+impl TryFrom<u32> for DataAccessPermGetSet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match (value >> Self::SHIFT) & Self::MASK {
+            Self::NO_ACCESS => Ok(Self::NoAccess),
+            Self::READ_WRITE => Ok(Self::ReadWrite),
+            Self::READ_ONLY => Ok(Self::ReadOnly),
+            _ => Err(Error::InvalidDataAccessPermGetSet(value)),
+        }
+    }
+}
+
+// Instructions access permission enum for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_GET` calls.
+impl InstructionAccessPermGetSet {
+    const SHIFT: usize = 2;
+    const MASK: u32 = 0b1;
+    const EXECUTABLE: u32 = 0b0;
+    const NON_EXECUTABLE: u32 = 0b1;
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u32)]
+pub enum InstructionAccessPermGetSet {
+    Executable,
+    NonExecutable,
+}
+
+impl TryFrom<u32> for InstructionAccessPermGetSet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match (value >> Self::SHIFT) & Self::MASK {
+            Self::EXECUTABLE => Ok(Self::Executable),
+            Self::NON_EXECUTABLE => Ok(Self::NonExecutable),
+            _ => Err(Error::InvalidInstrAccessPermGetSet(value)),
+        }
+    }
+}
+
+/// Memory permession structure for `FFA_MEM_PERM_GET` and `FFA_MEM_PERM_GET` calls.
+pub struct MemPermissionsSetGet {
+    pub data_access: DataAccessPermGetSet,
+    pub instr_access: InstructionAccessPermGetSet,
+}
+
+impl TryFrom<u32> for MemPermissionsSetGet {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(Self {
+            data_access: value.try_into()?,
+            instr_access: value.try_into()?,
+        })
+    }
+}
+
+impl From<MemPermissionsSetGet> for u32 {
+    fn from(value: MemPermissionsSetGet) -> Self {
+        value.data_access as u32 | value.instr_access as u32
+    }
+}
+
+/// Success argument structure for `FFA_MEM_PERM_GET.
+pub struct SuccessArgsMemPermGet {
+    pub perm: MemPermissionsSetGet,
+}
+
+impl From<SuccessArgsMemPermGet> for SuccessArgs {
+    fn from(value: SuccessArgsMemPermGet) -> Self {
+        SuccessArgs::Args32([value.perm.into(), 0, 0, 0, 0, 0])
+    }
+}
+
+impl TryFrom<SuccessArgs> for SuccessArgsMemPermGet {
+    type Error = crate::Error;
+
+    fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
+        let [perm, ..] = value.try_get_args32()?;
+        Ok(Self {
+            perm: perm
+                .try_into()
+                .map_err(|_| crate::Error::InvalidMemPermGetResponse)?,
         })
     }
 }
