@@ -288,6 +288,7 @@ pub enum SuccessArgs {
     Args32([u32; 6]),
     Args64([u64; 6]),
     Args64_2([u64; 16]),
+    asd,
 }
 
 impl SuccessArgs {
