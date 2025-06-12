@@ -16,6 +16,24 @@
       "message": "Should we use the new type here? This depends on our plans for making the memory management part optional.",
       "revId": "80d9ff9f62d27d02997110e806a4542d00321b22",
       "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "386527ac_361c2479",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1284,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "IMO we can use the new type here. If the memory management will be optional, these interfaces will be optional as well (i.e. everything that\u0027s contained in the FF-A MM supplement doc)",
+      "parentUuid": "3c4317ee_1a20769b",
+      "revId": "80d9ff9f62d27d02997110e806a4542d00321b22",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
     }
   ]
 }

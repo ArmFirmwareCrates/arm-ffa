@@ -1,0 +1,250 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f097961f_cbd7c82d",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 818,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "This should be a doc comment",
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "88bd1264_bb615487",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 818,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 818,
+        "startChar": 59,
+        "endLine": 818,
+        "endChar": 75
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "79e7a801_b53278f7",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 818,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "permission",
+      "range": {
+        "startLine": 818,
+        "startChar": 15,
+        "endLine": 818,
+        "endChar": 25
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "554cdaff_249b117e",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 822,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "Please define the primitive values for each variant, like for `Shareability` and `Cacheability` in this file. Same for `InstructionAccessPermGetSet`",
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "89d3e1ae_d4b350ea",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 848,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "This should be a doc comment",
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "85996ed2_be41e9a1",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 848,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 848,
+        "startChar": 67,
+        "endLine": 848,
+        "endChar": 83
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4a9a7c0_c9732510",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 849,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "This impl block should be below the enum definition",
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2d2d5f13_b9282ec2",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 875,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "permission",
+      "range": {
+        "startLine": 875,
+        "startChar": 11,
+        "endLine": 875,
+        "endChar": 21
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4a848356_a5f037ee",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 875,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 875,
+        "startChar": 60,
+        "endLine": 875,
+        "endChar": 76
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d9973feb_3c23c9b9",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "The enums are postfixed with GetSet, and this structure is SetGet. Either way is fine, but we should keep it consistent",
+      "range": {
+        "startLine": 876,
+        "startChar": 11,
+        "endLine": 876,
+        "endChar": 31
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6fa6081c_13a4c949",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 898,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "` missing at the end",
+      "range": {
+        "startLine": 898,
+        "startChar": 36,
+        "endLine": 898,
+        "endChar": 52
+      },
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "169278fd_fc439778",
+        "filename": "src/memory_management.rs",
+        "patchSetId": 3
+      },
+      "lineNbr": 905,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:55:20Z",
+      "side": 1,
+      "message": "Starting from FF-A v1.3 this can contain the output page count in w3. We should take that into account somehow",
+      "revId": "15ffb1b562f289463c1f7dd22fbab9a2c9c453d8",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
