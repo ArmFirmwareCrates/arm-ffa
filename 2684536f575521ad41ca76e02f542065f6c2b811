@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "845aa2f3_fb13552c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000160
+      },
+      "writtenOn": "2025-06-12T13:58:20Z",
+      "side": 1,
+      "message": "Should we derive these for the new mem perm set/get types as well?",
+      "revId": "2684536f575521ad41ca76e02f542065f6c2b811",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
