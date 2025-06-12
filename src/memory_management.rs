@@ -738,18 +738,78 @@ impl MemTransactionDesc {
     }
 }
 
+/// Iterator of endpoint IDs.
+pub struct EndpointIterator<'a> {
+    buf: &'a [u8],
+    offset: usize,
+    count: usize,
+}
+
+impl<'a> EndpointIterator<'a> {
+    /// Create an iterator of endpoint IDs from a buffer.
+    fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
+        let Some(total_size) = count.checked_mul(size_of::<u16>()) else {
+            return Err(Error::InvalidBufferSize);
+        };
+
+        if buf.len() < total_size {
+            return Err(Error::InvalidBufferSize);
+        }
+
+        Ok(Self { buf, offset, count })
+    }
+}
+
+impl Iterator for EndpointIterator<'_> {
+    type Item = u16;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count > 0 {
+            let offset = self.offset;
+            self.offset += size_of::<Self::Item>();
+            self.count -= 1;
+
+            let endpoint = u16::from_le_bytes([self.buf[offset], self.buf[offset + 1]]);
+            return Some(endpoint);
+        }
+
+        None
+    }
+}
+
 /// Descriptor to relinquish a memory region. Currently only supports specifying a single endpoint.
 #[derive(Debug, Default)]
 pub struct MemRelinquishDesc {
     pub handle: Handle,
     pub flags: u32,
-    pub endpoint: u16,
 }
 
-impl TryFrom<&[u8]> for MemRelinquishDesc {
-    type Error = Error;
+impl MemRelinquishDesc {
+    const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
 
-    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+    /// Serialize memory relinquish descriptor and the endpoint IDs into a buffer.
+    pub fn pack(&self, endpoints: &[u16], buf: &mut [u8]) -> usize {
+        if let Ok(desc_raw) = memory_relinquish_descriptor::mut_from_bytes(buf) {
+            desc_raw.handle = self.handle.0;
+            desc_raw.flags = self.flags;
+            desc_raw.endpoint_count = endpoints.len().try_into().unwrap();
+
+            let endpoint_area = &mut buf[Self::ENDPOINT_ARRAY_OFFSET..];
+
+            for (endpoint, dest) in endpoints
+                .iter()
+                .zip(endpoint_area[..endpoints.len() * 2].chunks_exact_mut(2))
+            {
+                [dest[0], dest[1]] = u16::to_le_bytes(*endpoint);
+            }
+        }
+
+        Self::ENDPOINT_ARRAY_OFFSET + endpoints.len() * 2
+    }
+
+    /// Deserialize a memory relinquish descriptor from a buffer and return an iterator to the
+    /// endpoint IDs.
+    pub fn unpack(buf: &[u8]) -> Result<(MemRelinquishDesc, EndpointIterator), Error> {
         let Some(desc_bytes) = buf.get(0..size_of::<memory_relinquish_descriptor>()) else {
             return Err(Error::InvalidBufferSize);
         };
@@ -769,27 +829,20 @@ impl TryFrom<&[u8]> for MemRelinquishDesc {
             return Err(Error::InvalidBufferSize);
         }
 
-        // If the caller is a PE endpoint Borrower, then Endpoint count must equal 1. Currently only
-        // this case is supported. The array of endpoint IDs contains only a single element.
-        if desc_raw.endpoint_count != 1 {
-            return Err(Error::UnsupportedEndpointCount(desc_raw.endpoint_count));
-        }
+        let iterator = EndpointIterator::new(
+            buf,
+            desc_raw.endpoint_count as usize,
+            Self::ENDPOINT_ARRAY_OFFSET,
+        )?;
 
-        let endpoint = u16::from_le_bytes([
-            buf[Self::ENDPOINT_ARRAY_OFFSET],
-            buf[Self::ENDPOINT_ARRAY_OFFSET + 1],
-        ]);
-
-        Ok(Self {
-            handle: Handle(desc_raw.handle),
-            flags: desc_raw.flags, // TODO: validate
-            endpoint,
-        })
+        Ok((
+            Self {
+                handle: Handle(desc_raw.handle),
+                flags: desc_raw.flags, // TODO: validate
+            },
+            iterator,
+        ))
     }
-}
-
-impl MemRelinquishDesc {
-    const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
 }
 
 /// Success argument structure for `FFA_MEM_DONATE`, `FFA_MEM_LEND` and `FFA_MEM_SHARE`.
