@@ -85,7 +85,7 @@ impl Handle {
 }
 
 /// Cacheability attribute of a memory region. Only valid for normal memory.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Cacheability {
     #[default]
@@ -113,7 +113,7 @@ impl Cacheability {
 }
 
 /// Shareability attribute of a memory region. Only valid for normal memory.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Shareability {
     #[default]
@@ -144,7 +144,7 @@ impl Shareability {
 }
 
 /// Device memory attributes.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
 pub enum DeviceMemAttributes {
     #[default]
@@ -178,7 +178,7 @@ impl DeviceMemAttributes {
 }
 
 /// Memory region type.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum MemType {
     #[default]
     NotSpecified,
@@ -227,7 +227,7 @@ impl MemType {
 }
 
 /// Memory region security attribute.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
 pub enum MemRegionSecurity {
     #[default]
@@ -282,7 +282,7 @@ impl From<MemRegionAttributes> for u16 {
 }
 
 /// Instruction access permissions of a memory region.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum InstuctionAccessPerm {
     #[default]
@@ -313,7 +313,7 @@ impl InstuctionAccessPerm {
 }
 
 /// Data access permissions of a memory region.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum DataAccessPerm {
     #[default]
