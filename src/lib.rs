@@ -62,6 +62,8 @@ pub enum Error {
     InvalidVersionForFunctionId(Version, FuncId),
     #[error("Invalid character count {0}")]
     InvalidCharacterCount(u8),
+    #[error("Invalid memory reclaim flags {0}")]
+    InvalidMemReclaimFlags(u32),
     #[error("Memory management error")]
     MemoryManagementError(#[from] memory_management::Error),
 }
@@ -87,6 +89,7 @@ impl From<Error> for FfaError {
             | Error::InvalidNotificationCount
             | Error::InvalidPartitionInfoGetRegsResponse
             | Error::InvalidCharacterCount(_)
+            | Error::InvalidMemReclaimFlags(_)
             | Error::MemoryManagementError(_) => Self::InvalidParameters,
         }
     }
@@ -1315,7 +1318,7 @@ pub enum Interface {
     MemRelinquish,
     MemReclaim {
         handle: memory_management::Handle,
-        flags: u32,
+        flags: memory_management::MemReclaimFlags,
     },
     MemPermGet {
         addr: MemAddr,
@@ -1825,7 +1828,7 @@ impl Interface {
             FuncId::MemRelinquish => Self::MemRelinquish,
             FuncId::MemReclaim => Self::MemReclaim {
                 handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
-                flags: regs[3] as u32,
+                flags: (regs[3] as u32).try_into()?,
             },
             FuncId::MemPermGet32 => Self::MemPermGet {
                 addr: MemAddr::Addr32(regs[1] as u32),
@@ -2294,7 +2297,7 @@ impl Interface {
                 let handle_regs: [u32; 2] = handle.into();
                 a[1] = handle_regs[0].into();
                 a[2] = handle_regs[1].into();
-                a[3] = flags.into();
+                a[3] = u32::from(flags).into();
             }
             Interface::MemPermGet { addr, page_cnt } => {
                 a[1] = match addr {

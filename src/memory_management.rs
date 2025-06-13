@@ -847,6 +847,47 @@ impl MemRelinquishDesc {
     }
 }
 
+/// Flags field of the FFA_MEM_RECLAIM interface.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct MemReclaimFlags {
+    pub zero_memory: bool,
+    pub time_slicing: bool,
+}
+
+impl MemReclaimFlags {
+    pub const ZERO_MEMORY: u32 = 0b1 << 0;
+    pub const TIME_SLICING: u32 = 0b1 << 1;
+    const MBZ_BITS: u32 = 0xffff_fffc;
+}
+
+impl TryFrom<u32> for MemReclaimFlags {
+    type Error = crate::Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(crate::Error::InvalidMemReclaimFlags(val))
+        } else {
+            Ok(MemReclaimFlags {
+                zero_memory: val & Self::ZERO_MEMORY != 0,
+                time_slicing: val & Self::TIME_SLICING != 0,
+            })
+        }
+    }
+}
+
+impl From<MemReclaimFlags> for u32 {
+    fn from(flags: MemReclaimFlags) -> Self {
+        let mut bits: u32 = 0;
+        if flags.zero_memory {
+            bits |= MemReclaimFlags::ZERO_MEMORY;
+        }
+        if flags.time_slicing {
+            bits |= MemReclaimFlags::TIME_SLICING;
+        }
+        bits
+    }
+}
+
 /// Success argument structure for `FFA_MEM_DONATE`, `FFA_MEM_LEND` and `FFA_MEM_SHARE`.
 pub struct SuccessArgsMemOp {
     pub handle: Handle,
