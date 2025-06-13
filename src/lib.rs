@@ -254,7 +254,7 @@ pub enum FfaError {
 }
 
 /// Endpoint ID and vCPU ID pair, used by `FFA_ERROR`, `FFA_INTERRUPT` and `FFA_RUN` interfaces.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct TargetInfo {
     pub endpoint_id: u16,
     pub vcpu_id: u16,
@@ -1173,7 +1173,7 @@ pub enum Interface {
         error_arg: u32,
     },
     Success {
-        target_info: u32,
+        target_info: TargetInfo,
         args: SuccessArgs,
     },
     Interrupt {
@@ -1491,7 +1491,7 @@ impl Interface {
                 error_arg: regs[3] as u32,
             },
             FuncId::Success32 => Self::Success {
-                target_info: regs[1] as u32,
+                target_info: (regs[1] as u32).into(),
                 args: SuccessArgs::Args32([
                     regs[2] as u32,
                     regs[3] as u32,
@@ -1502,7 +1502,7 @@ impl Interface {
                 ]),
             },
             FuncId::Success64 => Self::Success {
-                target_info: regs[1] as u32,
+                target_info: (regs[1] as u32).into(),
                 args: SuccessArgs::Args64([regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]]),
             },
             FuncId::Interrupt => Self::Interrupt {
@@ -1892,7 +1892,7 @@ impl Interface {
 
         let msg = match fid {
             FuncId::Success64 => Self::Success {
-                target_info: regs[1] as u32,
+                target_info: (regs[1] as u32).into(),
                 args: SuccessArgs::Args64_2(regs[2..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
@@ -1995,7 +1995,7 @@ impl Interface {
                 a[3] = error_arg.into();
             }
             Interface::Success { target_info, args } => {
-                a[1] = target_info.into();
+                a[1] = u32::from(target_info).into();
                 match args {
                     SuccessArgs::Args32(regs) => {
                         a[2] = regs[0].into();
@@ -2358,7 +2358,7 @@ impl Interface {
 
         match *self {
             Interface::Success { target_info, args } => {
-                a[1] = target_info.into();
+                a[1] = u32::from(target_info).into();
                 match args {
                     SuccessArgs::Args64_2(regs) => a[2..18].copy_from_slice(&regs[..16]),
                     _ => panic!("{:#x?} requires 8 registers", args),
@@ -2414,7 +2414,7 @@ impl Interface {
     /// Helper function to create an `FFA_SUCCESS` interface without any arguments.
     pub fn success32_noargs() -> Self {
         Self::Success {
-            target_info: 0,
+            target_info: TargetInfo::default(),
             args: SuccessArgs::Args32([0; 6]),
         }
     }
@@ -2422,10 +2422,7 @@ impl Interface {
     /// Helper function to create an `FFA_ERROR` interface with an error code.
     pub fn error(error_code: FfaError) -> Self {
         Self::Error {
-            target_info: TargetInfo {
-                endpoint_id: 0,
-                vcpu_id: 0,
-            },
+            target_info: TargetInfo::default(),
             error_code,
             error_arg: 0,
         }
