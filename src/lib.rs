@@ -433,7 +433,7 @@ impl From<Feature> for u32 {
 
 /// `FFA_FEATURES` specific success argument structure. This type needs further specialization based
 /// on 'FF-A function ID or Feature ID' field of the preceeding `FFA_FEATURES` request.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, Default, PartialEq, Clone, Copy)]
 pub struct SuccessArgsFeatures {
     pub properties: [u32; 2],
 }
@@ -541,7 +541,7 @@ impl From<PartitionInfoGetFlags> for u32 {
 }
 
 /// Flags field of the FFA_MSG_SEND2 interface.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, Default, PartialEq, Clone, Copy)]
 pub struct MsgSend2Flags {
     pub delay_schedule_receiver: bool,
 }
@@ -697,7 +697,7 @@ impl DirectMsgArgs {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct DirectMsg2Args(pub [u64; 14]);
 
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct MsgWaitFlags {
     pub retain_rx_buffer: bool,
 }

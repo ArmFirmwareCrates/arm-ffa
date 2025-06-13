@@ -848,7 +848,7 @@ impl MemRelinquishDesc {
 }
 
 /// Flags field of the FFA_MEM_RECLAIM interface.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct MemReclaimFlags {
     pub zero_memory: bool,
     pub time_slicing: bool,
@@ -889,6 +889,7 @@ impl From<MemReclaimFlags> for u32 {
 }
 
 /// Success argument structure for `FFA_MEM_DONATE`, `FFA_MEM_LEND` and `FFA_MEM_SHARE`.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct SuccessArgsMemOp {
     pub handle: Handle,
 }
@@ -993,6 +994,7 @@ impl From<MemPermissionsGetSet> for u32 {
 }
 
 /// Success argument structure for `FFA_MEM_PERM_GET`.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct SuccessArgsMemPermGet {
     pub perm: MemPermissionsGetSet,
     pub page_cnt: u32,
