@@ -345,6 +345,11 @@ impl Version {
     pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
         self.0 == callee_version.0 && self.1 <= callee_version.1
     }
+
+    /// Returns true if the specified FF-A version uses 18 registers for calls, false if it uses 8.
+    pub fn needs_18_regs(&self) -> bool {
+        *self >= Version(1, 2)
+    }
 }
 
 impl TryFrom<u32> for Version {
@@ -2430,6 +2435,12 @@ impl Interface {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn version_reg_count() {
+        assert!(!Version(1, 1).needs_18_regs());
+        assert!(Version(1, 2).needs_18_regs())
+    }
 
     #[test]
     fn part_info_get_regs() {
