@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "721b2429_d701ba6e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 21
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-06-13T14:12:51Z",
+      "side": 1,
+      "message": "This has been implemented when we introduced the function specific `SuccessArgs` structures. This patch can be abandoned.",
+      "revId": "7c277ca2a55626f654a8846ed4067d4d4813bbb9",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
