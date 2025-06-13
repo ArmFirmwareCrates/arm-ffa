@@ -36,6 +36,8 @@ pub enum Error {
     UnrecognisedFwkMsg(u32),
     #[error("Invalid FF-A Msg Wait Flag {0}")]
     InvalidMsgWaitFlag(u32),
+    #[error("Invalid FF-A Msg Send2 Flag {0}")]
+    InvalidMsgSend2Flag(u32),
     #[error("Unrecognised VM availability status {0}")]
     UnrecognisedVmAvailabilityStatus(i32),
     #[error("Unrecognised FF-A Warm Boot Type {0}")]
@@ -75,6 +77,7 @@ impl From<Error> for FfaError {
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
             | Error::InvalidMsgWaitFlag(_)
+            | Error::InvalidMsgSend2Flag(_)
             | Error::UnrecognisedVmAvailabilityStatus(_)
             | Error::InvalidNotificationSetFlag(_)
             | Error::InvalidVmId(_)
@@ -529,6 +532,41 @@ impl From<PartitionInfoGetFlags> for u32 {
         let mut bits: u32 = 0;
         if flags.count_only {
             bits |= PartitionInfoGetFlags::RETURN_INFORMATION_TYPE_FLAG;
+        }
+        bits
+    }
+}
+
+/// Flags field of the FFA_MSG_SEND2 interface.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct MsgSend2Flags {
+    pub delay_schedule_receiver: bool,
+}
+
+impl MsgSend2Flags {
+    const DELAY_SCHEDULE_RECEIVER: u32 = 1 << 1;
+    const MBZ_BITS: u32 = 0xffff_fffd;
+}
+
+impl TryFrom<u32> for MsgSend2Flags {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(Error::InvalidMsgSend2Flag(val))
+        } else {
+            Ok(MsgSend2Flags {
+                delay_schedule_receiver: val & Self::DELAY_SCHEDULE_RECEIVER != 0,
+            })
+        }
+    }
+}
+
+impl From<MsgSend2Flags> for u32 {
+    fn from(flags: MsgSend2Flags) -> Self {
+        let mut bits: u32 = 0;
+        if flags.delay_schedule_receiver {
+            bits |= MsgSend2Flags::DELAY_SCHEDULE_RECEIVER;
         }
         bits
     }
@@ -1227,7 +1265,7 @@ pub enum Interface {
     },
     MsgSend2 {
         sender_vm_id: u16,
-        flags: u32,
+        flags: MsgSend2Flags,
     },
     MsgSendDirectReq {
         src_id: u16,
@@ -1579,7 +1617,7 @@ impl Interface {
             },
             FuncId::MsgSend2 => Self::MsgSend2 {
                 sender_vm_id: regs[1] as u16,
-                flags: regs[2] as u32,
+                flags: (regs[2] as u32).try_into()?,
             },
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
@@ -2087,7 +2125,7 @@ impl Interface {
                 flags,
             } => {
                 a[1] = sender_vm_id.into();
-                a[2] = flags.into();
+                a[2] = u32::from(flags).into();
             }
             Interface::MsgSendDirectReq {
                 src_id,
