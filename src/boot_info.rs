@@ -494,7 +494,7 @@ impl<'a> Iterator for BootInfoIterator<'a> {
 
             let name = match flags.name_format {
                 BootInfoNameFormat::String => {
-                    let Ok(name_str) = CStr::from_bytes_with_nul(desc_raw.name.as_bytes()) else {
+                    let Ok(name_str) = CStr::from_bytes_until_nul(desc_raw.name.as_bytes()) else {
                         return Some(Err(Error::InvalidName));
                     };
                     BootInfoName::NullTermString(name_str)
