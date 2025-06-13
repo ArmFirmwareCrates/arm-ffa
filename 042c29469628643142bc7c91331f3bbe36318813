@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2d1aa7c5_5b9731e3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-06-13T12:28:14Z",
+      "side": 1,
+      "message": "Verified manually due to CI issues.",
+      "revId": "042c29469628643142bc7c91331f3bbe36318813",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
