@@ -749,6 +749,16 @@ pub enum MemAddr {
     Addr64(u64),
 }
 
+impl MemAddr {
+    /// Returns the contained address.
+    pub fn address(&self) -> u64 {
+        match self {
+            MemAddr::Addr32(a) => (*a).into(),
+            MemAddr::Addr64(a) => *a,
+        }
+    }
+}
+
 /// Argument for the `FFA_CONSOLE_LOG` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ConsoleLogChars {
