@@ -540,7 +540,7 @@ impl From<PartitionInfoGetFlags> for u32 {
     }
 }
 
-/// Flags field of the FFA_MSG_SEND2 interface.
+/// Flags field of the `FFA_MSG_SEND2` interface.
 #[derive(Debug, Eq, Default, PartialEq, Clone, Copy)]
 pub struct MsgSend2Flags {
     pub delay_schedule_receiver: bool,
@@ -697,6 +697,7 @@ impl DirectMsgArgs {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct DirectMsg2Args(pub [u64; 14]);
 
+/// Flags field of the `FFA_MSG_WAIT` interface.
 #[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct MsgWaitFlags {
     pub retain_rx_buffer: bool,
@@ -805,6 +806,7 @@ pub type ConsoleLogChars32 = LogChars<[u32; 6]>;
 /// Specialized type for 64-bit `FFA_CONSOLE_LOG` payload.
 pub type ConsoleLogChars64 = LogChars<[u64; 16]>;
 
+/// Flags field of the `FFA_NOTIFICATION_BIND` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationBindFlags {
     pub per_vcpu_notification: bool,
@@ -832,6 +834,7 @@ impl From<u32> for NotificationBindFlags {
     }
 }
 
+/// Flags field of the `FFA_NOTIFICATION_SET` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationSetFlags {
     pub delay_schedule_receiver: bool,
@@ -888,6 +891,7 @@ impl TryFrom<u32> for NotificationSetFlags {
     }
 }
 
+/// Flags field of the `FFA_NOTIFICATION_GET` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationGetFlags {
     pub sp_bitmap_id: bool,
@@ -1176,6 +1180,8 @@ impl TryFrom<SuccessArgs> for SuccessArgsNotificationInfoGet64 {
     }
 }
 
+/// Iterator implementation for parsing the (partition ID, vCPU ID list) pairs of the `FFA_SUCCESS`
+/// of an `FFA_NOTIFICATION_INFO_GET` call.
 pub struct NotificationInfoGetIterator<'a> {
     list_index: usize,
     id_index: usize,
