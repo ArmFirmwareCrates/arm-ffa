@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b7d952d7_2bca1204",
+        "filename": "src/lib.rs",
+        "patchSetId": 1
+      },
+      "lineNbr": 1341,
+      "author": {
+        "id": 1000159
+      },
+      "writtenOn": "2025-06-16T14:01:17Z",
+      "side": 1,
+      "message": "Please add a doc comment to this field to indicate that it already has the increased value.",
+      "range": {
+        "startLine": 1341,
+        "startChar": 8,
+        "endLine": 1341,
+        "endChar": 22
+      },
+      "revId": "0ba85d70504cfebf7cf53af16fca7338d49a90b0",
+      "serverId": "8f6f209b-db1a-4cbf-aa44-c8bc30e9bfda"
+    }
+  ]
+}
