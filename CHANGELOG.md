@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Refactor FFA_CONSOLE_LOG handling.
+- Add more types for the various encodings of FFA_SUCCESS.
+- Add support for handling multiple endpoints in the FF-A memory relinquish descriptor.
+- Add new types for flags in various FF-A interfaces.
+- Minor fixes, add more trait derives, missing doc comments, etc.
+
 ## 0.2.1
 
 Minor bugfixes for parse_console_log() function and VersionOut interface handling.
