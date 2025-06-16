@@ -1338,7 +1338,11 @@ pub enum Interface {
     },
     MemPermGet {
         addr: MemAddr,
-        page_cnt: Option<u32>,
+        /// The actual number of pages queried by the call.  It is calculated by adding one to the
+        /// corresponding register's value, i.e. zero in the register means one page. For FF-A v1.2
+        /// and lower the register value MBZ, so the page count is always 1. For higher versions the
+        /// page count can be any nonzero value.
+        page_cnt: u32,
     },
     MemPermSet {
         addr: MemAddr,
@@ -1846,22 +1850,34 @@ impl Interface {
                 handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
                 flags: (regs[3] as u32).try_into()?,
             },
-            FuncId::MemPermGet32 => Self::MemPermGet {
-                addr: MemAddr::Addr32(regs[1] as u32),
-                page_cnt: if version >= Version(1, 3) {
-                    Some(regs[2] as u32)
-                } else {
-                    None
-                },
-            },
-            FuncId::MemPermGet64 => Self::MemPermGet {
-                addr: MemAddr::Addr64(regs[1]),
-                page_cnt: if version >= Version(1, 3) {
-                    Some(regs[2] as u32)
-                } else {
-                    None
-                },
-            },
+            FuncId::MemPermGet32 => {
+                if (version <= Version(1, 2) && regs[2] != 0)
+                    || (regs[2] as u32).checked_add(1).is_none()
+                {
+                    return Err(Error::MemoryManagementError(
+                        memory_management::Error::InvalidPageCount,
+                    ));
+                }
+
+                Self::MemPermGet {
+                    addr: MemAddr::Addr32(regs[1] as u32),
+                    page_cnt: regs[2] as u32 + 1,
+                }
+            }
+            FuncId::MemPermGet64 => {
+                if (version <= Version(1, 2) && regs[2] != 0)
+                    || (regs[2] as u32).checked_add(1).is_none()
+                {
+                    return Err(Error::MemoryManagementError(
+                        memory_management::Error::InvalidPageCount,
+                    ));
+                }
+
+                Self::MemPermGet {
+                    addr: MemAddr::Addr64(regs[1]),
+                    page_cnt: regs[2] as u32 + 1,
+                }
+            }
             FuncId::MemPermSet32 => Self::MemPermSet {
                 addr: MemAddr::Addr32(regs[1] as u32),
                 page_cnt: regs[2] as u32,
@@ -2320,11 +2336,12 @@ impl Interface {
                     MemAddr::Addr32(addr) => addr.into(),
                     MemAddr::Addr64(addr) => addr,
                 };
-                a[2] = if version >= Version(1, 3) {
-                    page_cnt.unwrap().into()
-                } else {
-                    assert!(page_cnt.is_none());
+                a[2] = if version <= Version(1, 2) {
+                    assert_eq!(page_cnt, 1);
                     0
+                } else {
+                    assert_ne!(page_cnt, 0);
+                    (page_cnt - 1).into()
                 }
             }
             Interface::MemPermSet {
@@ -2750,5 +2767,98 @@ mod tests {
         assert_eq!(Some((0x0000, &[4, 6][..])), iter.next());
         assert_eq!(Some((0x0002, &[][..])), iter.next());
         assert_eq!(Some((0x0003, &[1][..])), iter.next());
+    }
+
+    #[test]
+    fn mem_perm_get_pack() {
+        let mut expected_regs = [0u64; 18];
+        let mut out_regs = [0u64; 18];
+
+        expected_regs[0] = u32::from(FuncId::MemPermGet32).into();
+        expected_regs[1] = 0xabcd;
+        expected_regs[2] = 5;
+
+        Interface::MemPermGet {
+            addr: MemAddr::Addr32(0xabcd),
+            page_cnt: 6,
+        }
+        .to_regs(Version(1, 3), &mut out_regs);
+
+        assert_eq!(expected_regs, out_regs);
+
+        expected_regs[2] = 0;
+
+        Interface::MemPermGet {
+            addr: MemAddr::Addr32(0xabcd),
+            page_cnt: 1,
+        }
+        .to_regs(Version(1, 2), &mut out_regs);
+
+        assert_eq!(expected_regs, out_regs);
+    }
+
+    #[test]
+    #[should_panic]
+    fn mem_perm_get_pack_fail1() {
+        let mut out_regs = [0u64; 18];
+        Interface::MemPermGet {
+            addr: MemAddr::Addr32(0xabcd),
+            page_cnt: 2,
+        }
+        .to_regs(Version(1, 2), &mut out_regs);
+    }
+
+    #[test]
+    #[should_panic]
+    fn mem_perm_get_pack_fail2() {
+        let mut out_regs = [0u64; 18];
+        Interface::MemPermGet {
+            addr: MemAddr::Addr32(0xabcd),
+            page_cnt: 0,
+        }
+        .to_regs(Version(1, 3), &mut out_regs);
+    }
+
+    #[test]
+    fn mem_perm_get_unpack() {
+        let mut in_regs = [0u64; 18];
+
+        in_regs[0] = u32::from(FuncId::MemPermGet32).into();
+        in_regs[1] = 0xabcd;
+        in_regs[2] = 5;
+
+        assert_eq!(
+            Interface::from_regs(Version(1, 3), &in_regs),
+            Ok(Interface::MemPermGet {
+                addr: MemAddr::Addr32(0xabcd),
+                page_cnt: 6,
+            }),
+        );
+
+        assert_eq!(
+            Interface::from_regs(Version(1, 2), &in_regs),
+            Err(Error::MemoryManagementError(
+                memory_management::Error::InvalidPageCount
+            )),
+        );
+
+        in_regs[2] = 0;
+
+        assert_eq!(
+            Interface::from_regs(Version(1, 2), &in_regs),
+            Ok(Interface::MemPermGet {
+                addr: MemAddr::Addr32(0xabcd),
+                page_cnt: 1,
+            }),
+        );
+
+        in_regs[2] = u32::MAX.into();
+
+        assert_eq!(
+            Interface::from_regs(Version(1, 3), &in_regs),
+            Err(Error::MemoryManagementError(
+                memory_management::Error::InvalidPageCount
+            )),
+        );
     }
 }
