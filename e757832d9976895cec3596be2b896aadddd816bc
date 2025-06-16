@@ -1,0 +1,7 @@
+Verified+1: ci-bot
+Code-Review+2: Kis Imre <imre.kis@arm.com>
+Submitted-by: Bálint Dobszay <balint.dobszay@arm.com>
+Submitted-at: Mon, 16 Jun 2025 08:51:19 +0000
+Reviewed-on: https://review.trustedfirmware.org/c/rust-spmc/arm-ffa/+/39398
+Project: rust-spmc/arm-ffa
+Branch: refs/heads/main
