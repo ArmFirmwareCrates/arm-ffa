@@ -163,6 +163,10 @@ pub enum FuncId {
     MemPermGet64 = 0xc4000088,
     MemPermSet32 = 0x84000089,
     MemPermSet64 = 0xc4000089,
+    MemOpPause = 0x84000078,
+    MemOpResume = 0x84000079,
+    MemFragRx = 0x8400007a,
+    MemFragTx = 0x8400007b,
 }
 
 impl FuncId {
@@ -204,7 +208,11 @@ impl FuncId {
             | FuncId::MemRetrieveReq64
             | FuncId::MemRetrieveResp
             | FuncId::MemRelinquish
-            | FuncId::MemReclaim => Version(1, 0),
+            | FuncId::MemReclaim
+            | FuncId::MemOpPause
+            | FuncId::MemOpResume
+            | FuncId::MemFragRx
+            | FuncId::MemFragTx => Version(1, 0),
 
             FuncId::RxAcquire
             | FuncId::SpmIdGet
@@ -1349,6 +1357,22 @@ pub enum Interface {
         page_cnt: u32,
         mem_perm: memory_management::MemPermissionsGetSet,
     },
+    MemOpPause {
+        handle: memory_management::Handle,
+    },
+    MemOpResume {
+        handle: memory_management::Handle,
+    },
+    MemFragRx {
+        handle: memory_management::Handle,
+        frag_offset: u32,
+        endpoint_id: u16,
+    },
+    MemFragTx {
+        handle: memory_management::Handle,
+        frag_len: u32,
+        endpoint_id: u16,
+    },
     ConsoleLog {
         chars: ConsoleLogChars,
     },
@@ -1469,6 +1493,10 @@ impl Interface {
                 MemAddr::Addr32(_) => Some(FuncId::MemPermSet32),
                 MemAddr::Addr64(_) => Some(FuncId::MemPermSet64),
             },
+            Interface::MemOpPause { .. } => Some(FuncId::MemOpPause),
+            Interface::MemOpResume { .. } => Some(FuncId::MemOpResume),
+            Interface::MemFragRx { .. } => Some(FuncId::MemFragRx),
+            Interface::MemFragTx { .. } => Some(FuncId::MemFragTx),
             Interface::ConsoleLog { chars, .. } => match chars {
                 ConsoleLogChars::Chars32(_) => Some(FuncId::ConsoleLog32),
                 ConsoleLogChars::Chars64(_) => Some(FuncId::ConsoleLog64),
@@ -1887,6 +1915,22 @@ impl Interface {
                 addr: MemAddr::Addr64(regs[1]),
                 page_cnt: regs[2] as u32,
                 mem_perm: (regs[3] as u32).try_into()?,
+            },
+            FuncId::MemOpPause => Self::MemOpPause {
+                handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
+            },
+            FuncId::MemOpResume => Self::MemOpResume {
+                handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
+            },
+            FuncId::MemFragRx => Self::MemFragRx {
+                handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
+                frag_offset: regs[3] as u32,
+                endpoint_id: (regs[4] >> 16) as u16,
+            },
+            FuncId::MemFragTx => Self::MemFragTx {
+                handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
+                frag_len: regs[3] as u32,
+                endpoint_id: (regs[4] >> 16) as u16,
             },
             FuncId::ConsoleLog32 => {
                 let char_cnt = regs[1] as u8;
@@ -2355,6 +2399,38 @@ impl Interface {
                 };
                 a[2] = page_cnt.into();
                 a[3] = u32::from(mem_perm).into();
+            }
+            Interface::MemOpPause { handle } => {
+                let handle_regs: [u32; 2] = handle.into();
+                a[1] = handle_regs[0].into();
+                a[2] = handle_regs[1].into();
+            }
+            Interface::MemOpResume { handle } => {
+                let handle_regs: [u32; 2] = handle.into();
+                a[1] = handle_regs[0].into();
+                a[2] = handle_regs[1].into();
+            }
+            Interface::MemFragRx {
+                handle,
+                frag_offset,
+                endpoint_id,
+            } => {
+                let handle_regs: [u32; 2] = handle.into();
+                a[1] = handle_regs[0].into();
+                a[2] = handle_regs[1].into();
+                a[3] = frag_offset.into();
+                a[4] = u64::from(endpoint_id) << 16;
+            }
+            Interface::MemFragTx {
+                handle,
+                frag_len,
+                endpoint_id,
+            } => {
+                let handle_regs: [u32; 2] = handle.into();
+                a[1] = handle_regs[0].into();
+                a[2] = handle_regs[1].into();
+                a[3] = frag_len.into();
+                a[4] = u64::from(endpoint_id) << 16;
             }
             Interface::ConsoleLog { chars } => match chars {
                 ConsoleLogChars::Chars32(ConsoleLogChars32 {
