@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2023 Arm Limited and/or its affiliates <open-source-office@arm.com>
+// SPDX-FileCopyrightText: Copyright The arm-ffa Contributors.
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Implementation of the FF-A Boot information protocol.
