@@ -3,7 +3,7 @@
 
 [package]
 name = "arm-ffa"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
     "Balint Dobszay <balint.dobszay@arm.com>",
     "Imre Kis <imre.kis@arm.com>",
@@ -11,7 +11,7 @@ authors = [
 description = "Arm Firmware Framework for Arm A-profile support library"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://git.trustedfirmware.org/rust-spmc/arm-ffa.git"
+repository = "https://git.trustedfirmware.org/arm-firmware-crates/arm-ffa.git"
 keywords = ["arm", "aarch64", "spmc", "ff-a", "firmware"]
 categories = ["embedded", "no-std", "data-structures", "api-bindings"]
 readme = "README.md"

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Move repository under arm-firmware-crates namespace.
+- Adopt Linux Foundation's guidance on copyrights
+- Apply Arm Trademark Guidance
+- Remove security incident process
+
 ## 0.3.0
 
 - Refactor FFA_CONSOLE_LOG handling.
