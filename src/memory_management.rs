@@ -646,8 +646,8 @@ impl MemTransactionDesc {
     ) -> Result<
         (
             MemTransactionDesc,
-            MemAccessPermIterator,
-            Option<ConstituentMemRegionIterator>,
+            MemAccessPermIterator<'_>,
+            Option<ConstituentMemRegionIterator<'_>>,
         ),
         Error,
     > {
@@ -811,7 +811,7 @@ impl MemRelinquishDesc {
 
     /// Deserialize a memory relinquish descriptor from a buffer and return an iterator to the
     /// endpoint IDs.
-    pub fn unpack(buf: &[u8]) -> Result<(MemRelinquishDesc, EndpointIterator), Error> {
+    pub fn unpack(buf: &[u8]) -> Result<(MemRelinquishDesc, EndpointIterator<'_>), Error> {
         let Some(desc_bytes) = buf.get(0..size_of::<memory_relinquish_descriptor>()) else {
             return Err(Error::InvalidBufferSize);
         };
