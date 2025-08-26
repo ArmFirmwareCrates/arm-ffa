@@ -1629,7 +1629,9 @@ impl Interface {
 
                 Self::RxTxMap { addr, page_cnt }
             }
-            FuncId::RxTxUnmap => Self::RxTxUnmap { id: regs[1] as u16 },
+            FuncId::RxTxUnmap => Self::RxTxUnmap {
+                id: (regs[1] >> 16) as u16,
+            },
             FuncId::PartitionInfoGet => {
                 let uuid_words = [
                     regs[1] as u32,
@@ -2173,7 +2175,7 @@ impl Interface {
                 a[3] = page_cnt.into();
             }
             Interface::RxTxUnmap { id } => {
-                a[1] = id.into();
+                a[1] = (u32::from(id) << 16).into();
             }
             Interface::PartitionInfoGet { uuid, flags } => {
                 let bytes = uuid.into_bytes();
