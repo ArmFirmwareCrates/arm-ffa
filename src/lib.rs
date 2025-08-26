@@ -398,6 +398,35 @@ impl Debug for Version {
     }
 }
 
+/// Enum for storing the response of an FFA_VERSION request. It can either contain a `Version` or
+/// a `NOT_SUPPORTED` error code.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum VersionOut {
+    Version(Version),
+    NotSupported,
+}
+
+impl TryFrom<u32> for VersionOut {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == i32::from(FfaError::NotSupported) as u32 {
+            Ok(Self::NotSupported)
+        } else {
+            Ok(Self::Version(Version::try_from(value)?))
+        }
+    }
+}
+
+impl From<VersionOut> for u32 {
+    fn from(value: VersionOut) -> Self {
+        match value {
+            VersionOut::Version(version) => version.into(),
+            VersionOut::NotSupported => i32::from(FfaError::NotSupported) as u32,
+        }
+    }
+}
+
 /// Feature IDs used by the `FFA_FEATURES` interface.
 #[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedFeatureId))]
@@ -1249,7 +1278,7 @@ pub enum Interface {
         input_version: Version,
     },
     VersionOut {
-        output_version: Version,
+        output_version: VersionOut,
     },
     Features {
         feat_id: Feature,
