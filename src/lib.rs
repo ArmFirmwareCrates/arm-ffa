@@ -1698,7 +1698,7 @@ impl Interface {
                 entrypoint: SecondaryEpRegisterAddr::Addr64(regs[1]),
             },
             FuncId::MsgSend2 => Self::MsgSend2 {
-                sender_vm_id: regs[1] as u16,
+                sender_vm_id: (regs[1] >> 16) as u16,
                 flags: (regs[2] as u32).try_into()?,
             },
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
@@ -2234,7 +2234,7 @@ impl Interface {
                 sender_vm_id,
                 flags,
             } => {
-                a[1] = sender_vm_id.into();
+                a[1] = (sender_vm_id as u64) << 16;
                 a[2] = u32::from(flags).into();
             }
             Interface::MsgSendDirectReq {
@@ -2612,7 +2612,18 @@ impl Interface {
 
 #[cfg(test)]
 mod tests {
+    use uuid::uuid;
+
+    use crate::{
+        memory_management::Handle,
+        partition_info::{SuccessArgsPartitionInfoGet, SuccessArgsPartitionInfoGetRegs},
+    };
+
     use super::*;
+
+    const fn error_code(code: i32) -> u64 {
+        (code as u32) as u64
+    }
 
     #[test]
     fn version_reg_count() {
@@ -2966,6 +2977,949 @@ mod tests {
             Err(Error::MemoryManagementError(
                 memory_management::Error::InvalidPageCount
             )),
+        );
+    }
+
+    macro_rules! test_regs_serde {
+        ($value:expr, $bytes:expr) => {
+            let mut regs = [0u64; 18];
+            let mut bytes = [0u64; 18];
+
+            let b: &[u64] = &$bytes;
+            bytes[0..(b.len())].copy_from_slice(&b);
+
+            $value.to_regs(Version(1, 2), &mut regs);
+            assert_eq!(regs, bytes);
+
+            assert_eq!(Interface::from_regs(Version(1, 2), &bytes), Ok($value));
+        };
+    }
+    pub(crate) use test_regs_serde;
+
+    macro_rules! test_args_serde {
+        ($args:expr, $sa:expr) => {
+            assert_eq!($args.try_into(), Ok($sa));
+            assert_eq!($sa.try_into(), Ok($args));
+        };
+        ($args:expr, $sa:expr, $flags:expr) => {
+            assert_eq!($args.try_into(), Ok($sa));
+            assert_eq!(($flags, $sa).try_into(), Ok($args));
+        };
+    }
+    pub(crate) use test_args_serde;
+
+    #[test]
+    fn ffa_error_serde() {
+        test_regs_serde!(
+            Interface::Error {
+                target_info: TargetInfo {
+                    endpoint_id: 0x1234,
+                    vcpu_id: 0xabcd
+                },
+                error_code: FfaError::Aborted,
+                error_arg: 0xdead_beef
+            },
+            [0x84000060, 0x1234_abcd, error_code(-8), 0xdead_beef]
+        );
+    }
+
+    #[test]
+    fn ffa_success_serde() {
+        test_regs_serde!(
+            Interface::Success {
+                target_info: TargetInfo {
+                    endpoint_id: 0x1234,
+                    vcpu_id: 0xabcd
+                },
+                args: SuccessArgs::Args32([1, 2, 3, 4, 5, 6])
+            },
+            [0x84000061, 0x1234_abcd, 1, 2, 3, 4, 5, 6]
+        );
+        test_regs_serde!(
+            Interface::Success {
+                target_info: TargetInfo {
+                    endpoint_id: 0x1234,
+                    vcpu_id: 0xabcd
+                },
+                args: SuccessArgs::Args64_2([
+                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+                ])
+            },
+            [
+                0xC4000061,
+                0x1234_abcd,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_interrupt_serde() {
+        test_regs_serde!(
+            Interface::Interrupt {
+                target_info: TargetInfo {
+                    endpoint_id: 0x1234,
+                    vcpu_id: 0xabcd
+                },
+                interrupt_id: 0xdead_beef
+            },
+            [0x84000062, 0x1234_abcd, 0xdead_beef]
+        );
+    }
+
+    #[test]
+    fn ffa_version_serde() {
+        test_regs_serde!(
+            Interface::Version {
+                input_version: Version(1, 2),
+            },
+            [0x84000063, 0x0001_0002]
+        );
+    }
+
+    #[test]
+    fn ffa_feature_serde() {
+        test_regs_serde!(
+            Interface::Features {
+                feat_id: Feature::FeatureId(FeatureId::NotificationPendingInterrupt),
+                input_properties: 0
+            },
+            [0x84000064, 0x1]
+        );
+        test_regs_serde!(
+            Interface::Features {
+                feat_id: Feature::FeatureId(FeatureId::ScheduleReceiverInterrupt),
+                input_properties: 0
+            },
+            [0x84000064, 0x2]
+        );
+        test_regs_serde!(
+            Interface::Features {
+                feat_id: Feature::FeatureId(FeatureId::ManagedExitInterrupt),
+                input_properties: 0
+            },
+            [0x84000064, 0x3]
+        );
+        test_regs_serde!(
+            Interface::Features {
+                feat_id: Feature::FuncId(FuncId::Features),
+                input_properties: 32
+            },
+            [0x84000064, 0x84000064, 32]
+        );
+        test_args_serde!(
+            SuccessArgs::Args32([8, 8, 0, 0, 0, 0]),
+            SuccessArgsFeatures { properties: [8, 8] }
+        );
+    }
+
+    #[test]
+    fn ffa_rx_acquire_serde() {
+        test_regs_serde!(Interface::RxAcquire { vm_id: 0xbeef }, [0x84000084, 0xbeef]);
+    }
+
+    #[test]
+    fn ffa_rx_release_serde() {
+        test_regs_serde!(Interface::RxRelease { vm_id: 0xbeef }, [0x84000065, 0xbeef]);
+    }
+
+    #[test]
+    fn ffa_rxtx_map_serde() {
+        test_regs_serde!(
+            Interface::RxTxMap {
+                addr: RxTxAddr::Addr32 {
+                    rx: 0xbeef,
+                    tx: 0xfeed_dead
+                },
+                page_cnt: 0x1234_abcd
+            },
+            [0x84000066, 0xfeed_dead, 0xbeef, 0x1234_abcd]
+        );
+        test_regs_serde!(
+            Interface::RxTxMap {
+                addr: RxTxAddr::Addr64 {
+                    rx: 0xdead_1234_beef,
+                    tx: 0xaaaa_bbbb_feed_dead
+                },
+                page_cnt: 0x1234_abcd
+            },
+            [
+                0xC4000066,
+                0xaaaa_bbbb_feed_dead,
+                0xdead_1234_beef,
+                0x1234_abcd
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_rxtx_unmap_serde() {
+        test_regs_serde!(
+            Interface::RxTxUnmap { id: 0x1234 },
+            [0x84000067, 0x1234_0000]
+        );
+    }
+
+    #[test]
+    fn ffa_partition_info_get_serde() {
+        test_regs_serde!(
+            Interface::PartitionInfoGet {
+                uuid: uuid!("12345678-abcd-ef12-3456-7890abcdef00"),
+                flags: PartitionInfoGetFlags { count_only: false }
+            },
+            [0x84000068, 0x78563412, 0x12efcdab, 0x90785634, 0x00efcdab]
+        );
+        test_args_serde!(
+            SuccessArgsPartitionInfoGet {
+                count: 0x1234_5678,
+                size: Some(0xabcd_beef)
+            },
+            SuccessArgs::Args32([0x1234_5678, 0xabcd_beef, 0, 0, 0, 0]),
+            PartitionInfoGetFlags { count_only: false }
+        );
+        test_regs_serde!(
+            Interface::PartitionInfoGet {
+                uuid: uuid!("12345678-abcd-ef12-3456-7890abcdef00"),
+                flags: PartitionInfoGetFlags { count_only: true }
+            },
+            [0x84000068, 0x78563412, 0x12efcdab, 0x90785634, 0x00efcdab, 0b1]
+        );
+        test_args_serde!(
+            SuccessArgsPartitionInfoGet {
+                count: 0x1234_5678,
+                size: None
+            },
+            SuccessArgs::Args32([0x1234_5678, 0, 0, 0, 0, 0]),
+            PartitionInfoGetFlags { count_only: true }
+        );
+    }
+
+    #[test]
+    fn ffa_partition_info_get_regs_serde() {
+        test_regs_serde!(
+            Interface::PartitionInfoGetRegs {
+                uuid: uuid!("12345678-abcd-ef12-3456-7890abcdef00"),
+                start_index: 0xfeed,
+                info_tag: 0xbeef
+            },
+            [
+                0xC400008B,
+                0x12ef_cdab_7856_3412,
+                0x00ef_cdab_9078_5634,
+                0xbeef_feed
+            ]
+        );
+        test_args_serde!(
+            SuccessArgs::Args64_2([
+                0x0018_2222_0002_0004,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ]),
+            SuccessArgsPartitionInfoGetRegs {
+                last_index: 4,
+                current_index: 2,
+                info_tag: 0x2222,
+                descriptor_data: [0; 120]
+            }
+        );
+    }
+
+    #[test]
+    fn ffa_id_get_serde() {
+        test_regs_serde!(Interface::IdGet, [0x84000069]);
+        test_args_serde!(
+            SuccessArgs::Args32([0x1234, 0, 0, 0, 0, 0]),
+            SuccessArgsIdGet { id: 0x1234 }
+        );
+    }
+
+    #[test]
+    fn ffa_spm_id_get_serde() {
+        test_regs_serde!(Interface::SpmIdGet, [0x84000085]);
+        test_args_serde!(
+            SuccessArgs::Args32([0x1234, 0, 0, 0, 0, 0]),
+            SuccessArgsSpmIdGet { id: 0x1234 }
+        );
+    }
+
+    #[test]
+    fn ffa_console_log_serde() {
+        test_regs_serde!(
+            Interface::ConsoleLog {
+                chars: ConsoleLogChars::Chars32(LogChars {
+                    char_cnt: 8,
+                    char_lists: [0x6566_6768, 0x6970_7172, 0, 0, 0, 0,]
+                })
+            },
+            [0x8400008A, 8, 0x6566_6768, 0x6970_7172]
+        );
+        test_regs_serde!(
+            Interface::ConsoleLog {
+                chars: ConsoleLogChars::Chars64(LogChars {
+                    char_cnt: 8,
+                    char_lists: [
+                        0x6566_6768_6970_7172,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                })
+            },
+            [0xC400008A, 8, 0x6566_6768_6970_7172]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_send2_serde() {
+        test_regs_serde!(
+            Interface::MsgSend2 {
+                sender_vm_id: 0xfeed,
+                flags: MsgSend2Flags {
+                    delay_schedule_receiver: true
+                }
+            },
+            [0x84000086, 0xfeed_0000, 0b10]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_send_direct_req_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0x8005,
+                dst_id: 0x8003,
+                args: DirectMsgArgs::Args32([1, 2, 3, 4, 5])
+            },
+            [0x8400006F, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+        );
+
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0x8005,
+                dst_id: 0x8003,
+                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5])
+            },
+            [0xC400006F, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_send_direct_resp_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0x8005,
+                dst_id: 0x8003,
+                args: DirectMsgArgs::Args32([1, 2, 3, 4, 5])
+            },
+            [0x84000070, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+        );
+
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0x8005,
+                dst_id: 0x8003,
+                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5])
+            },
+            [0xC4000070, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+        );
+    }
+
+    #[test]
+    fn ffa_psci_req_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::PowerPsciReq32 {
+                    params: [1, 2, 3, 4]
+                }
+            },
+            [0x8400006F, 0xdead_beef, 0x8000_0000, 1, 2, 3, 4]
+        );
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::PowerPsciReq64 {
+                    params: [0x1234_5678_90ab_cdef, 2, 3, 4]
+                }
+            },
+            [
+                0xC400006F,
+                0xdead_beef,
+                0x8000_0000,
+                0x1234_5678_90ab_cdef,
+                2,
+                3,
+                4
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_power_warm_boot_req_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::PowerWarmBootReq {
+                    boot_type: WarmBootType::ExitFromLowPower
+                }
+            },
+            [0x8400006F, 0xdead_beef, 0x80000001, 0b1]
+        );
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::PowerWarmBootReq {
+                    boot_type: WarmBootType::ExitFromSuspend
+                }
+            },
+            [0x8400006F, 0xdead_beef, 0x80000001, 0b0]
+        );
+    }
+
+    #[test]
+    fn ffa_power_resp_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::PowerPsciResp {
+                    psci_status: 0x1234
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0002, 0x1234]
+        );
+    }
+
+    #[test]
+    fn ffa_vm_creation_req() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmCreated {
+                    handle: Handle(0x1234_5678_90ab_cdef),
+                    vm_id: 0x1234
+                }
+            },
+            [
+                0x8400006F,
+                0xdead_beef,
+                0x8000_0004,
+                0x90ab_cdef,
+                0x1234_5678,
+                0x1234
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_vm_creation_resp() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmCreatedAck {
+                    sp_status: VmAvailabilityStatus::Success
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0005]
+        );
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmCreatedAck {
+                    sp_status: VmAvailabilityStatus::Error(FfaError::Retry)
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0005, error_code(-7)]
+        );
+    }
+
+    #[test]
+    fn ffa_vm_destruction_req() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmDestructed {
+                    handle: Handle(0x1234_5678_90ab_cdef),
+                    vm_id: 0x1234
+                }
+            },
+            [
+                0x8400006F,
+                0xdead_beef,
+                0x8000_0006,
+                0x90ab_cdef,
+                0x1234_5678,
+                0x1234
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_vm_destruction_resp() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmDestructedAck {
+                    sp_status: VmAvailabilityStatus::Success
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0007]
+        );
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VmDestructedAck {
+                    sp_status: VmAvailabilityStatus::Error(FfaError::Denied)
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0007, error_code(-6)]
+        );
+    }
+
+    #[test]
+    fn ffa_version_req() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VersionReq {
+                    version: Version(1, 2)
+                }
+            },
+            [0x8400006F, 0xdead_beef, 0x8000_0008, 0x0001_0002]
+        );
+    }
+
+    #[test]
+    fn ffa_version_resp() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VersionResp {
+                    version: Some(Version(1, 2))
+                }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0009, 0x0001_0002]
+        );
+        test_regs_serde!(
+            Interface::MsgSendDirectResp {
+                src_id: 0xdead,
+                dst_id: 0xbeef,
+                args: DirectMsgArgs::VersionResp { version: None }
+            },
+            [0x84000070, 0xdead_beef, 0x8000_0009, u32::MAX as u64]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_send_direct_req2_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectReq2 {
+                src_id: 0x1234,
+                dst_id: 0xdcba,
+                uuid: uuid!("12345678-abcd-ef12-3456-7890abcdef00"),
+                args: DirectMsg2Args([4; 14])
+            },
+            [
+                0xC400008D,
+                0x1234_dcba,
+                0x12ef_cdab_7856_3412,
+                0x00ef_cdab_9078_5634,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_send_direct_resp2_serde() {
+        test_regs_serde!(
+            Interface::MsgSendDirectResp2 {
+                src_id: 0xaaaa,
+                dst_id: 0xbbbb,
+                args: DirectMsg2Args([8; 14])
+            },
+            [
+                0xC400008E,
+                0xaaaa_bbbb,
+                0,
+                0,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_msg_wait_serde() {
+        test_regs_serde!(
+            Interface::MsgWait {
+                flags: Some(MsgWaitFlags {
+                    retain_rx_buffer: true
+                })
+            },
+            [0x8400006B, 0, 0b1]
+        );
+    }
+
+    #[test]
+    fn ffa_yield_serde() {
+        test_regs_serde!(Interface::Yield, [0x8400006C]);
+    }
+
+    #[test]
+    fn ffa_run_serde() {
+        test_regs_serde!(
+            Interface::Run {
+                target_info: TargetInfo {
+                    endpoint_id: 0xaaaa,
+                    vcpu_id: 0x1234
+                }
+            },
+            [0x8400006D, 0xaaaa_1234]
+        );
+    }
+
+    #[test]
+    fn ffa_normal_world_resume_serde() {
+        test_regs_serde!(Interface::NormalWorldResume, [0x8400007C]);
+    }
+
+    #[test]
+    fn ffa_notification_bitmap_create_serde() {
+        test_regs_serde!(
+            Interface::NotificationBitmapCreate {
+                vm_id: 0xabcd,
+                vcpu_cnt: 16
+            },
+            [0x8400007D, 0xabcd, 16]
+        );
+    }
+
+    #[test]
+    fn ffa_notification_bitmap_destroy_serde() {
+        test_regs_serde!(
+            Interface::NotificationBitmapDestroy { vm_id: 0xabcd },
+            [0x8400007E, 0xabcd]
+        );
+    }
+
+    #[test]
+    fn ffa_notification_bind_serde() {
+        test_regs_serde!(
+            Interface::NotificationBind {
+                sender_id: 0xdead,
+                receiver_id: 0xbeef,
+                flags: NotificationBindFlags {
+                    per_vcpu_notification: true
+                },
+                bitmap: 0x1234_abcd_5678_def0
+            },
+            [0x8400007F, 0xdead_beef, 0b1, 0x5678_def0, 0x1234_abcd]
+        );
+    }
+
+    #[test]
+    fn ffa_notification_unbind_serde() {
+        test_regs_serde!(
+            Interface::NotificationUnbind {
+                sender_id: 0xaaaa,
+                receiver_id: 0xbbbb,
+                bitmap: 0x1234_abcd_5678_def0
+            },
+            [0x84000080, 0xaaaa_bbbb, 0, 0x5678_def0, 0x1234_abcd]
+        );
+    }
+
+    #[test]
+    fn ffa_notification_set_serde() {
+        test_regs_serde!(
+            Interface::NotificationSet {
+                sender_id: 0xaaaa,
+                receiver_id: 0xbbbb,
+                flags: NotificationSetFlags {
+                    delay_schedule_receiver: true,
+                    vcpu_id: Some(7)
+                },
+                bitmap: 0x1234_abcd_5678_def0
+            },
+            [
+                0x84000081,
+                0xaaaa_bbbb,
+                0x0007_0003,
+                0x5678_def0,
+                0x1234_abcd
+            ]
+        );
+        test_regs_serde!(
+            Interface::NotificationSet {
+                sender_id: 0xaaaa,
+                receiver_id: 0xbbbb,
+                flags: NotificationSetFlags {
+                    delay_schedule_receiver: false,
+                    vcpu_id: None
+                },
+                bitmap: 0x1234_abcd_5678_def0
+            },
+            [0x84000081, 0xaaaa_bbbb, 0, 0x5678_def0, 0x1234_abcd]
+        );
+    }
+
+    #[test]
+    fn ffa_notification_get_serde() {
+        test_regs_serde!(
+            Interface::NotificationGet {
+                vcpu_id: 13,
+                endpoint_id: 0x1234,
+                flags: NotificationGetFlags {
+                    sp_bitmap_id: false,
+                    vm_bitmap_id: true,
+                    spm_bitmap_id: true,
+                    hyp_bitmap_id: false
+                }
+            },
+            [0x84000082, 0x000d_1234, 0b0110]
+        );
+        test_regs_serde!(
+            Interface::NotificationGet {
+                vcpu_id: 13,
+                endpoint_id: 0x1234,
+                flags: NotificationGetFlags {
+                    sp_bitmap_id: false,
+                    vm_bitmap_id: false,
+                    spm_bitmap_id: false,
+                    hyp_bitmap_id: false
+                }
+            },
+            [0x84000082, 0x000d_1234, 0b0000]
+        );
+        test_regs_serde!(
+            Interface::NotificationGet {
+                vcpu_id: 13,
+                endpoint_id: 0x1234,
+                flags: NotificationGetFlags {
+                    sp_bitmap_id: true,
+                    vm_bitmap_id: true,
+                    spm_bitmap_id: true,
+                    hyp_bitmap_id: true
+                }
+            },
+            [0x84000082, 0x000d_1234, 0b1111]
+        );
+
+        test_args_serde!(
+            SuccessArgsNotificationGet {
+                sp_notifications: None,
+                vm_notifications: None,
+                spm_notifications: None,
+                hypervisor_notifications: None
+            },
+            SuccessArgs::Args32([0, 0, 0, 0, 0, 0]),
+            NotificationGetFlags {
+                sp_bitmap_id: false,
+                vm_bitmap_id: false,
+                spm_bitmap_id: false,
+                hyp_bitmap_id: false
+            }
+        );
+        test_args_serde!(
+            SuccessArgsNotificationGet {
+                sp_notifications: None,
+                vm_notifications: Some(0xdead_beef_1234_1234),
+                spm_notifications: None,
+                hypervisor_notifications: Some(0x1234_5678)
+            },
+            SuccessArgs::Args32([0, 0, 0x1234_1234, 0xdead_beef, 0, 0x1234_5678]),
+            NotificationGetFlags {
+                sp_bitmap_id: false,
+                vm_bitmap_id: true,
+                spm_bitmap_id: false,
+                hyp_bitmap_id: true
+            }
+        );
+
+        test_args_serde!(
+            SuccessArgsNotificationGet {
+                sp_notifications: Some(0x1000),
+                vm_notifications: Some(0xdead_beef_1234_1234),
+                spm_notifications: Some(0x2000),
+                hypervisor_notifications: Some(0x1234_5678)
+            },
+            SuccessArgs::Args32([0x1000, 0, 0x1234_1234, 0xdead_beef, 0x2000, 0x1234_5678]),
+            NotificationGetFlags {
+                sp_bitmap_id: true,
+                vm_bitmap_id: true,
+                spm_bitmap_id: true,
+                hyp_bitmap_id: true
+            }
+        );
+    }
+
+    #[test]
+    fn ffa_notification_info_get_serde() {
+        test_regs_serde!(
+            Interface::NotificationInfoGet { is_32bit: true },
+            [0x84000083]
+        );
+        test_regs_serde!(
+            Interface::NotificationInfoGet { is_32bit: false },
+            [0xC4000083]
+        );
+        test_args_serde!(
+            SuccessArgs::Args32([0b1001_0001_0000_0001, 0xbbbb_cccc, 0xaaaa, 0, 0, 0]),
+            SuccessArgsNotificationInfoGet {
+                more_pending_notifications: true,
+                list_count: 2,
+                id_counts: [1, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+                ids: [0xcccc, 0xbbbb, 0xaaaa, 0, 0, 0, 0, 0, 0, 0]
+            }
+        );
+    }
+
+    #[test]
+    fn log_chars_empty() {
+        assert!(ConsoleLogChars64 {
+            char_cnt: 0,
+            char_lists: [0; 16]
+        }
+        .empty())
+    }
+
+    #[test]
+    fn log_chars_push() {
+        let mut console = ConsoleLogChars64 {
+            char_cnt: 0,
+            char_lists: [0; 16],
+        };
+
+        assert_eq!(console.push("hello world!".as_bytes()), 12);
+
+        assert_eq!(console.char_cnt, 12);
+        assert_eq!(&console.bytes()[0..12], "hello world!".as_bytes());
+        assert!(!console.empty());
+    }
+
+    #[test]
+    fn log_chars_full() {
+        let mut console = ConsoleLogChars64 {
+            char_cnt: 0,
+            char_lists: [0; 16],
+        };
+
+        assert_eq!(console.push(&[97; 128]), 128);
+
+        assert!(console.full());
+    }
+
+    #[test]
+    fn success_args_invalid_variants() {
+        assert!(SuccessArgs::Args32([0; 6]).try_get_args64_2().is_err());
+        assert!(SuccessArgs::Args64([0; 6]).try_get_args64_2().is_err());
+
+        assert!(SuccessArgs::Args64([0; 6]).try_get_args32().is_err());
+        assert!(SuccessArgs::Args64_2([0; 16]).try_get_args32().is_err());
+
+        assert!(SuccessArgs::Args32([0; 6]).try_get_args64().is_err());
+        assert!(SuccessArgs::Args64_2([0; 16]).try_get_args64().is_err());
+    }
+
+    #[test]
+    fn ffa_el3_intr_handle_serde() {
+        test_regs_serde!(Interface::El3IntrHandle, [0x8400008C]);
+    }
+
+    #[test]
+    fn ffa_secondary_ep_regs32() {
+        test_regs_serde!(
+            Interface::SecondaryEpRegister {
+                entrypoint: SecondaryEpRegisterAddr::Addr32(0xdead_beef)
+            },
+            [0x84000087, 0xdead_beef]
+        );
+    }
+
+    #[test]
+    fn ffa_secondary_ep_regs64() {
+        test_regs_serde!(
+            Interface::SecondaryEpRegister {
+                entrypoint: SecondaryEpRegisterAddr::Addr64(0x1234_5678_90ab_cdef)
+            },
+            [0xC4000087, 0x1234_5678_90ab_cdef]
         );
     }
 }

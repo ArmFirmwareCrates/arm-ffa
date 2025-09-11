@@ -253,7 +253,7 @@ impl MemRegionSecurity {
 }
 
 /// Memory region attributes descriptor.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MemRegionAttributes {
     pub security: MemRegionSecurity,
     pub mem_type: MemType,
@@ -344,7 +344,7 @@ impl DataAccessPerm {
 }
 
 /// Endpoint memory access permissions descriptor.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MemAccessPerm {
     pub endpoint_id: u16,
     pub instr_access: InstuctionAccessPerm,
@@ -425,7 +425,7 @@ impl Iterator for MemAccessPermIterator<'_> {
 }
 
 /// Constituent memory region descriptor.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ConstituentMemRegion {
     pub address: u64,
     pub page_cnt: u32,
@@ -516,7 +516,7 @@ impl Iterator for ConstituentMemRegionIterator<'_> {
 }
 
 /// Flags of a memory management transaction.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MemTransactionFlags(pub u32);
 
 impl MemTransactionFlags {
@@ -535,7 +535,7 @@ impl MemTransactionFlags {
 
 /// Memory transaction decriptor. Used by an Owner/Lender and a Borrower/Receiver in a transaction
 /// to donate, lend or share a memory region.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MemTransactionDesc {
     pub sender_id: u16,
     pub mem_region_attr: MemRegionAttributes,
@@ -780,7 +780,7 @@ impl Iterator for EndpointIterator<'_> {
 }
 
 /// Descriptor to relinquish a memory region. Currently only supports specifying a single endpoint.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct MemRelinquishDesc {
     pub handle: Handle,
     pub flags: u32,
@@ -791,12 +791,10 @@ impl MemRelinquishDesc {
 
     /// Serialize memory relinquish descriptor and the endpoint IDs into a buffer.
     pub fn pack(&self, endpoints: &[u16], buf: &mut [u8]) -> usize {
-        if let Ok(desc_raw) = memory_relinquish_descriptor::mut_from_bytes(buf) {
+        if let Ok((desc_raw, endpoint_area)) = memory_relinquish_descriptor::mut_from_prefix(buf) {
             desc_raw.handle = self.handle.0;
             desc_raw.flags = self.flags;
             desc_raw.endpoint_count = endpoints.len().try_into().unwrap();
-
-            let endpoint_area = &mut buf[Self::ENDPOINT_ARRAY_OFFSET..];
 
             for (endpoint, dest) in endpoints
                 .iter()
@@ -1021,12 +1019,16 @@ impl TryFrom<SuccessArgs> for SuccessArgsMemPermGet {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        tests::{test_args_serde, test_regs_serde},
+        Interface, MemAddr, MemOpBuf, Version,
+    };
+
     use super::*;
 
-    #[allow(dead_code)]
     const MEM_SHARE_FROM_SP1: &[u8] = &[
-        0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56, 0x34,
+        0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
         0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1034,10 +1036,9 @@ mod tests {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
 
-    #[allow(dead_code)]
     const MEM_SHARE_FROM_SP2: &[u8] = &[
-        0x06, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x06, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56, 0x34,
+        0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
         0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x05, 0x80, 0x02, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1045,44 +1046,598 @@ mod tests {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
 
-    #[allow(dead_code)]
-    const MEM_RETRIEVE_REQ_FROM_SP1: &[u8] = &[
-        0x05, 0x80, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
-        0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    ];
+    macro_rules! test_memory_desc_packing {
+        ($buf:expr, $desc:expr, $perms:expr, $constituents:expr) => {
+            let (transaction_desc, access_desc, constituents) =
+                MemTransactionDesc::unpack($buf).unwrap();
 
-    #[allow(dead_code)]
-    const MEM_RETRIEVE_REQ_FROM_SP2: &[u8] = &[
-        0x06, 0x80, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
-        0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x05, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    ];
+            assert_eq!(transaction_desc, $desc);
 
-    #[allow(dead_code)]
-    const MEM_SHARE_FROM_NWD: &[u8] = &[
-        0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
-        0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x22, 0x80, 0x08, 0x00, 0x00, 0x00, 0x02, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ];
+            let perms: Vec<_> = access_desc.map(|e| e.unwrap()).collect();
+            assert_eq!(perms, &$perms);
+
+            let constituents = constituents.unwrap();
+            let constituents: Vec<_> = constituents.map(|c| c.unwrap()).collect();
+            assert_eq!(constituents, &$constituents);
+
+            // Non-null initial value to ensure that empty/reserved fields are set.
+            let mut buf = [0x88; 4096];
+            let size = $desc.pack(&$constituents, &$perms, &mut buf);
+
+            assert_eq!(size, $buf.len());
+            assert_eq!(&buf[0..size], $buf);
+        };
+    }
 
     #[test]
-    fn mem_share() {
-        let (transaction_desc, access_desc, constituents) =
-            MemTransactionDesc::unpack(MEM_SHARE_FROM_SP1).unwrap();
+    fn mem_share_pack() {
+        test_memory_desc_packing!(
+            MEM_SHARE_FROM_SP1,
+            MemTransactionDesc {
+                sender_id: 0x8005,
+                mem_region_attr: MemRegionAttributes {
+                    security: MemRegionSecurity::Secure,
+                    mem_type: MemType::Normal {
+                        cacheability: Cacheability::WriteBack,
+                        shareability: Shareability::Inner,
+                    },
+                },
+                flags: MemTransactionFlags(0),
+                handle: Handle(0x1234_5678_90ab_cdef),
+                tag: 0xdead_0000_beef,
+            },
+            [MemAccessPerm {
+                endpoint_id: 0x8003,
+                instr_access: InstuctionAccessPerm::NotSpecified,
+                data_access: DataAccessPerm::ReadWrite,
+                flags: 0x0,
+            }],
+            [ConstituentMemRegion {
+                address: 0x4010f000,
+                page_cnt: 0x1,
+            }]
+        );
 
-        println!("transaction desc: {:#x?}", transaction_desc);
-        access_desc.for_each(|d| println!("endpont desc: {d:#x?}"));
-        constituents
-            .unwrap()
-            .for_each(|c| println!("constituent desc: {c:#x?}"));
+        test_memory_desc_packing!(
+            MEM_SHARE_FROM_SP2,
+            MemTransactionDesc {
+                sender_id: 0x8006,
+                mem_region_attr: MemRegionAttributes {
+                    security: MemRegionSecurity::Secure,
+                    mem_type: MemType::Normal {
+                        cacheability: Cacheability::WriteBack,
+                        shareability: Shareability::Inner,
+                    },
+                },
+                flags: MemTransactionFlags(0),
+                handle: Handle(0x1234_5678_90ab_cdef),
+                tag: 0xdead_0000_beef,
+            },
+            [MemAccessPerm {
+                endpoint_id: 0x8005,
+                instr_access: InstuctionAccessPerm::NotSpecified,
+                data_access: DataAccessPerm::ReadWrite,
+                flags: 0x0,
+            }],
+            [ConstituentMemRegion {
+                address: 0x40074000,
+                page_cnt: 0x1,
+            }]
+        );
+    }
+
+    #[test]
+    fn mem_tx_unpack_err1() {
+        assert!(MemTransactionDesc::unpack(&[0; 3]).is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err2() {
+        // Indicates one endpoint but the array is empty.
+        assert!(MemTransactionDesc::unpack(&[
+            0x06, 0x80, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x20,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err3() {
+        // Indicates three endpoints but the array is two.
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x04, 0x80, 0x02, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err4() {
+        // Endpoint array offset out of bounds.
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err5() {
+        // Invalid enpoint desc size
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err6() {
+        // Empty endpoint array
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err7() {
+        // Overflow when computing size.
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x10, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err8() {
+        // Composite entry offset out of range.
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x80, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x10, 0x40,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_err9() {
+        // Incomplete composite entry.
+        assert!(MemTransactionDesc::unpack(&[
+            0x05, 0x80, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef, 0xcd, 0xab, 0x90, 0x78, 0x56,
+            0x34, 0x12, 0xef, 0xbe, 0x00, 0x00, 0xad, 0xde, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x02, 0x00, 0x40, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_relinquish_pack() {
+        let expected_desc = MemRelinquishDesc {
+            handle: Handle(0x1234_5678),
+            flags: MemTransactionFlags::ZERO_MEMORY | MemTransactionFlags::TIME_SLICING,
+        };
+        let expected_endpoints: &[u16] = &[0x13, 0x1234, 0xbeef];
+
+        let expected_buf: &[u8] = &[
+            0x78, 0x56, 0x34, 0x12, 0, 0, 0, 0, 0b11, 0, 0, 0, 0x3, 0, 0, 0, 0x13, 0, 0x34, 0x12,
+            0xef, 0xbe,
+        ];
+
+        let (actual_desc, actual_endpoints) = MemRelinquishDesc::unpack(expected_buf).unwrap();
+        assert_eq!(actual_desc, expected_desc);
+        assert_eq!(actual_endpoints.collect::<Vec<_>>(), expected_endpoints);
+
+        let mut buf = [0; 128];
+        let size = expected_desc.pack(expected_endpoints, &mut buf);
+
+        println!("{buf:x?}");
+
+        assert_eq!(size, expected_buf.len());
+        assert_eq!(&buf[0..size], expected_buf);
+    }
+
+    #[test]
+    fn mem_relinquish_unpack_err1() {
+        assert!(MemRelinquishDesc::unpack(&[0; 4]).is_err());
+    }
+
+    #[test]
+    fn mem_relinquish_unpack_err2() {
+        // Indicates one entrypoint but array is empty.
+        assert!(MemRelinquishDesc::unpack(&[
+            0x78, 0x56, 0x34, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0,
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn mem_relinquish_unpack_err3() {
+        // Indicates two entrypoint but array is one.
+        assert!(MemRelinquishDesc::unpack(&[
+            0x78, 0x56, 0x34, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0,
+            0xab, 0xcd,
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn ffa_mem_donate_serde() {
+        test_regs_serde!(
+            Interface::MemDonate {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: None
+            },
+            [0x84000071, 0x1234_5678, 0xabcd]
+        );
+        test_regs_serde!(
+            Interface::MemDonate {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: Some(MemOpBuf::Buf32 {
+                    addr: 0xdead_beef,
+                    page_cnt: 0x1000
+                })
+            },
+            [0x84000071, 0x1234_5678, 0xabcd, 0xdead_beef, 0x1000]
+        );
+        test_regs_serde!(
+            Interface::MemDonate {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: Some(MemOpBuf::Buf64 {
+                    addr: 0xdead_0000_beef,
+                    page_cnt: 0x1000
+                })
+            },
+            [0xC4000071, 0x1234_5678, 0xabcd, 0xdead_0000_beef, 0x1000]
+        );
+        test_args_serde!(
+            SuccessArgs::Args32([0x5678_def0, 0x1234_abcd, 0, 0, 0, 0]),
+            SuccessArgsMemOp {
+                handle: Handle(0x1234_abcd_5678_def0)
+            }
+        );
+    }
+
+    #[test]
+    fn ffa_mem_lend_serde() {
+        test_regs_serde!(
+            Interface::MemLend {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: None
+            },
+            [0x84000072, 0x1234_0000, 0x10_0000]
+        );
+        test_regs_serde!(
+            Interface::MemLend {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: Some(MemOpBuf::Buf32 {
+                    addr: 0xffff_ffff,
+                    page_cnt: 0x1000
+                })
+            },
+            [0x84000072, 0x1234_0000, 0x10_0000, 0xffff_ffff, 0x1000]
+        );
+        test_regs_serde!(
+            Interface::MemLend {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: Some(MemOpBuf::Buf64 {
+                    addr: 0xffff_1234_ffff,
+                    page_cnt: 0x1000
+                })
+            },
+            [0xC4000072, 0x1234_0000, 0x10_0000, 0xffff_1234_ffff, 0x1000]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_share_serde() {
+        test_regs_serde!(
+            Interface::MemShare {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: None
+            },
+            [0x84000073, 0x1234_0000, 0x10_0000]
+        );
+        test_regs_serde!(
+            Interface::MemShare {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: Some(MemOpBuf::Buf32 {
+                    addr: 0x1234_5678,
+                    page_cnt: 0x1000
+                })
+            },
+            [0x84000073, 0x1234_0000, 0x10_0000, 0x1234_5678, 0x1000]
+        );
+        test_regs_serde!(
+            Interface::MemShare {
+                total_len: 0x1234_0000,
+                frag_len: 0x10_0000,
+                buf: Some(MemOpBuf::Buf64 {
+                    addr: 0xffff_1234_ffff,
+                    page_cnt: 0x1000
+                })
+            },
+            [0xC4000073, 0x1234_0000, 0x10_0000, 0xffff_1234_ffff, 0x1000]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_retrieve_req_serde() {
+        test_regs_serde!(
+            Interface::MemRetrieveReq {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: None
+            },
+            [0x84000074, 0x1234_5678, 0xabcd]
+        );
+        test_regs_serde!(
+            Interface::MemRetrieveReq {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: Some(MemOpBuf::Buf32 {
+                    addr: 0xdead_beef,
+                    page_cnt: 0x1000
+                })
+            },
+            [0x84000074, 0x1234_5678, 0xabcd, 0xdead_beef, 0x1000]
+        );
+        test_regs_serde!(
+            Interface::MemRetrieveReq {
+                total_len: 0x1234_5678,
+                frag_len: 0xabcd,
+                buf: Some(MemOpBuf::Buf64 {
+                    addr: 0xdead_0000_beef,
+                    page_cnt: 0x1000
+                })
+            },
+            [0xC4000074, 0x1234_5678, 0xabcd, 0xdead_0000_beef, 0x1000]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_retrieve_resp_serde() {
+        test_regs_serde!(
+            Interface::MemRetrieveResp {
+                total_len: 0xaaaa_bbbb,
+                frag_len: 0xaaaa_0000
+            },
+            [0x84000075, 0xaaaa_bbbb, 0xaaaa_0000]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_relinquish_serde() {
+        test_regs_serde!(Interface::MemRelinquish, [0x84000076]);
+    }
+
+    #[test]
+    fn ffa_mem_reclaim_serde() {
+        test_regs_serde!(
+            Interface::MemReclaim {
+                handle: Handle(0x1234_ffff_1234),
+                flags: MemReclaimFlags {
+                    zero_memory: true,
+                    time_slicing: true
+                }
+            },
+            [0x84000077, 0xffff_1234, 0x1234, 0b11]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_perm_get_serde() {
+        test_regs_serde!(
+            Interface::MemPermGet {
+                addr: MemAddr::Addr32(0xdead_beef),
+                page_cnt: 1
+            },
+            [0x84000088, 0xdead_beef]
+        );
+        test_args_serde!(
+            SuccessArgs::Args32([0b001, 0x1234_abcd, 0, 0, 0, 0]),
+            SuccessArgsMemPermGet {
+                perm: MemPermissionsGetSet {
+                    data_access: DataAccessPermGetSet::ReadWrite,
+                    instr_access: InstructionAccessPermGetSet::Executable
+                },
+                page_cnt: 0x1234_abce
+            }
+        );
+    }
+
+    #[test]
+    fn ffa_mem_perm_set_serde() {
+        test_regs_serde!(
+            Interface::MemPermSet {
+                addr: MemAddr::Addr64(0x1234_5678_abcd),
+                page_cnt: 0x1000,
+                mem_perm: MemPermissionsGetSet {
+                    data_access: DataAccessPermGetSet::ReadOnly,
+                    instr_access: InstructionAccessPermGetSet::NonExecutable
+                }
+            },
+            [0xC4000089, 0x1234_5678_abcd, 0x1000, 0b111]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_op_pause_serde() {
+        test_regs_serde!(
+            Interface::MemOpPause {
+                handle: Handle(0xaaaa_bbbb_cccc_dddd)
+            },
+            [0x84000078, 0xcccc_dddd, 0xaaaa_bbbb]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_op_resume_serde() {
+        test_regs_serde!(
+            Interface::MemOpResume {
+                handle: Handle(0xaaaa_bbbb_cccc_dddd)
+            },
+            [0x84000079, 0xcccc_dddd, 0xaaaa_bbbb]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_frag_rx_serde() {
+        test_regs_serde!(
+            Interface::MemFragRx {
+                handle: Handle(0xaaaa_bbbb_cccc_dddd),
+                frag_offset: 0x1234_5678,
+                endpoint_id: 0xabcd
+            },
+            [
+                0x8400007A,
+                0xcccc_dddd,
+                0xaaaa_bbbb,
+                0x1234_5678,
+                0xabcd_0000
+            ]
+        );
+    }
+
+    #[test]
+    fn ffa_mem_frag_tx_serde() {
+        test_regs_serde!(
+            Interface::MemFragTx {
+                handle: Handle(0xaaaa_bbbb_cccc_dddd),
+                frag_len: 0x1234_5678,
+                endpoint_id: 0xabcd
+            },
+            [
+                0x8400007B,
+                0xcccc_dddd,
+                0xaaaa_bbbb,
+                0x1234_5678,
+                0xabcd_0000
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_cacheability() {
+        assert_eq!(
+            Cacheability::try_from(0b0100),
+            Ok(Cacheability::NonCacheable)
+        );
+        assert_eq!(Cacheability::try_from(0b1100), Ok(Cacheability::WriteBack));
+
+        assert!(Cacheability::try_from(0b1000).is_err());
+        assert!(Cacheability::try_from(0b0000).is_err());
+    }
+
+    #[test]
+    fn parse_shareability() {
+        assert_eq!(Shareability::try_from(0b00), Ok(Shareability::NonShareable));
+        assert_eq!(Shareability::try_from(0b10), Ok(Shareability::Outer));
+        assert_eq!(Shareability::try_from(0b11), Ok(Shareability::Inner));
+
+        assert!(Shareability::try_from(0b01).is_err());
+    }
+
+    #[test]
+    fn parse_device_memory_attributes() {
+        assert_eq!(
+            DeviceMemAttributes::try_from(0b0000),
+            Ok(DeviceMemAttributes::DevnGnRnE)
+        );
+        assert_eq!(
+            DeviceMemAttributes::try_from(0b0100),
+            Ok(DeviceMemAttributes::DevnGnRE)
+        );
+        assert_eq!(
+            DeviceMemAttributes::try_from(0b1000),
+            Ok(DeviceMemAttributes::DevnGRE)
+        );
+        assert_eq!(
+            DeviceMemAttributes::try_from(0b1100),
+            Ok(DeviceMemAttributes::DevGRE)
+        );
+    }
+
+    #[test]
+    fn parse_memory_type() {
+        assert_eq!(MemType::try_from(0x00), Ok(MemType::NotSpecified));
+        assert_eq!(
+            MemType::try_from(0x10),
+            Ok(MemType::Device(DeviceMemAttributes::DevnGnRnE))
+        );
+        assert_eq!(
+            MemType::try_from(0x2f),
+            Ok(MemType::Normal {
+                cacheability: Cacheability::WriteBack,
+                shareability: Shareability::Inner
+            })
+        );
+
+        assert!(MemType::try_from(0x30).is_err());
+    }
+
+    #[test]
+    fn parse_instruction_access_permissions() {
+        assert_eq!(
+            InstuctionAccessPerm::try_from(0b0000),
+            Ok(InstuctionAccessPerm::NotSpecified)
+        );
+        assert_eq!(
+            InstuctionAccessPerm::try_from(0b0100),
+            Ok(InstuctionAccessPerm::NotExecutable)
+        );
+        assert_eq!(
+            InstuctionAccessPerm::try_from(0b1000),
+            Ok(InstuctionAccessPerm::Executable)
+        );
+
+        assert!(InstuctionAccessPerm::try_from(0b1100).is_err());
+    }
+
+    #[test]
+    fn parse_data_access_permissions() {
+        assert_eq!(
+            DataAccessPerm::try_from(0b00),
+            Ok(DataAccessPerm::NotSpecified)
+        );
+        assert_eq!(DataAccessPerm::try_from(0b01), Ok(DataAccessPerm::ReadOnly));
+        assert_eq!(
+            DataAccessPerm::try_from(0b10),
+            Ok(DataAccessPerm::ReadWrite)
+        );
+
+        assert!(DataAccessPerm::try_from(0b11).is_err());
     }
 }
