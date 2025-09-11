@@ -3,7 +3,7 @@
 
 #![allow(non_camel_case_types)]
 
-use zerocopy_derive::*;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
 
 /// Table 5.8: Boot information descriptor
 #[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]

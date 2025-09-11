@@ -4,7 +4,7 @@
 #![allow(non_camel_case_types)]
 
 use crate::ffa_v1_1;
-use zerocopy_derive::*;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
 
 /// Table 6.1: Partition information descriptor
 /// Table 6.2: Partition properties descriptor

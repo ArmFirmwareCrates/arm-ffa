@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- Implement `FFA_MEM_FRAG_RX`, `FFA_MEM_FRAG_TX`, `FFA_MEM_OP_PAUSE` and `FFA_MEM_OP_RESUME`
+  interface handling.
+- Add support for returning `NOT_SUPPORTED` as a response to `FFA_VERSION`.
+- Fix `FFA_RXTX_UNMAP` and `FFA_MSG_SEND2` argument handling.
+- Fix UUID handling in boot info descriptor.
+- Cover crate with unit tests.
+
 ## 0.3.1
 
 - Move repository under arm-firmware-crates namespace.
