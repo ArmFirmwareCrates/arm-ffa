@@ -267,6 +267,73 @@ pub enum FfaError {
     NoData = -9,
 }
 
+/// Collection of helper functions for converting between `Uuid` type and its representations in
+/// various FF-A containers.
+pub struct UuidHelper;
+
+impl UuidHelper {
+    /// Converts byte array into `Uuid`.
+    /// Example:
+    /// * Input `[a1, a2, a3, a4, b1, b2, c1, c2, d1, d2, d3, d4, d5, d6, d7, d8]`
+    /// * Output: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    pub fn from_bytes(value: [u8; 16]) -> Uuid {
+        Uuid::from_bytes(value)
+    }
+
+    /// Converts `Uuid` into byte array.
+    /// Example:
+    /// * Input: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    /// * Output `[a1, a2, a3, a4, b1, b2, c1, c2, d1, d2, d3, d4, d5, d6, d7, d8]`
+    pub fn to_bytes(value: Uuid) -> [u8; 16] {
+        value.into_bytes()
+    }
+
+    /// Creates `Uuid` from four 32 bit register values.
+    /// Example:
+    /// * Input `[a4a3a2a1, c2c1b2b1, d4d3d2d1, d8d7d6d5]`
+    /// * Output: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    pub fn from_u32_regs(value: [u32; 4]) -> Uuid {
+        Uuid::from_u128_le(
+            value[0] as u128
+                | (value[1] as u128) << 32
+                | (value[2] as u128) << 64
+                | (value[3] as u128) << 96,
+        )
+    }
+
+    /// Converts `Uuid` into four 32 bit register values.
+    /// Example:
+    /// * Input: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    /// * Output `[a4a3a2a1, c2c1b2b1, d4d3d2d1, d8d7d6d5]`
+    pub fn to_u32_regs(value: Uuid) -> [u32; 4] {
+        let bits = value.to_u128_le();
+
+        [
+            bits as u32,
+            (bits >> 32) as u32,
+            (bits >> 64) as u32,
+            (bits >> 96) as u32,
+        ]
+    }
+
+    /// Creates `Uuid` from a 64 bit register pair.
+    /// Example:
+    /// * Input `[c2c1b2b1a4a3a2a1, d8d7d6d5d4d3d2d1]`
+    /// * Output: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    pub fn from_u64_regs(value: [u64; 2]) -> Uuid {
+        Uuid::from_u128_le(value[0] as u128 | (value[1] as u128) << 64)
+    }
+
+    /// Converts `Uuid` into a 64 bit register pair.
+    /// Example:
+    /// * Input `[c2c1b2b1a4a3a2a1, d8d7d6d5d4d3d2d1]`
+    /// * Output: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
+    pub fn to_u64_regs(value: Uuid) -> [u64; 2] {
+        let bits = value.to_u128_le();
+        [bits as u64, (bits >> 64) as u64]
+    }
+}
+
 /// Endpoint ID and vCPU ID pair, used by `FFA_ERROR`, `FFA_INTERRUPT` and `FFA_RUN` interfaces.
 #[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct TargetInfo {
@@ -1668,12 +1735,9 @@ impl Interface {
                     regs[3] as u32,
                     regs[4] as u32,
                 ];
-                let mut bytes: [u8; 16] = [0; 16];
-                for (i, b) in uuid_words.iter().flat_map(|w| w.to_le_bytes()).enumerate() {
-                    bytes[i] = b;
-                }
+
                 Self::PartitionInfoGet {
-                    uuid: Uuid::from_bytes(bytes),
+                    uuid: UuidHelper::from_u32_regs(uuid_words),
                     flags: PartitionInfoGetFlags::try_from(regs[5] as u32)?,
                 }
             }
@@ -2046,7 +2110,7 @@ impl Interface {
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
-                uuid: Uuid::from_u64_pair(regs[2].swap_bytes(), regs[3].swap_bytes()),
+                uuid: UuidHelper::from_u64_regs([regs[2], regs[3]]),
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectResp64_2 => Self::MsgSendDirectResp2 {
@@ -2072,7 +2136,7 @@ impl Interface {
                 let start_index = (regs[3] & 0xffff) as u16;
                 let info_tag = ((regs[3] >> 16) & 0xffff) as u16;
                 Self::PartitionInfoGetRegs {
-                    uuid: Uuid::from_u64_pair(regs[1].swap_bytes(), regs[2].swap_bytes()),
+                    uuid: UuidHelper::from_u64_regs([regs[1], regs[2]]),
                     start_index,
                     info_tag: if start_index == 0 && info_tag != 0 {
                         return Err(Error::InvalidInformationTag(info_tag));
@@ -2207,11 +2271,12 @@ impl Interface {
                 a[1] = (u32::from(id) << 16).into();
             }
             Interface::PartitionInfoGet { uuid, flags } => {
-                let bytes = uuid.into_bytes();
-                a[1] = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]).into();
-                a[2] = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]).into();
-                a[3] = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]).into();
-                a[4] = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]).into();
+                let uuid_words: [u32; 4] = UuidHelper::to_u32_regs(uuid);
+
+                a[1] = uuid_words[0].into();
+                a[2] = uuid_words[1].into();
+                a[3] = uuid_words[2].into();
+                a[4] = uuid_words[3].into();
                 a[5] = u32::from(flags).into();
             }
             Interface::MsgWait { flags } => {
@@ -2552,8 +2617,7 @@ impl Interface {
                 args,
             } => {
                 a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                let (uuid_msb, uuid_lsb) = uuid.as_u64_pair();
-                (a[2], a[3]) = (uuid_msb.swap_bytes(), uuid_lsb.swap_bytes());
+                [a[2], a[3]] = UuidHelper::to_u64_regs(uuid);
                 a[4..18].copy_from_slice(&args.0[..14]);
             }
             Interface::MsgSendDirectResp2 {
@@ -2584,8 +2648,7 @@ impl Interface {
                 if start_index == 0 && info_tag != 0 {
                     panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
                 }
-                let (uuid_msb, uuid_lsb) = uuid.as_u64_pair();
-                (a[1], a[2]) = (uuid_msb.swap_bytes(), uuid_lsb.swap_bytes());
+                [a[1], a[2]] = UuidHelper::to_u64_regs(uuid);
                 a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
             _ => panic!("{:#x?} requires 8 registers", self),
@@ -2629,6 +2692,27 @@ mod tests {
     fn version_reg_count() {
         assert!(!Version(1, 1).needs_18_regs());
         assert!(Version(1, 2).needs_18_regs())
+    }
+
+    #[test]
+    fn ffa_uuid_helpers() {
+        const UUID: Uuid = uuid!("a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8");
+
+        let bytes = [
+            0xa1, 0xa2, 0xa3, 0xa4, 0xb1, 0xb2, 0xc1, 0xc2, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6,
+            0xd7, 0xd8,
+        ];
+
+        assert_eq!(UUID, UuidHelper::from_bytes(bytes));
+        assert_eq!(bytes, UuidHelper::to_bytes(UUID));
+
+        let words = [0xa4a3a2a1, 0xc2c1b2b1, 0xd4d3d2d1, 0xd8d7d6d5];
+        assert_eq!(UUID, UuidHelper::from_u32_regs(words));
+        assert_eq!(words, UuidHelper::to_u32_regs(UUID));
+
+        let pair = [0xc2c1b2b1a4a3a2a1, 0xd8d7d6d5d4d3d2d1];
+        assert_eq!(UUID, UuidHelper::from_u64_regs(pair));
+        assert_eq!(pair, UuidHelper::to_u64_regs(UUID));
     }
 
     #[test]

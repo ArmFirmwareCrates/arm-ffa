@@ -10,7 +10,9 @@ use zerocopy::{transmute, FromBytes, IntoBytes};
 // This module uses FF-A v1.1 types by default.
 // FF-A v1.2 specified some previously reserved bits in the partition info properties field, but
 // this doesn't change the descriptor format.
-use crate::{ffa_v1_1::partition_info_descriptor, PartitionInfoGetFlags, SuccessArgs, Version};
+use crate::{
+    ffa_v1_1::partition_info_descriptor, PartitionInfoGetFlags, SuccessArgs, UuidHelper, Version,
+};
 
 // Sanity check to catch if the descriptor format is changed.
 const _: () = assert!(
@@ -252,7 +254,9 @@ impl PartitionInfo {
             ) = create_partition_properties(version, desc.partition_id_type, desc.props);
 
             if fill_uuid {
-                desc_raw.uuid.copy_from_slice(desc.uuid.as_bytes());
+                desc_raw
+                    .uuid
+                    .copy_from_slice(&UuidHelper::to_bytes(desc.uuid));
             }
 
             desc_raw.write_to_prefix(&mut buf[offset..]).unwrap();
@@ -417,7 +421,7 @@ impl Iterator for PartitionInfoIterator<'_> {
                 desc_raw.exec_ctx_count_or_proxy_id,
             );
 
-            let uuid = Uuid::from_bytes(desc_raw.uuid);
+            let uuid = UuidHelper::from_bytes(desc_raw.uuid);
 
             let desc = PartitionInfo {
                 uuid,

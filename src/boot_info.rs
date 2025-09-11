@@ -25,7 +25,7 @@ use zerocopy::{FromBytes, IntoBytes};
 // FF-A v1.2 didn't introduce any changes to the data stuctures used by this module.
 use crate::{
     ffa_v1_1::{boot_info_descriptor, boot_info_header},
-    Version,
+    UuidHelper, Version,
 };
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
@@ -310,7 +310,7 @@ impl BootInfo<'_> {
                     BootInfoNameFormat::String
                 }
                 BootInfoName::Uuid(uuid) => {
-                    desc_raw.name.copy_from_slice(&uuid.to_bytes_le());
+                    desc_raw.name.copy_from_slice(&UuidHelper::to_bytes(*uuid));
                     BootInfoNameFormat::Uuid
                 }
             };
@@ -499,7 +499,9 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                     };
                     BootInfoName::NullTermString(name_str)
                 }
-                BootInfoNameFormat::Uuid => BootInfoName::Uuid(Uuid::from_bytes_le(desc_raw.name)),
+                BootInfoNameFormat::Uuid => {
+                    BootInfoName::Uuid(UuidHelper::from_bytes(desc_raw.name))
+                }
             };
 
             let contents = match flags.contents_format {
@@ -600,7 +602,7 @@ mod tests {
             0x33, 0x00, 0xab, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00, 0xef, 0xbe, 0xad, 0xde,
             0x00, 0x00, 0x00, 0x00, // End of Desc1
             // Desc2
-            0x78, 0x56, 0x34, 0x12, 0xcd, 0xab, 0xba, 0xdc, 0x12, 0x34, 0x12, 0x34, 0x56, 0x78,
+            0x12, 0x34, 0x56, 0x78, 0xab, 0xcd, 0xdc, 0xba, 0x12, 0x34, 0x12, 0x34, 0x56, 0x78,
             0x9a, 0xbc, 0x00, 0x00, 0x01, 0x00, 0xff, 0x00, 0x00, 0x00, fa[0], fa[1], fa[2], fa[3],
             fa[4], fa[5], fa[6], fa[7], // End of Desc2
         ];
