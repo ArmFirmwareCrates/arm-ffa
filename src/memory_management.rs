@@ -662,6 +662,10 @@ impl MemTransactionDesc {
             return Err(Error::MalformedDescriptor);
         };
 
+        if transaction_desc_raw.endpoint_mem_access_desc_array_offset % 16 != 0 {
+            return Err(Error::MalformedDescriptor);
+        }
+
         if size_of::<endpoint_memory_access_descriptor>()
             != transaction_desc_raw.endpoint_mem_access_desc_size as usize
         {
@@ -1233,6 +1237,18 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
         ])
         .is_err());
+    }
+
+    #[test]
+    fn mem_tx_unpack_unaligned_offset() {
+        // Unaligned endpoint array offset.
+        let mut buf = MEM_SHARE_FROM_SP1.to_vec();
+        // The offset is at byte 32, change it to a non-16-multiple.
+        buf[32] = 0x31;
+        assert!(matches!(
+            MemTransactionDesc::unpack(&buf),
+            Err(Error::MalformedDescriptor)
+        ));
     }
 
     #[test]
