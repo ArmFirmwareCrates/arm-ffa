@@ -1639,10 +1639,10 @@ impl Interface {
 
         let reg_cnt = regs.len();
 
-        let msg = match reg_cnt {
+        match reg_cnt {
             8 => {
                 assert!(version <= Version(1, 1));
-                Interface::unpack_regs8(version, regs.try_into().unwrap())?
+                Interface::unpack_regs8(version, regs.try_into().unwrap())
             }
             18 => {
                 assert!(version >= Version(1, 2));
@@ -1652,18 +1652,16 @@ impl Interface {
                     | FuncId::MsgSendDirectReq64_2
                     | FuncId::MsgSendDirectResp64_2
                     | FuncId::PartitionInfoGetRegs => {
-                        Interface::unpack_regs18(version, regs.try_into().unwrap())?
+                        Interface::unpack_regs18(version, regs.try_into().unwrap())
                     }
-                    _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap())?,
+                    _ => Interface::unpack_regs8(version, regs[..8].try_into().unwrap()),
                 }
             }
             _ => panic!(
                 "Invalid number of registers ({}) for FF-A version {}",
                 reg_cnt, version
             ),
-        };
-
-        Ok(msg)
+        }
     }
 
     fn unpack_regs8(version: Version, regs: &[u64; 8]) -> Result<Self, Error> {
