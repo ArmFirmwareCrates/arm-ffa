@@ -24,7 +24,7 @@ pub const FFA_PAGE_SIZE_4K: usize = 4096;
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
 pub enum Error {
     #[error("Unrecognised FF-A function ID {0}")]
     UnrecognisedFunctionId(u32),

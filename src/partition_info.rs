@@ -22,7 +22,7 @@ const _: () = assert!(
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
 pub enum Error {
     #[error("Invalid buffer size")]
     InvalidBufferSize,

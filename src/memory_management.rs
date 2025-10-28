@@ -26,7 +26,7 @@ use zerocopy::{FromBytes, IntoBytes};
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
 pub enum Error {
     #[error("Invalid cacheability attribute {0}")]
     InvalidCacheability(u16),
