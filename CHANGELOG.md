@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Improve performance of `Interface::{from_regs, to_regs}`.
+- Derive common traits for error types.
+- Check the 16 byte alignment of the 'Endpoint memory access descriptor array offset'.
+
 ## 0.4.0
 
 - Implement `FFA_MEM_FRAG_RX`, `FFA_MEM_FRAG_TX`, `FFA_MEM_OP_PAUSE` and `FFA_MEM_OP_RESUME`
