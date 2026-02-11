@@ -714,8 +714,14 @@ impl From<VmAvailabilityStatus> for i32 {
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedWarmBootType))]
 #[repr(u32)]
 pub enum WarmBootType {
-    ExitFromSuspend = 0,
+    ExitFromSuspendToRam = 0,
+    // Corresponds to an exit from any low power state shallower than suspend to RAM.
     ExitFromLowPower = 1,
+}
+
+impl WarmBootType {
+    #[deprecated = "Ambiguous name. Please use ExitFromSuspendToRam."]
+    pub const ExitFromSuspend: WarmBootType = WarmBootType::ExitFromSuspendToRam;
 }
 
 /// Arguments for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
@@ -3498,7 +3504,7 @@ mod tests {
                 src_id: 0xdead,
                 dst_id: 0xbeef,
                 args: DirectMsgArgs::PowerWarmBootReq {
-                    boot_type: WarmBootType::ExitFromSuspend
+                    boot_type: WarmBootType::ExitFromSuspendToRam
                 }
             },
             [0x8400006F, 0xdead_beef, 0x80000001, 0b0]
