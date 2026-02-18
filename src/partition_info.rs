@@ -5,13 +5,13 @@
 
 use thiserror::Error;
 use uuid::Uuid;
-use zerocopy::{transmute, FromBytes, IntoBytes};
+use zerocopy::{FromBytes, IntoBytes, transmute};
 
 // This module uses FF-A v1.1 types by default.
 // FF-A v1.2 specified some previously reserved bits in the partition info properties field, but
 // this doesn't change the descriptor format.
 use crate::{
-    ffa_v1_1::partition_info_descriptor, PartitionInfoGetFlags, SuccessArgs, UuidHelper, Version,
+    PartitionInfoGetFlags, SuccessArgs, UuidHelper, Version, ffa_v1_1::partition_info_descriptor,
 };
 
 // Sanity check to catch if the descriptor format is changed.

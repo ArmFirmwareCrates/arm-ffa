@@ -10,7 +10,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use thiserror::Error;
 pub use uuid::Uuid;
-use zerocopy::{transmute, FromBytes, Immutable, IntoBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute};
 
 pub mod boot_info;
 mod ffa_v1_1;
@@ -3291,7 +3291,9 @@ mod tests {
                 uuid: uuid!("12345678-abcd-ef12-3456-7890abcdef00"),
                 flags: PartitionInfoGetFlags { count_only: true }
             },
-            [0x84000068, 0x78563412, 0x12efcdab, 0x90785634, 0x00efcdab, 0b1]
+            [
+                0x84000068, 0x78563412, 0x12efcdab, 0x90785634, 0x00efcdab, 0b1
+            ]
         );
         test_args_serde!(
             SuccessArgsPartitionInfoGet {
@@ -3947,11 +3949,13 @@ mod tests {
 
     #[test]
     fn log_chars_empty() {
-        assert!(ConsoleLogChars64 {
-            char_cnt: 0,
-            char_lists: [0; 16]
-        }
-        .empty())
+        assert!(
+            ConsoleLogChars64 {
+                char_cnt: 0,
+                char_lists: [0; 16]
+            }
+            .empty()
+        )
     }
 
     #[test]
