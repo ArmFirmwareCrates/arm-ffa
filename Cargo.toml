@@ -20,5 +20,5 @@ rust-version = "1.82"
 [dependencies]
 num_enum = { version = "0.7.4", default-features = false }
 thiserror = { version = "2.0.16", default-features = false }
-uuid = { version = "1.18.1", default-features = false }
+uuid = { version = "1.21.0", default-features = false }
 zerocopy = { version = "0.8.27", features = ["derive"] }
