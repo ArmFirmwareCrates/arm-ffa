@@ -720,6 +720,7 @@ pub enum WarmBootType {
 }
 
 impl WarmBootType {
+    #[allow(non_upper_case_globals)]
     #[deprecated = "Ambiguous name. Please use ExitFromSuspendToRam."]
     pub const ExitFromSuspend: WarmBootType = WarmBootType::ExitFromSuspendToRam;
 }
