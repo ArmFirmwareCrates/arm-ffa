@@ -13,12 +13,12 @@
 //!   access to that memory region have relinquished their access.
 
 use crate::{
-    SuccessArgs,
     ffa_v1_1::{
         composite_memory_region_descriptor, constituent_memory_region_descriptor,
         endpoint_memory_access_descriptor, memory_access_permission_descriptor,
         memory_relinquish_descriptor, memory_transaction_descriptor,
     },
+    interface_args::SuccessArgs,
 };
 use core::mem::size_of;
 use thiserror::Error;
@@ -56,6 +56,8 @@ pub enum Error {
     InvalidDataAccessPermGetSet(u32),
     #[error("Invalid page count")]
     InvalidPageCount,
+    #[error("Invalid memory reclaim flags {0}")]
+    InvalidMemReclaimFlags(u32),
 }
 
 impl From<Error> for crate::FfaError {
@@ -863,11 +865,11 @@ impl MemReclaimFlags {
 }
 
 impl TryFrom<u32> for MemReclaimFlags {
-    type Error = crate::Error;
+    type Error = Error;
 
     fn try_from(val: u32) -> Result<Self, Self::Error> {
         if (val & Self::MBZ_BITS) != 0 {
-            Err(crate::Error::InvalidMemReclaimFlags(val))
+            Err(Error::InvalidMemReclaimFlags(val))
         } else {
             Ok(MemReclaimFlags {
                 zero_memory: val & Self::ZERO_MEMORY != 0,
@@ -1024,7 +1026,9 @@ impl TryFrom<SuccessArgs> for SuccessArgsMemPermGet {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Interface, MemAddr, MemOpBuf, Version,
+        Version,
+        interface::Interface,
+        interface_args::{MemAddr, MemOpBuf},
         tests::{test_args_serde, test_regs_serde},
     };
 
