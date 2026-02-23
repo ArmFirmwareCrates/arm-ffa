@@ -2160,8 +2160,6 @@ impl Interface {
 
     /// Create register contents for an interface.
     pub fn to_regs(&self, version: Version, regs: &mut [u64]) {
-        assert!(self.minimum_ffa_version() <= version);
-
         let reg_cnt = regs.len();
 
         match reg_cnt {
@@ -2199,6 +2197,8 @@ impl Interface {
         a.fill(0);
 
         if let Some(function_id) = self.function_id() {
+            assert!(function_id.minimum_ffa_version() <= version);
+
             a[0] = function_id as u64;
         }
 
@@ -2607,6 +2607,8 @@ impl Interface {
         a.fill(0);
 
         if let Some(function_id) = self.function_id() {
+            assert!(function_id.minimum_ffa_version() <= version);
+
             a[0] = function_id as u64;
         }
 
