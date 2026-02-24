@@ -368,7 +368,7 @@ impl From<SuccessArgsPartitionInfoGetRegs> for SuccessArgs {
             transmute!(value.descriptor_data);
         args[1..].copy_from_slice(&descriptor_regs);
 
-        Self::Args64_2(args)
+        Self::Args64(args)
     }
 }
 
@@ -376,7 +376,7 @@ impl TryFrom<SuccessArgs> for SuccessArgsPartitionInfoGetRegs {
     type Error = crate::Error;
 
     fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
-        let args = value.try_get_args64_2()?;
+        let args = value.try_get_args64()?;
 
         // Validate size
         let size = (args[0] >> Self::SIZE_SHIFT) as u16;

@@ -46,35 +46,21 @@ impl From<TargetInfo> for u32 {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum SuccessArgs {
     Args32([u32; 6]),
-    Args64([u64; 6]),
-    Args64_2([u64; 16]),
+    Args64([u64; 16]),
 }
 
 impl SuccessArgs {
     pub(crate) fn try_get_args32(self) -> Result<[u32; 6], Error> {
         match self {
             SuccessArgs::Args32(args) => Ok(args),
-            SuccessArgs::Args64(_) | SuccessArgs::Args64_2(_) => {
-                Err(Error::InvalidSuccessArgsVariant)
-            }
+            SuccessArgs::Args64(_) => Err(Error::InvalidSuccessArgsVariant),
         }
     }
 
-    pub(crate) fn try_get_args64(self) -> Result<[u64; 6], Error> {
+    pub(crate) fn try_get_args64(self) -> Result<[u64; 16], Error> {
         match self {
             SuccessArgs::Args64(args) => Ok(args),
-            SuccessArgs::Args32(_) | SuccessArgs::Args64_2(_) => {
-                Err(Error::InvalidSuccessArgsVariant)
-            }
-        }
-    }
-
-    pub(crate) fn try_get_args64_2(self) -> Result<[u64; 16], Error> {
-        match self {
-            SuccessArgs::Args64_2(args) => Ok(args),
-            SuccessArgs::Args32(_) | SuccessArgs::Args64(_) => {
-                Err(Error::InvalidSuccessArgsVariant)
-            }
+            SuccessArgs::Args32(_) => Err(Error::InvalidSuccessArgsVariant),
         }
     }
 }
@@ -527,13 +513,7 @@ mod tests {
 
     #[test]
     fn success_args_invalid_variants() {
-        assert!(SuccessArgs::Args32([0; 6]).try_get_args64_2().is_err());
-        assert!(SuccessArgs::Args64([0; 6]).try_get_args64_2().is_err());
-
-        assert!(SuccessArgs::Args64([0; 6]).try_get_args32().is_err());
-        assert!(SuccessArgs::Args64_2([0; 16]).try_get_args32().is_err());
-
         assert!(SuccessArgs::Args32([0; 6]).try_get_args64().is_err());
-        assert!(SuccessArgs::Args64_2([0; 16]).try_get_args64().is_err());
+        assert!(SuccessArgs::Args64([0; 16]).try_get_args32().is_err());
     }
 }

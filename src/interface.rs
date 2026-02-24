@@ -208,7 +208,7 @@ impl Interface {
             Interface::Error { .. } => Some(FuncId::Error),
             Interface::Success { args, .. } => match args {
                 SuccessArgs::Args32(..) => Some(FuncId::Success32),
-                SuccessArgs::Args64(..) | SuccessArgs::Args64_2(..) => Some(FuncId::Success64),
+                SuccessArgs::Args64(..) => Some(FuncId::Success64),
             },
             Interface::Interrupt { .. } => Some(FuncId::Interrupt),
             Interface::Version { .. } => Some(FuncId::Version),
@@ -378,10 +378,6 @@ impl Interface {
                     regs[6] as u32,
                     regs[7] as u32,
                 ]),
-            },
-            FuncId::Success64 => Self::Success {
-                target_info: (regs[1] as u32).into(),
-                args: SuccessArgs::Args64([regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]]),
             },
             FuncId::Interrupt => Self::Interrupt {
                 target_info: (regs[1] as u32).into(),
@@ -813,7 +809,7 @@ impl Interface {
         let msg = match func_id {
             FuncId::Success64 => Self::Success {
                 target_info: (regs[1] as u32).into(),
-                args: SuccessArgs::Args64_2(regs[2..18].try_into().unwrap()),
+                args: SuccessArgs::Args64(regs[2..18].try_into().unwrap()),
             },
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
                 src_id: (regs[1] >> 16) as u16,
@@ -861,7 +857,7 @@ impl Interface {
                     ..
                 }
                 | Interface::Success {
-                    args: SuccessArgs::Args64_2(_),
+                    args: SuccessArgs::Args64(_),
                     ..
                 }
                 | Interface::MsgSendDirectReq2 { .. }
@@ -905,14 +901,6 @@ impl Interface {
                         a[5] = regs[3].into();
                         a[6] = regs[4].into();
                         a[7] = regs[5].into();
-                    }
-                    SuccessArgs::Args64(regs) => {
-                        a[2] = regs[0];
-                        a[3] = regs[1];
-                        a[4] = regs[2];
-                        a[5] = regs[3];
-                        a[6] = regs[4];
-                        a[7] = regs[5];
                     }
                     _ => panic!("{:#x?} requires 18 registers", args),
                 }
@@ -1308,7 +1296,7 @@ impl Interface {
             Interface::Success { target_info, args } => {
                 a[1] = u32::from(target_info).into();
                 match args {
-                    SuccessArgs::Args64_2(regs) => a[2..18].copy_from_slice(&regs[..16]),
+                    SuccessArgs::Args64(regs) => a[2..18].copy_from_slice(&regs[..16]),
                     _ => panic!("{:#x?} requires 8 registers", args),
                 }
             }
@@ -1705,9 +1693,7 @@ mod tests {
                     endpoint_id: 0x1234,
                     vcpu_id: 0xabcd
                 },
-                args: SuccessArgs::Args64_2([
-                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
-                ])
+                args: SuccessArgs::Args64([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
             },
             [
                 0xC4000061,
@@ -1891,7 +1877,7 @@ mod tests {
             ]
         );
         test_args_serde!(
-            SuccessArgs::Args64_2([
+            SuccessArgs::Args64([
                 0x0018_2222_0002_0004,
                 0,
                 0,

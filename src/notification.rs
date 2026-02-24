@@ -372,7 +372,7 @@ impl From<SuccessArgsNotificationInfoGet64> for SuccessArgs {
         let (flags, ids) = value.pack();
         let id_regs: [u64; 5] = transmute!(ids);
 
-        let mut args = [0; 6];
+        let mut args = [0; 16];
         args[0] = flags;
         args[1..6].copy_from_slice(&id_regs);
 
@@ -473,6 +473,16 @@ mod tests {
                 0x0000_0000_0001_0003,
                 0x0000_0000_0000_0000,
                 0x0000_0000_0000_0000,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
             ]),
             args
         );
