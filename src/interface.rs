@@ -70,7 +70,7 @@ pub enum Interface {
     IdGet,
     SpmIdGet,
     MsgWait {
-        flags: Option<MsgWaitFlags>,
+        flags: MsgWaitFlags,
     },
     Yield,
     Run {
@@ -449,11 +449,7 @@ impl Interface {
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
             FuncId::MsgWait => Self::MsgWait {
-                flags: if version >= Version(1, 2) {
-                    Some(MsgWaitFlags::try_from(regs[2] as u32)?)
-                } else {
-                    None
-                },
+                flags: MsgWaitFlags::try_from(regs[2] as u32)?,
             },
             FuncId::Yield => Self::Yield,
             FuncId::Run => Self::Run {
@@ -978,11 +974,7 @@ impl Interface {
                 a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
             Interface::MsgWait { flags } => {
-                if version >= Version(1, 2) {
-                    if let Some(flags) = flags {
-                        a[2] = u32::from(flags).into();
-                    }
-                }
+                a[2] = u32::from(flags).into();
             }
             Interface::IdGet | Interface::SpmIdGet | Interface::Yield => {}
             Interface::Run { target_info } => {
@@ -2332,9 +2324,9 @@ mod tests {
     fn ffa_msg_wait_serde() {
         test_regs_serde!(
             Interface::MsgWait {
-                flags: Some(MsgWaitFlags {
+                flags: MsgWaitFlags {
                     retain_rx_buffer: true
-                })
+                }
             },
             [0x8400006B, 0, 0b1]
         );
