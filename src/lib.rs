@@ -57,6 +57,8 @@ pub enum Error {
     InvalidVersionForFunctionId(Version, FuncId),
     #[error("Invalid character count {0}")]
     InvalidCharacterCount(u8),
+    #[error("Invalid register count: expected {expected}, actual {actual}")]
+    InvalidRegisterCount { expected: usize, actual: usize },
     #[error("Memory management error")]
     MemoryManagementError(#[from] memory_management::Error),
     #[error("Notification error")]
@@ -70,7 +72,8 @@ impl From<Error> for FfaError {
         match value {
             Error::UnrecognisedFunctionId(_)
             | Error::UnrecognisedFeatureId(_)
-            | Error::InvalidVersionForFunctionId(..) => Self::NotSupported,
+            | Error::InvalidVersionForFunctionId(..)
+            | Error::InvalidRegisterCount { .. } => Self::NotSupported,
             Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
@@ -341,11 +344,6 @@ impl Version {
     pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
         self.0 == callee_version.0 && self.1 <= callee_version.1
     }
-
-    /// Returns true if the specified FF-A version uses 18 registers for calls, false if it uses 8.
-    pub fn needs_18_regs(&self) -> bool {
-        *self >= Version(1, 2)
-    }
 }
 
 impl TryFrom<u32> for Version {
@@ -441,12 +439,6 @@ pub(crate) mod tests {
         };
     }
     pub(crate) use test_args_serde;
-
-    #[test]
-    fn version_reg_count() {
-        assert!(!Version(1, 1).needs_18_regs());
-        assert!(Version(1, 2).needs_18_regs())
-    }
 
     #[test]
     fn ffa_uuid_helpers() {

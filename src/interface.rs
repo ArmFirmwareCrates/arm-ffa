@@ -324,37 +324,40 @@ impl Interface {
     }
 
     /// Parse interface from register contents. The caller must ensure that the `regs` argument has
-    /// the correct length: 8 registers for FF-A v1.1 and lower, 18 registers for v1.2 and higher.
+    /// the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls.
     pub fn from_regs(version: Version, regs: &[u64]) -> Result<Self, Error> {
         let func_id = FuncId::try_from(regs[0] as u32)?;
+
         if version < func_id.minimum_ffa_version() {
             return Err(Error::InvalidVersionForFunctionId(version, func_id));
         }
 
-        let reg_cnt = regs.len();
+        if func_id.is_32bit() {
+            if regs.len() < 8 {
+                return Err(Error::InvalidRegisterCount {
+                    expected: 8,
+                    actual: regs.len(),
+                });
+            }
 
-        match reg_cnt {
-            8 => {
-                assert!(version <= Version(1, 1));
-                Interface::unpack_regs8(version, func_id, regs.try_into().unwrap())
+            Interface::unpack_regs8(version, func_id, regs.first_chunk().unwrap())
+        } else {
+            if regs.len() < 18 {
+                return Err(Error::InvalidRegisterCount {
+                    expected: 18,
+                    actual: regs.len(),
+                });
             }
-            18 => {
-                assert!(version >= Version(1, 2));
-                match func_id {
-                    FuncId::ConsoleLog64
-                    | FuncId::Success64
-                    | FuncId::MsgSendDirectReq64_2
-                    | FuncId::MsgSendDirectResp64_2
-                    | FuncId::PartitionInfoGetRegs => {
-                        Interface::unpack_regs18(version, func_id, regs.try_into().unwrap())
-                    }
-                    _ => Interface::unpack_regs8(version, func_id, regs[..8].try_into().unwrap()),
+
+            match func_id {
+                FuncId::ConsoleLog64
+                | FuncId::Success64
+                | FuncId::MsgSendDirectReq64_2
+                | FuncId::MsgSendDirectResp64_2 => {
+                    Interface::unpack_regs18(version, func_id, regs.first_chunk().unwrap())
                 }
+                _ => Interface::unpack_regs8(version, func_id, regs.first_chunk().unwrap()),
             }
-            _ => panic!(
-                "Invalid number of registers ({}) for FF-A version {}",
-                reg_cnt, version
-            ),
         }
     }
 
@@ -429,6 +432,20 @@ impl Interface {
                 Self::PartitionInfoGet {
                     uuid: UuidHelper::from_u32_regs(uuid_words),
                     flags: PartitionInfoGetFlags::try_from(regs[5] as u32)?,
+                }
+            }
+            FuncId::PartitionInfoGetRegs => {
+                // Bits[15:0]: Start index
+                let start_index = (regs[3] & 0xffff) as u16;
+                let info_tag = ((regs[3] >> 16) & 0xffff) as u16;
+                Self::PartitionInfoGetRegs {
+                    uuid: UuidHelper::from_u64_regs([regs[1], regs[2]]),
+                    start_index,
+                    info_tag: if start_index == 0 && info_tag != 0 {
+                        return Err(Error::InvalidInformationTag(info_tag));
+                    } else {
+                        info_tag
+                    },
                 }
             }
             FuncId::IdGet => Self::IdGet,
@@ -822,20 +839,7 @@ impl Interface {
                     }),
                 }
             }
-            FuncId::PartitionInfoGetRegs => {
-                // Bits[15:0]: Start index
-                let start_index = (regs[3] & 0xffff) as u16;
-                let info_tag = ((regs[3] >> 16) & 0xffff) as u16;
-                Self::PartitionInfoGetRegs {
-                    uuid: UuidHelper::from_u64_regs([regs[1], regs[2]]),
-                    start_index,
-                    info_tag: if start_index == 0 && info_tag != 0 {
-                        return Err(Error::InvalidInformationTag(info_tag));
-                    } else {
-                        info_tag
-                    },
-                }
-            }
+
             _ => panic!(
                 "Invalid number of registers (18) for function {:#x?}",
                 func_id
@@ -845,38 +849,30 @@ impl Interface {
         Ok(msg)
     }
 
-    /// Create register contents for an interface.
+    /// Create register contents for an interface. The caller must ensure that the `regs` argument
+    /// has the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls
     pub fn to_regs(&self, version: Version, regs: &mut [u64]) {
-        let reg_cnt = regs.len();
-
-        match reg_cnt {
-            8 => {
-                assert!(version <= Version(1, 1));
-                self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
-            }
-            18 => {
-                assert!(version >= Version(1, 2));
-                match self {
-                    Interface::ConsoleLog {
-                        chars: ConsoleLogChars::Chars64(_),
-                        ..
-                    }
-                    | Interface::Success {
-                        args: SuccessArgs::Args64_2(_),
-                        ..
-                    }
-                    | Interface::MsgSendDirectReq2 { .. }
-                    | Interface::MsgSendDirectResp2 { .. }
-                    | Interface::PartitionInfoGetRegs { .. } => {
-                        self.pack_regs18(version, regs.try_into().unwrap());
-                    }
-                    _ => {
-                        self.pack_regs8(version, (&mut regs[..8]).try_into().unwrap());
-                        regs[8..18].fill(0);
-                    }
+        if self.is_32bit() {
+            self.pack_regs8(version, regs.first_chunk_mut::<8>().unwrap());
+        } else {
+            match self {
+                Interface::ConsoleLog {
+                    chars: ConsoleLogChars::Chars64(_),
+                    ..
+                }
+                | Interface::Success {
+                    args: SuccessArgs::Args64_2(_),
+                    ..
+                }
+                | Interface::MsgSendDirectReq2 { .. }
+                | Interface::MsgSendDirectResp2 { .. } => {
+                    self.pack_regs18(version, regs.first_chunk_mut::<18>().unwrap());
+                }
+                _ => {
+                    self.pack_regs8(version, regs.first_chunk_mut::<8>().unwrap());
+                    regs[8..18].fill(0);
                 }
             }
-            _ => panic!("Invalid number of registers {}", reg_cnt),
         }
     }
 
@@ -971,6 +967,17 @@ impl Interface {
                 a[3] = uuid_words[2].into();
                 a[4] = uuid_words[3].into();
                 a[5] = u32::from(flags).into();
+            }
+            Interface::PartitionInfoGetRegs {
+                uuid,
+                start_index,
+                info_tag,
+            } => {
+                if start_index == 0 && info_tag != 0 {
+                    panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
+                }
+                [a[1], a[2]] = UuidHelper::to_u64_regs(uuid);
+                a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
             Interface::MsgWait { flags } => {
                 if version >= Version(1, 2) {
@@ -1289,8 +1296,6 @@ impl Interface {
     }
 
     fn pack_regs18(&self, version: Version, a: &mut [u64; 18]) {
-        assert!(version >= Version(1, 2));
-
         a.fill(0);
 
         if let Some(function_id) = self.function_id() {
@@ -1337,17 +1342,6 @@ impl Interface {
                 }
                 _ => panic!("{:#x?} requires 8 registers", char_lists),
             },
-            Interface::PartitionInfoGetRegs {
-                uuid,
-                start_index,
-                info_tag,
-            } => {
-                if start_index == 0 && info_tag != 0 {
-                    panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
-                }
-                [a[1], a[2]] = UuidHelper::to_u64_regs(uuid);
-                a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
-            }
             _ => panic!("{:#x?} requires 8 registers", self),
         }
     }
