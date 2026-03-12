@@ -352,6 +352,8 @@ impl Interface {
             match func_id {
                 FuncId::ConsoleLog64
                 | FuncId::Success64
+                | FuncId::MsgSendDirectReq64
+                | FuncId::MsgSendDirectResp64
                 | FuncId::MsgSendDirectReq64_2
                 | FuncId::MsgSendDirectResp64_2 => {
                     Interface::unpack_regs18(version, func_id, regs.first_chunk().unwrap())
@@ -513,20 +515,6 @@ impl Interface {
                     ])
                 },
             },
-            FuncId::MsgSendDirectReq64 => Self::MsgSendDirectReq {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
-                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
-                    match regs[2] as u32 {
-                        DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq64 {
-                            params: [regs[3], regs[4], regs[5], regs[6]],
-                        },
-                        _ => return Err(Error::UnrecognisedFwkMsg(regs[2] as u32)),
-                    }
-                } else {
-                    DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]])
-                },
-            },
             FuncId::MsgSendDirectResp32 => Self::MsgSendDirectResp {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
@@ -560,15 +548,6 @@ impl Interface {
                         regs[6] as u32,
                         regs[7] as u32,
                     ])
-                },
-            },
-            FuncId::MsgSendDirectResp64 => Self::MsgSendDirectResp {
-                src_id: (regs[1] >> 16) as u16,
-                dst_id: regs[1] as u16,
-                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
-                    return Err(Error::UnrecognisedFwkMsg(regs[2] as u32));
-                } else {
-                    DirectMsgArgs::Args64([regs[3], regs[4], regs[5], regs[6], regs[7]])
                 },
             },
             FuncId::MemDonate32 => Self::MemDonate {
@@ -811,6 +790,29 @@ impl Interface {
                 target_info: (regs[1] as u32).into(),
                 args: SuccessArgs::Args64(regs[2..18].try_into().unwrap()),
             },
+            FuncId::MsgSendDirectReq64 => Self::MsgSendDirectReq {
+                src_id: (regs[1] >> 16) as u16,
+                dst_id: regs[1] as u16,
+                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
+                    match regs[2] as u32 {
+                        DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq64 {
+                            params: regs[3..7].try_into().unwrap(),
+                        },
+                        _ => return Err(Error::UnrecognisedFwkMsg(regs[2] as u32)),
+                    }
+                } else {
+                    DirectMsgArgs::Args64(regs[3..18].try_into().unwrap())
+                },
+            },
+            FuncId::MsgSendDirectResp64 => Self::MsgSendDirectResp {
+                src_id: (regs[1] >> 16) as u16,
+                dst_id: regs[1] as u16,
+                args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
+                    return Err(Error::UnrecognisedFwkMsg(regs[2] as u32));
+                } else {
+                    DirectMsgArgs::Args64(regs[3..18].try_into().unwrap())
+                },
+            },
             FuncId::MsgSendDirectReq64_2 => Self::MsgSendDirectReq2 {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
@@ -858,6 +860,14 @@ impl Interface {
                 }
                 | Interface::Success {
                     args: SuccessArgs::Args64(_),
+                    ..
+                }
+                | Interface::MsgSendDirectReq {
+                    args: DirectMsgArgs::Args64(_),
+                    ..
+                }
+                | Interface::MsgSendDirectResp {
+                    args: DirectMsgArgs::Args64(_),
                     ..
                 }
                 | Interface::MsgSendDirectReq2 { .. }
@@ -1004,13 +1014,6 @@ impl Interface {
                         a[6] = args[3].into();
                         a[7] = args[4].into();
                     }
-                    DirectMsgArgs::Args64(args) => {
-                        a[3] = args[0];
-                        a[4] = args[1];
-                        a[5] = args[2];
-                        a[6] = args[3];
-                        a[7] = args[4];
-                    }
                     DirectMsgArgs::VersionReq { version } => {
                         a[2] = DirectMsgArgs::VERSION_REQ.into();
                         a[3] = u32::from(version).into();
@@ -1063,13 +1066,6 @@ impl Interface {
                         a[5] = args[2].into();
                         a[6] = args[3].into();
                         a[7] = args[4].into();
-                    }
-                    DirectMsgArgs::Args64(args) => {
-                        a[3] = args[0];
-                        a[4] = args[1];
-                        a[5] = args[2];
-                        a[6] = args[3];
-                        a[7] = args[4];
                     }
                     DirectMsgArgs::VersionResp { version } => {
                         a[2] = DirectMsgArgs::VERSION_RESP.into();
@@ -1300,6 +1296,23 @@ impl Interface {
                     _ => panic!("{:#x?} requires 8 registers", args),
                 }
             }
+            Interface::MsgSendDirectReq {
+                src_id,
+                dst_id,
+                args,
+            }
+            | Interface::MsgSendDirectResp {
+                src_id,
+                dst_id,
+                args,
+            } => {
+                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                match args {
+                    DirectMsgArgs::Args64(args) => a[3..18].copy_from_slice(&args.map(u64::from)),
+                    _ => panic!("Malformed MsgSendDirectReq/Resp interface"),
+                }
+            }
+
             Interface::MsgSendDirectReq2 {
                 src_id,
                 dst_id,
@@ -1555,7 +1568,7 @@ mod tests {
         let interface_64 = Interface::MsgSendDirectReq {
             src_id: 0,
             dst_id: 1,
-            args: DirectMsgArgs::Args64([0, 0, 0, 0, 0]),
+            args: DirectMsgArgs::Args64([0; 15]),
         };
         assert!(!interface_64.is_32bit());
 
@@ -1989,9 +2002,28 @@ mod tests {
             Interface::MsgSendDirectReq {
                 src_id: 0x8005,
                 dst_id: 0x8003,
-                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5])
+                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
             },
-            [0xC400006F, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+            [
+                0xC400006F,
+                0x8005_8003,
+                0x0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15
+            ]
         );
     }
 
@@ -2010,9 +2042,28 @@ mod tests {
             Interface::MsgSendDirectResp {
                 src_id: 0x8005,
                 dst_id: 0x8003,
-                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5])
+                args: DirectMsgArgs::Args64([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
             },
-            [0xC4000070, 0x8005_8003, 0x0, 1, 2, 3, 4, 5]
+            [
+                0xC4000070,
+                0x8005_8003,
+                0x0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15
+            ]
         );
     }
 

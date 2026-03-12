@@ -272,7 +272,7 @@ impl WarmBootType {
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DirectMsgArgs {
     Args32([u32; 5]),
-    Args64([u64; 5]),
+    Args64([u64; 15]),
     /// Message for forwarding FFA_VERSION call from Normal world to the SPMC
     VersionReq {
         version: Version,
