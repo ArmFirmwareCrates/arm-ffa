@@ -106,10 +106,12 @@ pub enum Instance {
 #[num_enum(error_type(name = Error, constructor = Error::UnrecognisedFunctionId))]
 #[repr(u32)]
 pub enum FuncId {
-    Error = 0x84000060,
+    Error32 = 0x84000060,
+    Error64 = 0xc4000060,
     Success32 = 0x84000061,
     Success64 = 0xc4000061,
-    Interrupt = 0x84000062,
+    Interrupt32 = 0x84000062,
+    Interrupt64 = 0xc4000062,
     Version = 0x84000063,
     Features = 0x84000064,
     RxAcquire = 0x84000084,
@@ -123,10 +125,14 @@ pub enum FuncId {
     SpmIdGet = 0x84000085,
     ConsoleLog32 = 0x8400008a,
     ConsoleLog64 = 0xc400008a,
-    MsgWait = 0x8400006b,
-    Yield = 0x8400006c,
-    Run = 0x8400006d,
-    NormalWorldResume = 0x8400007c,
+    MsgWait32 = 0x8400006b,
+    MsgWait64 = 0xc400006b,
+    Yield32 = 0x8400006c,
+    Yield64 = 0xc400006c,
+    Run32 = 0x8400006d,
+    Run64 = 0xc400006d,
+    NormalWorldResume32 = 0x8400007c,
+    NormalWorldResume64 = 0xc400007c,
     MsgSend2 = 0x84000086,
     MsgSendDirectReq32 = 0x8400006f,
     MsgSendDirectReq64 = 0xc400006f,
@@ -175,10 +181,10 @@ impl FuncId {
     /// Returns the FF-A version that has introduced the function ID.
     pub fn minimum_ffa_version(&self) -> Version {
         match self {
-            FuncId::Error
+            FuncId::Error32
             | FuncId::Success32
             | FuncId::Success64
-            | FuncId::Interrupt
+            | FuncId::Interrupt32
             | FuncId::Version
             | FuncId::Features
             | FuncId::RxRelease
@@ -187,10 +193,10 @@ impl FuncId {
             | FuncId::RxTxUnmap
             | FuncId::PartitionInfoGet
             | FuncId::IdGet
-            | FuncId::MsgWait
-            | FuncId::Yield
-            | FuncId::Run
-            | FuncId::NormalWorldResume
+            | FuncId::MsgWait32
+            | FuncId::Yield32
+            | FuncId::Run32
+            | FuncId::NormalWorldResume32
             | FuncId::MsgSendDirectReq32
             | FuncId::MsgSendDirectReq64
             | FuncId::MsgSendDirectResp32
@@ -235,6 +241,13 @@ impl FuncId {
             | FuncId::MsgSendDirectReq64_2
             | FuncId::MsgSendDirectResp64_2
             | FuncId::El3IntrHandle => Version(1, 2),
+
+            FuncId::Error64
+            | FuncId::Interrupt64
+            | FuncId::MsgWait64
+            | FuncId::Yield64
+            | FuncId::Run64
+            | FuncId::NormalWorldResume64 => Version(1, 3),
         }
     }
 }

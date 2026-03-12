@@ -26,6 +26,7 @@ pub enum Interface {
         target_info: TargetInfo,
         error_code: FfaError,
         error_arg: u32,
+        is_32bit: bool,
     },
     Success {
         target_info: TargetInfo,
@@ -34,6 +35,7 @@ pub enum Interface {
     Interrupt {
         target_info: TargetInfo,
         interrupt_id: u32,
+        is_32bit: bool,
     },
     Version {
         input_version: Version,
@@ -71,12 +73,18 @@ pub enum Interface {
     SpmIdGet,
     MsgWait {
         flags: MsgWaitFlags,
+        is_32bit: bool,
     },
-    Yield,
+    Yield {
+        is_32bit: bool,
+    },
     Run {
         target_info: TargetInfo,
+        is_32bit: bool,
     },
-    NormalWorldResume,
+    NormalWorldResume {
+        is_32bit: bool,
+    },
     SecondaryEpRegister {
         entrypoint: SecondaryEpRegisterAddr,
     },
@@ -205,12 +213,20 @@ impl Interface {
     /// Returns the function ID for the call, if it has one.
     pub fn function_id(&self) -> Option<FuncId> {
         match self {
-            Interface::Error { .. } => Some(FuncId::Error),
+            Interface::Error { is_32bit, .. } => Some(if *is_32bit {
+                FuncId::Error32
+            } else {
+                FuncId::Error64
+            }),
             Interface::Success { args, .. } => match args {
                 SuccessArgs::Args32(..) => Some(FuncId::Success32),
                 SuccessArgs::Args64(..) => Some(FuncId::Success64),
             },
-            Interface::Interrupt { .. } => Some(FuncId::Interrupt),
+            Interface::Interrupt { is_32bit, .. } => Some(if *is_32bit {
+                FuncId::Interrupt32
+            } else {
+                FuncId::Interrupt64
+            }),
             Interface::Version { .. } => Some(FuncId::Version),
             Interface::VersionOut { .. } => None,
             Interface::Features { .. } => Some(FuncId::Features),
@@ -225,10 +241,26 @@ impl Interface {
             Interface::PartitionInfoGetRegs { .. } => Some(FuncId::PartitionInfoGetRegs),
             Interface::IdGet => Some(FuncId::IdGet),
             Interface::SpmIdGet => Some(FuncId::SpmIdGet),
-            Interface::MsgWait { .. } => Some(FuncId::MsgWait),
-            Interface::Yield => Some(FuncId::Yield),
-            Interface::Run { .. } => Some(FuncId::Run),
-            Interface::NormalWorldResume => Some(FuncId::NormalWorldResume),
+            Interface::MsgWait { is_32bit, .. } => Some(if *is_32bit {
+                FuncId::MsgWait32
+            } else {
+                FuncId::MsgWait64
+            }),
+            Interface::Yield { is_32bit } => Some(if *is_32bit {
+                FuncId::Yield32
+            } else {
+                FuncId::Yield64
+            }),
+            Interface::Run { is_32bit, .. } => Some(if *is_32bit {
+                FuncId::Run32
+            } else {
+                FuncId::Run64
+            }),
+            Interface::NormalWorldResume { is_32bit } => Some(if *is_32bit {
+                FuncId::NormalWorldResume32
+            } else {
+                FuncId::NormalWorldResume64
+            }),
             Interface::SecondaryEpRegister { entrypoint } => match entrypoint {
                 SecondaryEpRegisterAddr::Addr32 { .. } => Some(FuncId::SecondaryEpRegister32),
                 SecondaryEpRegisterAddr::Addr64 { .. } => Some(FuncId::SecondaryEpRegister64),
@@ -365,7 +397,8 @@ impl Interface {
 
     fn unpack_regs8(version: Version, func_id: FuncId, regs: &[u64; 8]) -> Result<Self, Error> {
         let msg = match func_id {
-            FuncId::Error => Self::Error {
+            FuncId::Error32 | FuncId::Error64 => Self::Error {
+                is_32bit: matches!(func_id, FuncId::Error32),
                 target_info: (regs[1] as u32).into(),
                 error_code: FfaError::try_from(regs[2] as i32)?,
                 error_arg: regs[3] as u32,
@@ -381,7 +414,8 @@ impl Interface {
                     regs[7] as u32,
                 ]),
             },
-            FuncId::Interrupt => Self::Interrupt {
+            FuncId::Interrupt32 | FuncId::Interrupt64 => Self::Interrupt {
+                is_32bit: matches!(func_id, FuncId::Interrupt32),
                 target_info: (regs[1] as u32).into(),
                 interrupt_id: regs[2] as u32,
             },
@@ -448,14 +482,20 @@ impl Interface {
             }
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
-            FuncId::MsgWait => Self::MsgWait {
+            FuncId::MsgWait32 | FuncId::MsgWait64 => Self::MsgWait {
+                is_32bit: matches!(func_id, FuncId::MsgWait32),
                 flags: MsgWaitFlags::try_from(regs[2] as u32)?,
             },
-            FuncId::Yield => Self::Yield,
-            FuncId::Run => Self::Run {
+            FuncId::Yield32 | FuncId::Yield64 => Self::Yield {
+                is_32bit: matches!(func_id, FuncId::Yield32),
+            },
+            FuncId::Run32 | FuncId::Run64 => Self::Run {
+                is_32bit: matches!(func_id, FuncId::Run32),
                 target_info: (regs[1] as u32).into(),
             },
-            FuncId::NormalWorldResume => Self::NormalWorldResume,
+            FuncId::NormalWorldResume32 | FuncId::NormalWorldResume64 => Self::NormalWorldResume {
+                is_32bit: matches!(func_id, FuncId::NormalWorldResume32),
+            },
             FuncId::SecondaryEpRegister32 => Self::SecondaryEpRegister {
                 entrypoint: SecondaryEpRegisterAddr::Addr32(regs[1] as u32),
             },
@@ -892,6 +932,7 @@ impl Interface {
                 target_info,
                 error_code,
                 error_arg,
+                ..
             } => {
                 a[1] = u32::from(target_info).into();
                 a[2] = (error_code as u32).into();
@@ -914,6 +955,7 @@ impl Interface {
             Interface::Interrupt {
                 target_info,
                 interrupt_id,
+                ..
             } => {
                 a[1] = u32::from(target_info).into();
                 a[2] = interrupt_id.into();
@@ -973,14 +1015,14 @@ impl Interface {
                 [a[1], a[2]] = UuidHelper::to_u64_regs(uuid);
                 a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
             }
-            Interface::MsgWait { flags } => {
+            Interface::MsgWait { flags, .. } => {
                 a[2] = u32::from(flags).into();
             }
-            Interface::IdGet | Interface::SpmIdGet | Interface::Yield => {}
-            Interface::Run { target_info } => {
+            Interface::IdGet | Interface::SpmIdGet | Interface::Yield { .. } => {}
+            Interface::Run { target_info, .. } => {
                 a[1] = u32::from(target_info).into();
             }
-            Interface::NormalWorldResume => {}
+            Interface::NormalWorldResume { .. } => {}
             Interface::SecondaryEpRegister { entrypoint } => match entrypoint {
                 SecondaryEpRegisterAddr::Addr32(addr) => a[1] = addr as u64,
                 SecondaryEpRegisterAddr::Addr64(addr) => a[1] = addr,
@@ -1348,11 +1390,12 @@ impl Interface {
     }
 
     /// Helper function to create an `FFA_ERROR` interface with an error code.
-    pub fn error(error_code: FfaError) -> Self {
+    pub fn error(error_code: FfaError, is_32bit: bool) -> Self {
         Self::Error {
             target_info: TargetInfo::default(),
             error_code,
             error_arg: 0,
+            is_32bit,
         }
     }
 }
@@ -1674,7 +1717,8 @@ mod tests {
                     vcpu_id: 0xabcd
                 },
                 error_code: FfaError::Aborted,
-                error_arg: 0xdead_beef
+                error_arg: 0xdead_beef,
+                is_32bit: true,
             },
             [0x84000060, 0x1234_abcd, error_code(-8), 0xdead_beef]
         );
@@ -1731,7 +1775,8 @@ mod tests {
                     endpoint_id: 0x1234,
                     vcpu_id: 0xabcd
                 },
-                interrupt_id: 0xdead_beef
+                interrupt_id: 0xdead_beef,
+                is_32bit: true,
             },
             [0x84000062, 0x1234_abcd, 0xdead_beef]
         );
@@ -2326,7 +2371,8 @@ mod tests {
             Interface::MsgWait {
                 flags: MsgWaitFlags {
                     retain_rx_buffer: true
-                }
+                },
+                is_32bit: true,
             },
             [0x8400006B, 0, 0b1]
         );
@@ -2334,7 +2380,7 @@ mod tests {
 
     #[test]
     fn ffa_yield_serde() {
-        test_regs_serde!(Interface::Yield, [0x8400006C]);
+        test_regs_serde!(Interface::Yield { is_32bit: true }, [0x8400006C]);
     }
 
     #[test]
@@ -2344,7 +2390,8 @@ mod tests {
                 target_info: TargetInfo {
                     endpoint_id: 0xaaaa,
                     vcpu_id: 0x1234
-                }
+                },
+                is_32bit: true,
             },
             [0x8400006D, 0xaaaa_1234]
         );
@@ -2352,7 +2399,10 @@ mod tests {
 
     #[test]
     fn ffa_normal_world_resume_serde() {
-        test_regs_serde!(Interface::NormalWorldResume, [0x8400007C]);
+        test_regs_serde!(
+            Interface::NormalWorldResume { is_32bit: true },
+            [0x8400007C]
+        );
     }
 
     #[test]
