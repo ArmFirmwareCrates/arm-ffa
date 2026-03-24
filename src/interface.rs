@@ -8,7 +8,7 @@ use crate::{
     interface_args::{
         ConsoleLogChars, ConsoleLogChars32, ConsoleLogChars64, DirectMsg2Args, DirectMsgArgs,
         Feature, MemAddr, MemOpBuf, MsgSend2Flags, MsgWaitFlags, RxTxAddr, SecondaryEpRegisterAddr,
-        SuccessArgs, TargetInfo, WarmBootType,
+        SuccessArgs, TargetInfo, VersionFlags, WarmBootType,
     },
     memory_management,
     notification::{NotificationBindFlags, NotificationGetFlags, NotificationSetFlags},
@@ -39,6 +39,7 @@ pub enum Interface {
     },
     Version {
         input_version: Version,
+        flags: VersionFlags,
     },
     VersionOut {
         output_version: VersionOut,
@@ -421,6 +422,7 @@ impl Interface {
             },
             FuncId::Version => Self::Version {
                 input_version: (regs[1] as u32).try_into()?,
+                flags: (regs[2] as u32).try_into()?,
             },
             FuncId::Features => Self::Features {
                 feat_id: (regs[1] as u32).into(),
@@ -513,6 +515,7 @@ impl Interface {
                     match regs[2] as u32 {
                         DirectMsgArgs::VERSION_REQ => DirectMsgArgs::VersionReq {
                             version: Version::try_from(regs[3] as u32)?,
+                            flags: VersionFlags::try_from(regs[4] as u32)?,
                         },
                         DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq32 {
                             params: [
@@ -557,7 +560,7 @@ impl Interface {
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
                     match regs[2] as u32 {
                         DirectMsgArgs::VERSION_RESP => {
-                            if regs[3] as i32 == FfaError::NotSupported.into() {
+                            if regs[3] as i32 == VersionOut::SMCCC_NOT_SUPPORTED {
                                 DirectMsgArgs::VersionResp { version: None }
                             } else {
                                 DirectMsgArgs::VersionResp {
@@ -960,8 +963,12 @@ impl Interface {
                 a[1] = u32::from(target_info).into();
                 a[2] = interrupt_id.into();
             }
-            Interface::Version { input_version } => {
+            Interface::Version {
+                input_version,
+                flags,
+            } => {
                 a[1] = u32::from(input_version).into();
+                a[2] = u32::from(flags).into();
             }
             Interface::VersionOut { output_version } => {
                 a[0] = u32::from(output_version).into();
@@ -1048,9 +1055,10 @@ impl Interface {
                         a[6] = args[3].into();
                         a[7] = args[4].into();
                     }
-                    DirectMsgArgs::VersionReq { version } => {
+                    DirectMsgArgs::VersionReq { version, flags } => {
                         a[2] = DirectMsgArgs::VERSION_REQ.into();
                         a[3] = u32::from(version).into();
+                        a[4] = u32::from(flags).into();
                     }
                     DirectMsgArgs::PowerPsciReq32 { params } => {
                         a[2] = DirectMsgArgs::POWER_PSCI_REQ.into();
@@ -1406,7 +1414,7 @@ mod tests {
     use crate::{
         interface_args::{
             FeatureId, LogChars, SuccessArgsFeatures, SuccessArgsIdGet, SuccessArgsSpmIdGet,
-            VmAvailabilityStatus,
+            VersionQueryType, VmAvailabilityStatus,
         },
         memory_management::Handle,
         notification::{
@@ -1786,9 +1794,12 @@ mod tests {
     fn ffa_version_serde() {
         test_regs_serde!(
             Interface::Version {
-                input_version: Version(1, 2),
+                input_version: Version(1, 3),
+                flags: VersionFlags {
+                    query_type: VersionQueryType::QueryCompatibility
+                }
             },
-            [0x84000063, 0x0001_0002]
+            [0x84000063, 0x0001_0003, 0x0000_0001]
         );
     }
 
@@ -2273,10 +2284,19 @@ mod tests {
                 src_id: 0xdead,
                 dst_id: 0xbeef,
                 args: DirectMsgArgs::VersionReq {
-                    version: Version(1, 2)
+                    version: Version(1, 3),
+                    flags: VersionFlags {
+                        query_type: VersionQueryType::QueryCompatibility
+                    }
                 }
             },
-            [0x8400006F, 0xdead_beef, 0x8000_0008, 0x0001_0002]
+            [
+                0x8400006F,
+                0xdead_beef,
+                0x8000_0008,
+                0x0001_0003,
+                0x0000_0001
+            ]
         );
     }
 

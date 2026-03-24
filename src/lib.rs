@@ -59,6 +59,10 @@ pub enum Error {
     InvalidCharacterCount(u8),
     #[error("Invalid register count: expected {expected}, actual {actual}")]
     InvalidRegisterCount { expected: usize, actual: usize },
+    #[error("Invalid version query type {0}")]
+    InvalidVersionQueryType(u8),
+    #[error("Invalid FF-A version flag {0}")]
+    InvalidVersionFlags(u32),
     #[error("Memory management error")]
     MemoryManagementError(#[from] memory_management::Error),
     #[error("Notification error")]
@@ -84,7 +88,9 @@ impl From<Error> for FfaError {
             | Error::InvalidVmId(_)
             | Error::UnrecognisedWarmBootType(_)
             | Error::InvalidSuccessArgsVariant
-            | Error::InvalidCharacterCount(_) => Self::InvalidParameters,
+            | Error::InvalidCharacterCount(_)
+            | Error::InvalidVersionQueryType(_)
+            | Error::InvalidVersionFlags(_) => Self::InvalidParameters,
             Error::MemoryManagementError(_)
             | Error::NotificationError(_)
             | Error::PartitionInfoError(_) => value.into(),
@@ -352,9 +358,12 @@ impl Version {
     // The FF-A spec mandates that bit[31] of a version number must be 0
     const MBZ_BITS: u32 = 1 << 31;
 
+    /// The encoding used if no version is negotiated between a caller and the callee.
+    pub const NULL: Version = Version(0, 0);
+
     /// Returns whether the caller's version (self) is compatible with the callee's version (input
     /// parameter)
-    pub fn is_compatible_to(&self, callee_version: &Version) -> bool {
+    pub fn is_compatible_to(&self, callee_version: Version) -> bool {
         self.0 == callee_version.0 && self.1 <= callee_version.1
     }
 }
@@ -397,6 +406,14 @@ impl Debug for Version {
 pub enum VersionOut {
     Version(Version),
     NotSupported,
+    InvalidParameter,
+}
+
+impl VersionOut {
+    /// SMCCC return code: The call is not supported by the implementation.
+    const SMCCC_NOT_SUPPORTED: i32 = -1;
+    /// SMCCC return code: One of the call parameters has a non-supported value.
+    const SMCCC_INVALID_PARAMETER: i32 = -3;
 }
 
 impl TryFrom<u32> for VersionOut {
@@ -413,9 +430,11 @@ impl TryFrom<u32> for VersionOut {
 
 impl From<VersionOut> for u32 {
     fn from(value: VersionOut) -> Self {
+        // Note: in case of error we return the SMCCC error codes, not the FF-A ones
         match value {
             VersionOut::Version(version) => version.into(),
-            VersionOut::NotSupported => i32::from(FfaError::NotSupported) as u32,
+            VersionOut::NotSupported => VersionOut::SMCCC_NOT_SUPPORTED as u32,
+            VersionOut::InvalidParameter => VersionOut::SMCCC_INVALID_PARAMETER as u32,
         }
     }
 }

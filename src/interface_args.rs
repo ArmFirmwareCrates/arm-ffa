@@ -138,6 +138,51 @@ impl TryFrom<SuccessArgs> for SuccessArgsFeatures {
     }
 }
 
+/// Version query types for the `FFA_VERSION` interface.
+#[derive(Clone, Copy, Debug, Eq, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[num_enum(error_type(name = Error, constructor = Error::InvalidVersionQueryType))]
+#[repr(u8)]
+pub enum VersionQueryType {
+    /// Request to negotiate version specified in Input version number.
+    Negotiate = 0b00,
+    /// Request to query whether the callee implements a version that is compatible with the version
+    /// specified in the Input version number by the caller.
+    QueryCompatibility = 0b01,
+    /// Request to query the negotiated version for the caller.
+    QueryNegotiated = 0b10,
+}
+
+/// Flags for the `FFA_VERSION` interface.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct VersionFlags {
+    pub query_type: VersionQueryType,
+}
+
+impl VersionFlags {
+    const QUERY_TYPE_MASK: u32 = 0b11;
+    const MBZ_BITS: u32 = 0xffff_fffc;
+}
+
+impl TryFrom<u32> for VersionFlags {
+    type Error = Error;
+
+    fn try_from(val: u32) -> Result<Self, Self::Error> {
+        if (val & Self::MBZ_BITS) != 0 {
+            Err(Error::InvalidVersionFlags(val))
+        } else {
+            Ok(Self {
+                query_type: VersionQueryType::try_from((val & Self::QUERY_TYPE_MASK) as u8)?,
+            })
+        }
+    }
+}
+
+impl From<VersionFlags> for u32 {
+    fn from(flags: VersionFlags) -> Self {
+        flags.query_type as u32
+    }
+}
+
 /// RXTX buffer descriptor, used by `FFA_RXTX_MAP`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum RxTxAddr {
@@ -276,6 +321,7 @@ pub enum DirectMsgArgs {
     /// Message for forwarding FFA_VERSION call from Normal world to the SPMC
     VersionReq {
         version: Version,
+        flags: VersionFlags,
     },
     /// Response message to forwarded FFA_VERSION call from the Normal world
     /// Contains the version returned by the SPMC or None
