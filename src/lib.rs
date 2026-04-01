@@ -6,12 +6,6 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![doc = include_str!("../README.md")]
 
-use core::fmt::{self, Debug, Display, Formatter};
-pub use interface::Interface;
-use num_enum::{IntoPrimitive, TryFromPrimitive};
-use thiserror::Error;
-pub use uuid::Uuid;
-
 pub mod boot_info;
 mod ffa_v1_1;
 mod ffa_v1_2;
@@ -20,6 +14,12 @@ pub mod interface_args;
 pub mod memory_management;
 pub mod notification;
 pub mod partition_info;
+
+use core::fmt::{self, Debug, Display, Formatter};
+pub use interface::Interface;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+use thiserror::Error;
+pub use uuid::Uuid;
 
 /// Constant for 4K page size. On many occasions the FF-A spec defines memory size as count of 4K
 /// pages, regardless of the current translation granule.
