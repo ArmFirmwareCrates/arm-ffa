@@ -25,6 +25,7 @@ pub(crate) type partition_info_descriptor = ffa_v1_1::partition_info_descriptor;
 /// FF-A Memory Management Protocol Table 1.16: Endpoint memory access descriptor
 #[derive(Default, FromBytes, IntoBytes, KnownLayout, Immutable)]
 #[repr(C, packed)]
+#[allow(unused)]
 pub(crate) struct endpoint_memory_access_descriptor {
     /// Offset 0, length 4: Memory access permissions descriptor as specified in Table 10.15
     pub(crate) access_perm_desc: ffa_v1_1::memory_access_permission_descriptor,
