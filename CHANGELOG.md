@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+- Refactor to split the codebase into more manageable modules
+- Update Rust edition to 2024 and version to 1.90
+- FF-A v1.3 ALP4 related updates:
+  - Add flags for FFA_VERSION
+  - Extend direct request/response register usage
+  - Fix number registers used for SMC32/64 calls
+
 ## 0.4.1
 
 - Improve performance of `Interface::{from_regs, to_regs}`.
