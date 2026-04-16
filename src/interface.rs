@@ -1939,7 +1939,7 @@ mod tests {
         );
         test_args_serde!(
             SuccessArgs::Args64([
-                0x0018_2222_0002_0004,
+                0x0030_2222_0002_0004,
                 0,
                 0,
                 0,

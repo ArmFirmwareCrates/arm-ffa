@@ -7,8 +7,7 @@
 #![doc = include_str!("../README.md")]
 
 pub mod boot_info;
-mod ffa_v1_1;
-mod ffa_v1_2;
+mod ffa_v1_3;
 pub mod interface;
 pub mod interface_args;
 pub mod memory_management;

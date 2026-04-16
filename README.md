@@ -22,7 +22,7 @@ have been moved to a separate document (link above).
       data. In this case the library should never panic, but return rich error types (preferably use
       `thiserror`) so the library user knows what's wrong.
   * The FF-A descriptors, packed structs and bit shifting magic should be private for the library,
-    never exposed to the library user (i.e. `ffa_v1_1` and later modules).
+    never exposed to the library user (i.e. the `ffa_v1_3` module).
     * The implementation of such data structures should strictly follow the FF-A specification.
     * Preferably write a doc comment for each such definition that specifies where it comes from in
       the spec (i.e. Table x.y or chapter x.y.z)
