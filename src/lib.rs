@@ -451,7 +451,7 @@ pub(crate) mod tests {
             $value.to_regs(&mut regs);
             assert_eq!(regs, bytes);
 
-            assert_eq!(Interface::from_regs(&bytes), Ok($value));
+            assert_eq!(Interface::try_from(&bytes[..]), Ok($value));
         };
     }
     pub(crate) use test_regs_serde;

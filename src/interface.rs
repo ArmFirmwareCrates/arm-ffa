@@ -206,6 +206,46 @@ pub enum Interface {
     El3IntrHandle,
 }
 
+impl TryFrom<&[u64]> for Interface {
+    type Error = crate::Error;
+
+    fn try_from(value: &[u64]) -> Result<Self, crate::Error> {
+        let func_id = FuncId::try_from(value[0] as u32)?;
+
+        if func_id.is_32bit() {
+            if value.len() < 8 {
+                return Err(Error::InvalidRegisterCount {
+                    expected: 8,
+                    actual: value.len(),
+                });
+            }
+
+            Interface::unpack_regs8(func_id, value.first_chunk().unwrap())
+        } else {
+            if value.len() < 18 {
+                return Err(Error::InvalidRegisterCount {
+                    expected: 18,
+                    actual: value.len(),
+                });
+            }
+
+            // The list of function IDs that are passed to `unpack_regs18()` must match the list of
+            // function IDs that the function handles.
+            match func_id {
+                FuncId::ConsoleLog64
+                | FuncId::Success64
+                | FuncId::MsgSendDirectReq64
+                | FuncId::MsgSendDirectResp64
+                | FuncId::MsgSendDirectReq64_2
+                | FuncId::MsgSendDirectResp64_2 => {
+                    Interface::unpack_regs18(func_id, value.first_chunk().unwrap())
+                }
+                _ => Interface::unpack_regs8(func_id, value.first_chunk().unwrap()),
+            }
+        }
+    }
+}
+
 impl Interface {
     /// Returns the function ID for the call, if it has one.
     pub fn function_id(&self) -> Option<FuncId> {
@@ -350,42 +390,6 @@ impl Interface {
         }
 
         self.function_id().unwrap().minimum_ffa_version()
-    }
-
-    /// Parse interface from register contents. The caller must ensure that the `regs` argument has
-    /// the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls.
-    pub fn from_regs(regs: &[u64]) -> Result<Self, Error> {
-        let func_id = FuncId::try_from(regs[0] as u32)?;
-
-        if func_id.is_32bit() {
-            if regs.len() < 8 {
-                return Err(Error::InvalidRegisterCount {
-                    expected: 8,
-                    actual: regs.len(),
-                });
-            }
-
-            Interface::unpack_regs8(func_id, regs.first_chunk().unwrap())
-        } else {
-            if regs.len() < 18 {
-                return Err(Error::InvalidRegisterCount {
-                    expected: 18,
-                    actual: regs.len(),
-                });
-            }
-
-            match func_id {
-                FuncId::ConsoleLog64
-                | FuncId::Success64
-                | FuncId::MsgSendDirectReq64
-                | FuncId::MsgSendDirectResp64
-                | FuncId::MsgSendDirectReq64_2
-                | FuncId::MsgSendDirectResp64_2 => {
-                    Interface::unpack_regs18(func_id, regs.first_chunk().unwrap())
-                }
-                _ => Interface::unpack_regs8(func_id, regs.first_chunk().unwrap()),
-            }
-        }
     }
 
     fn unpack_regs8(func_id: FuncId, regs: &[u64; 8]) -> Result<Self, Error> {
@@ -1443,7 +1447,7 @@ mod tests {
             regs[2] = reg_x2;
             regs[3] = test_info_tag << 16;
 
-            assert!(Interface::from_regs(&regs).is_err_and(
+            assert!(Interface::try_from(&regs[..]).is_err_and(
                 |e| e == Error::InvalidInformationTag(test_info_tag.try_into().unwrap())
             ));
         }
@@ -1457,7 +1461,7 @@ mod tests {
             orig_regs[3] = start_index_and_tag;
 
             let mut test_regs = orig_regs;
-            let interface = Interface::from_regs(&test_regs).unwrap();
+            let interface = Interface::try_from(&test_regs[..]).unwrap();
             match &interface {
                 Interface::PartitionInfoGetRegs {
                     info_tag,
@@ -1492,7 +1496,7 @@ mod tests {
             assert_eq!(regs[2], reg_x2);
             assert_eq!(regs[3], (test_info_tag << 16) | test_start_index);
 
-            assert_eq!(Interface::from_regs(&regs).unwrap(), interface);
+            assert_eq!(Interface::try_from(&regs[..]).unwrap(), interface);
         }
     }
 
@@ -1536,7 +1540,7 @@ mod tests {
             orig_regs[3] = reg_x3;
 
             let mut test_regs = orig_regs;
-            let interface = Interface::from_regs(&test_regs).unwrap();
+            let interface = Interface::try_from(&test_regs[..]).unwrap();
             match &interface {
                 Interface::MsgSendDirectReq2 {
                     dst_id,
@@ -1576,7 +1580,7 @@ mod tests {
             assert_eq!(regs[3], reg_x3);
             assert_eq!(regs[4], 0);
 
-            assert_eq!(Interface::from_regs(&regs).unwrap(), interface);
+            assert_eq!(Interface::try_from(&regs[..]).unwrap(), interface);
         }
     }
 
@@ -1645,7 +1649,7 @@ mod tests {
         in_regs[2] = 5;
 
         assert_eq!(
-            Interface::from_regs(&in_regs),
+            Interface::try_from(&in_regs[..]),
             Ok(Interface::MemPermGet {
                 addr: MemAddr::Addr32(0xabcd),
                 page_cnt: 6,
@@ -1655,7 +1659,7 @@ mod tests {
         in_regs[2] = 0;
 
         assert_eq!(
-            Interface::from_regs(&in_regs),
+            Interface::try_from(&in_regs[..]),
             Ok(Interface::MemPermGet {
                 addr: MemAddr::Addr32(0xabcd),
                 page_cnt: 1,
@@ -1665,7 +1669,7 @@ mod tests {
         in_regs[2] = u32::MAX.into();
 
         assert_eq!(
-            Interface::from_regs(&in_regs),
+            Interface::try_from(&in_regs[..]),
             Err(Error::MemoryManagementError(
                 memory_management::Error::InvalidPageCount
             )),
