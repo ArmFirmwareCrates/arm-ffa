@@ -32,13 +32,17 @@ have been moved to a separate document (link above).
 
 The FF-A specification allows different components of a system to use different versions of the
 specification. The version used at a specific FF-A instance (i.e. an interface between two FF-A
-components) is discovered at runtime, either by parsing FF-A manifests or using `FFA_VERSION`. The
-FF-A specification's minor version updates usually introduce changes in a way that the message
-encoding and parsing stays backwards compatible. However, there were some significant changes prior
-to FF-A v1.3 because of SMCCC updates which added support for using more registers for argument
-passing and also the standardisation of the FF-A version renegotiation. To avoid adding complexity
-this crate implements the register usage convention as defined in FF-A v1.3, which might not be
-compatible with earlier versions.
+components) is discovered at runtime, either by parsing FF-A manifests or using `FFA_VERSION`.
+
+FF-A minor versions are generally specified in a backwards-compatible way for ABI encoding: existing
+function IDs keep their register layout, while new behaviour is added through new function IDs, new
+fields in descriptors, flags, or previously reserved values. Because of this, the crate does not
+carry a negotiated FF-A version through every pack/unpack operation.
+
+However, there were some significant changes prior to FF-A v1.3 because of SMCCC updates which added
+support for using more registers for argument passing and also the standardisation of the FF-A
+version renegotiation. To avoid adding complexity this crate implements the register usage
+convention as defined in FF-A v1.3, which might not be compatible with earlier versions.
 
 ## Implemented features
 
@@ -49,8 +53,6 @@ compatible with earlier versions.
 
 ## Future plans
 
-  * Refactor FF-A descriptor versioning scheme and update all descriptor definitions to FF-A v1.3.
-  * Remove version argument for FF-A interface encoding/decoding (tentative).
   * Implement missing interfaces and features of FF-A v1.3 and later.
   * Increase test coverage.
   * Create more detailed documentation to capture which parts of FF-A are currently supported.

@@ -145,10 +145,6 @@ pub enum Interface {
     },
     MemPermGet {
         addr: MemAddr,
-        /// The actual number of pages queried by the call.  It is calculated by adding one to the
-        /// corresponding register's value, i.e. zero in the register means one page. For FF-A v1.2
-        /// and lower the register value MBZ, so the page count is always 1. For higher versions the
-        /// page count can be any nonzero value.
         page_cnt: u32,
     },
     MemPermSet {
@@ -358,12 +354,8 @@ impl Interface {
 
     /// Parse interface from register contents. The caller must ensure that the `regs` argument has
     /// the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls.
-    pub fn from_regs(version: Version, regs: &[u64]) -> Result<Self, Error> {
+    pub fn from_regs(regs: &[u64]) -> Result<Self, Error> {
         let func_id = FuncId::try_from(regs[0] as u32)?;
-
-        if version < func_id.minimum_ffa_version() {
-            return Err(Error::InvalidVersionForFunctionId(version, func_id));
-        }
 
         if func_id.is_32bit() {
             if regs.len() < 8 {
@@ -373,7 +365,7 @@ impl Interface {
                 });
             }
 
-            Interface::unpack_regs8(version, func_id, regs.first_chunk().unwrap())
+            Interface::unpack_regs8(func_id, regs.first_chunk().unwrap())
         } else {
             if regs.len() < 18 {
                 return Err(Error::InvalidRegisterCount {
@@ -389,14 +381,14 @@ impl Interface {
                 | FuncId::MsgSendDirectResp64
                 | FuncId::MsgSendDirectReq64_2
                 | FuncId::MsgSendDirectResp64_2 => {
-                    Interface::unpack_regs18(version, func_id, regs.first_chunk().unwrap())
+                    Interface::unpack_regs18(func_id, regs.first_chunk().unwrap())
                 }
-                _ => Interface::unpack_regs8(version, func_id, regs.first_chunk().unwrap()),
+                _ => Interface::unpack_regs8(func_id, regs.first_chunk().unwrap()),
             }
         }
     }
 
-    fn unpack_regs8(version: Version, func_id: FuncId, regs: &[u64; 8]) -> Result<Self, Error> {
+    fn unpack_regs8(func_id: FuncId, regs: &[u64; 8]) -> Result<Self, Error> {
         let msg = match func_id {
             FuncId::Error32 | FuncId::Error64 => Self::Error {
                 is_32bit: matches!(func_id, FuncId::Error32),
@@ -695,9 +687,7 @@ impl Interface {
                 flags: (regs[3] as u32).try_into()?,
             },
             FuncId::MemPermGet32 => {
-                if (version <= Version(1, 2) && regs[2] != 0)
-                    || (regs[2] as u32).checked_add(1).is_none()
-                {
+                if (regs[2] as u32).checked_add(1).is_none() {
                     return Err(Error::MemoryManagementError(
                         memory_management::Error::InvalidPageCount,
                     ));
@@ -709,9 +699,7 @@ impl Interface {
                 }
             }
             FuncId::MemPermGet64 => {
-                if (version <= Version(1, 2) && regs[2] != 0)
-                    || (regs[2] as u32).checked_add(1).is_none()
-                {
+                if (regs[2] as u32).checked_add(1).is_none() {
                     return Err(Error::MemoryManagementError(
                         memory_management::Error::InvalidPageCount,
                     ));
@@ -821,9 +809,7 @@ impl Interface {
         Ok(msg)
     }
 
-    fn unpack_regs18(version: Version, func_id: FuncId, regs: &[u64; 18]) -> Result<Self, Error> {
-        assert!(version >= Version(1, 2));
-
+    fn unpack_regs18(func_id: FuncId, regs: &[u64; 18]) -> Result<Self, Error> {
         let msg = match func_id {
             FuncId::Success64 => Self::Success {
                 target_info: (regs[1] as u32).into(),
@@ -888,9 +874,9 @@ impl Interface {
 
     /// Create register contents for an interface. The caller must ensure that the `regs` argument
     /// has the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls
-    pub fn to_regs(&self, version: Version, regs: &mut [u64]) {
+    pub fn to_regs(&self, regs: &mut [u64]) {
         if self.is_32bit() {
-            self.pack_regs8(version, regs.first_chunk_mut::<8>().unwrap());
+            self.pack_regs8(regs.first_chunk_mut::<8>().unwrap());
         } else {
             match self {
                 Interface::ConsoleLog {
@@ -911,22 +897,20 @@ impl Interface {
                 }
                 | Interface::MsgSendDirectReq2 { .. }
                 | Interface::MsgSendDirectResp2 { .. } => {
-                    self.pack_regs18(version, regs.first_chunk_mut::<18>().unwrap());
+                    self.pack_regs18(regs.first_chunk_mut::<18>().unwrap());
                 }
                 _ => {
-                    self.pack_regs8(version, regs.first_chunk_mut::<8>().unwrap());
+                    self.pack_regs8(regs.first_chunk_mut::<8>().unwrap());
                     regs[8..18].fill(0);
                 }
             }
         }
     }
 
-    fn pack_regs8(&self, version: Version, a: &mut [u64; 8]) {
+    fn pack_regs8(&self, a: &mut [u64; 8]) {
         a.fill(0);
 
         if let Some(function_id) = self.function_id() {
-            assert!(function_id.minimum_ffa_version() <= version);
-
             a[0] = function_id as u64;
         }
 
@@ -1202,13 +1186,7 @@ impl Interface {
                     MemAddr::Addr32(addr) => addr.into(),
                     MemAddr::Addr64(addr) => addr,
                 };
-                a[2] = if version <= Version(1, 2) {
-                    assert_eq!(page_cnt, 1);
-                    0
-                } else {
-                    assert_ne!(page_cnt, 0);
-                    (page_cnt - 1).into()
-                }
+                a[2] = page_cnt.checked_sub(1).unwrap().into();
             }
             Interface::MemPermSet {
                 addr,
@@ -1321,12 +1299,10 @@ impl Interface {
         }
     }
 
-    fn pack_regs18(&self, version: Version, a: &mut [u64; 18]) {
+    fn pack_regs18(&self, a: &mut [u64; 18]) {
         a.fill(0);
 
         if let Some(function_id) = self.function_id() {
-            assert!(function_id.minimum_ffa_version() <= version);
-
             a[0] = function_id as u64;
         }
 
@@ -1436,7 +1412,6 @@ mod tests {
         let test_info_tag = 0b1101_1101;
         let test_start_index = 0b1101;
         let start_index_and_tag = (test_info_tag << 16) | test_start_index;
-        let version = Version(1, 2);
 
         // From spec:
         // Bytes[0...7] of UUID with byte 0 in the low-order bits.
@@ -1468,7 +1443,7 @@ mod tests {
             regs[2] = reg_x2;
             regs[3] = test_info_tag << 16;
 
-            assert!(Interface::from_regs(version, &regs).is_err_and(
+            assert!(Interface::from_regs(&regs).is_err_and(
                 |e| e == Error::InvalidInformationTag(test_info_tag.try_into().unwrap())
             ));
         }
@@ -1482,7 +1457,7 @@ mod tests {
             orig_regs[3] = start_index_and_tag;
 
             let mut test_regs = orig_regs;
-            let interface = Interface::from_regs(version, &test_regs).unwrap();
+            let interface = Interface::from_regs(&test_regs).unwrap();
             match &interface {
                 Interface::PartitionInfoGetRegs {
                     info_tag,
@@ -1496,7 +1471,7 @@ mod tests {
                 _ => panic!("Expecting Interface::PartitionInfoGetRegs!"),
             }
             test_regs.fill(0);
-            interface.to_regs(version, &mut test_regs);
+            interface.to_regs(&mut test_regs);
             assert_eq!(orig_regs, test_regs);
         }
 
@@ -1509,7 +1484,7 @@ mod tests {
             };
 
             let mut regs: [u64; 18] = [0; 18];
-            interface.to_regs(version, &mut regs);
+            interface.to_regs(&mut regs);
 
             assert_eq!(Some(FuncId::PartitionInfoGetRegs), interface.function_id());
             assert_eq!(regs[0], interface.function_id().unwrap() as u64);
@@ -1517,7 +1492,7 @@ mod tests {
             assert_eq!(regs[2], reg_x2);
             assert_eq!(regs[3], (test_info_tag << 16) | test_start_index);
 
-            assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
+            assert_eq!(Interface::from_regs(&regs).unwrap(), interface);
         }
     }
 
@@ -1551,7 +1526,6 @@ mod tests {
         let test_sender = 0b1101_1101;
         let test_receiver = 0b1101;
         let test_sender_receiver = (test_sender << 16) | test_receiver;
-        let version = Version(1, 2);
 
         // Test for regs -> Interface -> regs
         {
@@ -1562,7 +1536,7 @@ mod tests {
             orig_regs[3] = reg_x3;
 
             let mut test_regs = orig_regs;
-            let interface = Interface::from_regs(version, &test_regs).unwrap();
+            let interface = Interface::from_regs(&test_regs).unwrap();
             match &interface {
                 Interface::MsgSendDirectReq2 {
                     dst_id,
@@ -1577,7 +1551,7 @@ mod tests {
                 _ => panic!("Expecting Interface::MsgSendDirectReq2!"),
             }
             test_regs.fill(0);
-            interface.to_regs(version, &mut test_regs);
+            interface.to_regs(&mut test_regs);
             assert_eq!(orig_regs, test_regs);
         }
 
@@ -1593,7 +1567,7 @@ mod tests {
             };
 
             let mut regs: [u64; 18] = [0; 18];
-            interface.to_regs(version, &mut regs);
+            interface.to_regs(&mut regs);
 
             assert_eq!(Some(FuncId::MsgSendDirectReq64_2), interface.function_id());
             assert_eq!(regs[0], interface.function_id().unwrap() as u64);
@@ -1602,7 +1576,7 @@ mod tests {
             assert_eq!(regs[3], reg_x3);
             assert_eq!(regs[4], 0);
 
-            assert_eq!(Interface::from_regs(version, &regs).unwrap(), interface);
+            assert_eq!(Interface::from_regs(&regs).unwrap(), interface);
         }
     }
 
@@ -1636,7 +1610,7 @@ mod tests {
             addr: MemAddr::Addr32(0xabcd),
             page_cnt: 6,
         }
-        .to_regs(Version(1, 3), &mut out_regs);
+        .to_regs(&mut out_regs);
 
         assert_eq!(expected_regs, out_regs);
 
@@ -1646,31 +1620,20 @@ mod tests {
             addr: MemAddr::Addr32(0xabcd),
             page_cnt: 1,
         }
-        .to_regs(Version(1, 2), &mut out_regs);
+        .to_regs(&mut out_regs);
 
         assert_eq!(expected_regs, out_regs);
     }
 
     #[test]
     #[should_panic]
-    fn mem_perm_get_pack_fail1() {
-        let mut out_regs = [0u64; 18];
-        Interface::MemPermGet {
-            addr: MemAddr::Addr32(0xabcd),
-            page_cnt: 2,
-        }
-        .to_regs(Version(1, 2), &mut out_regs);
-    }
-
-    #[test]
-    #[should_panic]
-    fn mem_perm_get_pack_fail2() {
+    fn mem_perm_get_pack_fail() {
         let mut out_regs = [0u64; 18];
         Interface::MemPermGet {
             addr: MemAddr::Addr32(0xabcd),
             page_cnt: 0,
         }
-        .to_regs(Version(1, 3), &mut out_regs);
+        .to_regs(&mut out_regs);
     }
 
     #[test]
@@ -1682,24 +1645,17 @@ mod tests {
         in_regs[2] = 5;
 
         assert_eq!(
-            Interface::from_regs(Version(1, 3), &in_regs),
+            Interface::from_regs(&in_regs),
             Ok(Interface::MemPermGet {
                 addr: MemAddr::Addr32(0xabcd),
                 page_cnt: 6,
             }),
         );
 
-        assert_eq!(
-            Interface::from_regs(Version(1, 2), &in_regs),
-            Err(Error::MemoryManagementError(
-                memory_management::Error::InvalidPageCount
-            )),
-        );
-
         in_regs[2] = 0;
 
         assert_eq!(
-            Interface::from_regs(Version(1, 2), &in_regs),
+            Interface::from_regs(&in_regs),
             Ok(Interface::MemPermGet {
                 addr: MemAddr::Addr32(0xabcd),
                 page_cnt: 1,
@@ -1709,7 +1665,7 @@ mod tests {
         in_regs[2] = u32::MAX.into();
 
         assert_eq!(
-            Interface::from_regs(Version(1, 3), &in_regs),
+            Interface::from_regs(&in_regs),
             Err(Error::MemoryManagementError(
                 memory_management::Error::InvalidPageCount
             )),

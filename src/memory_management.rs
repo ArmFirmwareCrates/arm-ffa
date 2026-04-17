@@ -1026,7 +1026,6 @@ impl TryFrom<SuccessArgs> for SuccessArgsMemPermGet {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Version,
         interface::Interface,
         interface_args::{MemAddr, MemOpBuf},
         tests::{test_args_serde, test_regs_serde},

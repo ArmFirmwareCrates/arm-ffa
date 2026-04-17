@@ -52,8 +52,6 @@ pub enum Error {
     InvalidVmId(u32),
     #[error("Invalid success argument variant")]
     InvalidSuccessArgsVariant,
-    #[error("Invalid FF-A version {0} for function ID {1:?}")]
-    InvalidVersionForFunctionId(Version, FuncId),
     #[error("Invalid character count {0}")]
     InvalidCharacterCount(u8),
     #[error("Invalid register count: expected {expected}, actual {actual}")]
@@ -75,7 +73,6 @@ impl From<Error> for FfaError {
         match value {
             Error::UnrecognisedFunctionId(_)
             | Error::UnrecognisedFeatureId(_)
-            | Error::InvalidVersionForFunctionId(..)
             | Error::InvalidRegisterCount { .. } => Self::NotSupported,
             Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
@@ -451,10 +448,10 @@ pub(crate) mod tests {
             let b: &[u64] = &$bytes;
             bytes[0..(b.len())].copy_from_slice(&b);
 
-            $value.to_regs(Version(1, 2), &mut regs);
+            $value.to_regs(&mut regs);
             assert_eq!(regs, bytes);
 
-            assert_eq!(Interface::from_regs(Version(1, 2), &bytes), Ok($value));
+            assert_eq!(Interface::from_regs(&bytes), Ok($value));
         };
     }
     pub(crate) use test_regs_serde;
