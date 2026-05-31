@@ -10,6 +10,7 @@ pub mod boot_info;
 mod ffa_v1_3;
 pub mod interface;
 pub mod interface_args;
+pub mod manifest;
 pub mod memory_management;
 pub mod notification;
 pub mod partition_info;
