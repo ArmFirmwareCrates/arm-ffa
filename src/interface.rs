@@ -1377,6 +1377,14 @@ impl Interface {
         }
     }
 
+    /// Helper function to create an `FFA_SUCCESS` interface with arguments.
+    pub fn success(args: impl Into<SuccessArgs>) -> Self {
+        Self::Success {
+            target_info: TargetInfo::default(),
+            args: args.into(),
+        }
+    }
+
     /// Helper function to create an `FFA_ERROR` interface with an error code.
     pub fn error(error_code: FfaError, is_32bit: bool) -> Self {
         Self::Error {
