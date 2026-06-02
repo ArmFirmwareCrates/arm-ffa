@@ -94,13 +94,19 @@ impl From<Error> for FfaError {
     }
 }
 
-/// An FF-A instance is a valid combination of two FF-A components at an exception level boundary.
-#[derive(PartialEq, Clone, Copy)]
-pub enum Instance {
-    /// The instance between the SPMC and SPMD.
-    SecurePhysical,
-    /// The instance between the SPMC and a physical SP (contains the SP's endpoint ID).
-    SecureVirtual(u16),
+/// An FF-A component, used to collectively refer to partitions/endpoints and partition managers.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Component {
+    /// A non-secure endpoint running in NS-EL1. The contained `u16` is the endpoint ID.
+    Vm(u16),
+    /// The non-secure hypervisor running in NS-EL2 (or the OS kernel if there is no hypervisor).
+    Hypervisor,
+    /// A secure partition running in S-EL0 or S-EL1. The contained `u16` is the partition ID.
+    Sp(u16),
+    /// The Secure Partition Manager Core running in S-EL1, S-EL2 or EL3.
+    Spmc,
+    /// The Secure Partition Manager Dispatcher running in EL3.
+    Spmd,
 }
 
 /// Function IDs of the various FF-A interfaces.
