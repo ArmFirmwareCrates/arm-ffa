@@ -425,6 +425,7 @@ pub struct BootInfoIterator<'a> {
     offset: usize,
     desc_count: usize,
     desc_size: usize,
+    blob_offset: usize,
 }
 
 impl<'a> BootInfoIterator<'a> {
@@ -432,9 +433,9 @@ impl<'a> BootInfoIterator<'a> {
     pub fn new(buf: &'a [u8]) -> Result<Self, Error> {
         let header_raw = BootInfo::get_header(buf)?;
 
-        if buf.len() < header_raw.boot_info_blob_size as usize {
+        let Some(buf) = buf.get(..header_raw.boot_info_blob_size as usize) else {
             return Err(Error::InvalidBufferSize);
-        }
+        };
 
         if header_raw.boot_info_desc_size as usize != size_of::<boot_info_descriptor>() {
             return Err(Error::MalformedDescriptor);
@@ -457,6 +458,7 @@ impl<'a> BootInfoIterator<'a> {
             offset: header_raw.boot_info_array_offset as usize,
             desc_count: header_raw.boot_info_desc_count as usize,
             desc_size: header_raw.boot_info_desc_size as usize,
+            blob_offset: total_desc_size as usize,
         })
     }
 }
@@ -516,6 +518,11 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                         contents
                     };
 
+                    // Make sure blobs aren't overlapping and come sequentially.
+                    if start < self.blob_offset {
+                        return Some(Err(Error::MalformedDescriptor));
+                    }
+
                     let Some(end) = start.checked_add(contents_size) else {
                         return Some(Err(Error::InvalidBufferSize));
                     };
@@ -523,6 +530,8 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                     let Some(content_buf) = self.buf.get(start..end) else {
                         return Some(Err(Error::InvalidBufferSize));
                     };
+
+                    self.blob_offset = end;
 
                     BootInfoContents::Buffer { content_buf }
                 }
