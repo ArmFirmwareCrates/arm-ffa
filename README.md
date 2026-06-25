@@ -72,6 +72,23 @@ convention as defined in FF-A v1.3, which might not be compatible with earlier v
   * Increase test coverage.
   * Create more detailed documentation to capture which parts of FF-A are currently supported.
 
+## Fuzzing
+
+For running the fuzzers locally, make sure you have a nightly rust toolchain
+and `cargo-fuzz` installed. The `fuzzer_corpus` binary target is used to
+generate a seed corpus for fuzzing:
+
+```sh
+rustup install nightly
+cargo install cargo-fuzz
+cargo run --bin fuzzer_corpus
+```
+
+You can run individual fuzzers with `cargo +nightly fuzz run <fuzzer_name>`, or
+run them all with `fuzz/run_all.sh`. A coverage report can be generated with
+`fuzz/get_coverage.sh`, this requires `cargo-binutils` and `lcov` to be
+installed. The report will be placed in `fuzz/lcov/index.html`.
+
 ## License
 
 The project is MIT and Apache-2.0 dual licensed, see `LICENSE-APACHE` and `LICENSE-MIT`.
