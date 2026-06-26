@@ -46,14 +46,29 @@ convention as defined in FF-A v1.3, which might not be compatible with earlier v
 
 ## Implemented features
 
-  * Supports converting FF-A interface types between Rust types and the FF-A register ABI.
-  * Memory transaction descriptor handling for `FFA_MEM_*` interfaces (partial).
-  * FF-A v1.1+ boot information protocol.
-  * FF-A partiton information descriptor.
+  * Register ABI conversion for supported FF-A interfaces.
+  * Common FF-A types: function ID, error code, version, endpoint and vCPU ID, feature ID, RX/TX
+    buffer address, memory operation buffer address, UUID register conversion helpers, etc.
+  * Status reporting interface encodings and success-argument helpers.
+  * Setup and discovery interface encodings.
+  * CPU cycle management interface encodings, including the FF-A v1.3 SMC64 function IDs.
+  * Messaging interface encodings and framework message argument helpers for direct request/response.
+  * Notification interface encodings and notification success-argument helpers.
+  * Interrupt management interface encoding.
+  * Secondary entry point registration interface encoding.
+  * Partition information descriptor packing/parsing for the FF-A v1.3 descriptor format.
+  * Boot information blob packing/parsing for the FF-A v1.3 boot information header and descriptor
+    format.
+  * Memory management transaction interface register encodings.
+  * Memory management permission, fragmentation and time-slicing interface register encodings.
+  * Memory management descriptor helpers for memory region attributes, memory access permissions,
+    endpoint memory access descriptors, composite/constituent memory region descriptors, memory
+    transaction descriptors and memory relinquish descriptors.
 
 ## Future plans
 
   * Implement missing interfaces and features of FF-A v1.3 and later.
+  * Add typed memory management flag and descriptor fields, stricter per-ABI descriptor validation.
   * Increase test coverage.
   * Create more detailed documentation to capture which parts of FF-A are currently supported.
 

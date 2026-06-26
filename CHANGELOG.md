@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Remove explicit FF-A version arguments from interface and descriptor conversion helpers.
+- Update boot info and partition info handling for FF-A v1.3 ALP4 descriptor formats.
+- Replace `Interface::from_regs()` with a `TryFrom<&[u64]>` implementation.
+- Replace the public FF-A instance type with a component type.
+- Add an `FFA_SUCCESS` interface helper with arguments.
+
 ## 0.5.0
 
 - Refactor to split the codebase into more manageable modules
