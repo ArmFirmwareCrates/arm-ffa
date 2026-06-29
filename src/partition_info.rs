@@ -5,7 +5,7 @@
 
 use thiserror::Error;
 use uuid::Uuid;
-use zerocopy::{FromBytes, IntoBytes, transmute};
+use zerocopy::{FromBytes, transmute};
 
 use crate::{
     UuidHelper, Version, ffa_v1_3::partition_info_descriptor, interface_args::SuccessArgs,
@@ -261,30 +261,50 @@ impl PartitionInfo {
 
     /// Serialize a list of partition information descriptors into a buffer.
     pub fn pack(descriptors: &[PartitionInfo], buf: &mut [u8]) {
-        let mut offset = 0;
+        let (out_descriptors, _) =
+            <[partition_info_descriptor]>::mut_from_prefix_with_elems(buf, descriptors.len())
+                .unwrap();
 
-        for desc in descriptors {
-            let mut desc_raw = partition_info_descriptor {
+        for (desc, out) in descriptors.iter().zip(out_descriptors.iter_mut()) {
+            let (partition_props, exec_ctx_count_or_proxy_id) =
+                create_partition_properties(desc.partition_id_type, desc.props);
+
+            *out = partition_info_descriptor {
                 partition_id: desc.partition_id,
+                protocol_uuid: UuidHelper::to_bytes_or_nil(desc.protocol_uuid),
+                image_uuid: UuidHelper::to_bytes_or_nil(desc.image_uuid),
                 partition_ffa_version: desc.partition_ffa_version.into(),
-                ..Default::default()
+                exec_ctx_count_or_proxy_id,
+                partition_props,
+                reserved: 0,
             };
+        }
+    }
 
-            (
+    pub fn unpack<'a>(
+        buf: &'a [u8],
+        count: usize,
+    ) -> Result<impl ExactSizeIterator<Item = Result<Self, Error>> + 'a, Error> {
+        let (descriptors, _) =
+            <[partition_info_descriptor]>::ref_from_prefix_with_elems(buf, count)
+                .map_err(|_| Error::InvalidBufferSize)?;
+
+        Ok(descriptors.iter().map(|desc_raw| {
+            let (partition_id_type, props) = parse_partition_properties(
                 desc_raw.partition_props,
                 desc_raw.exec_ctx_count_or_proxy_id,
-            ) = create_partition_properties(desc.partition_id_type, desc.props);
+            );
 
-            desc_raw.protocol_uuid = desc
-                .protocol_uuid
-                .map(UuidHelper::to_bytes)
-                .unwrap_or([0; 16]);
-
-            desc_raw.image_uuid = desc.image_uuid.map(UuidHelper::to_bytes).unwrap_or([0; 16]);
-
-            desc_raw.write_to_prefix(&mut buf[offset..]).unwrap();
-            offset += Self::DESC_SIZE;
-        }
+            Ok(Self {
+                protocol_uuid: UuidHelper::from_bytes_nonnil(desc_raw.protocol_uuid),
+                image_uuid: UuidHelper::from_bytes_nonnil(desc_raw.image_uuid),
+                partition_ffa_version: Version::try_from(desc_raw.partition_ffa_version)
+                    .map_err(|_| Error::MalformedDescriptor)?,
+                partition_id: desc_raw.partition_id,
+                partition_id_type,
+                props,
+            })
+        }))
     }
 }
 
@@ -426,78 +446,6 @@ impl TryFrom<SuccessArgs> for SuccessArgsPartitionInfoGetRegs {
     }
 }
 
-/// Iterator of partition information descriptors.
-pub struct PartitionInfoIterator<'a> {
-    buf: &'a [u8],
-    offset: usize,
-    count: usize,
-}
-
-impl<'a> PartitionInfoIterator<'a> {
-    /// Create an iterator of partition information descriptors from a buffer.
-    pub fn new(buf: &'a [u8], count: usize) -> Result<Self, Error> {
-        let Some(total_size) = count.checked_mul(PartitionInfo::DESC_SIZE) else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_size {
-            return Err(Error::InvalidBufferSize);
-        }
-
-        Ok(Self {
-            buf,
-            offset: 0,
-            count,
-        })
-    }
-}
-
-impl Iterator for PartitionInfoIterator<'_> {
-    type Item = Result<PartitionInfo, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count > 0 {
-            let offset = self.offset;
-            self.offset += PartitionInfo::DESC_SIZE;
-            self.count -= 1;
-
-            let Ok(desc_raw) = partition_info_descriptor::ref_from_bytes(
-                &self.buf[offset..offset + PartitionInfo::DESC_SIZE],
-            ) else {
-                return Some(Err(Error::MalformedDescriptor));
-            };
-
-            let partition_ffa_version = Version::try_from(desc_raw.partition_ffa_version).ok()?;
-
-            let partition_id = desc_raw.partition_id;
-
-            let (partition_id_type, props) = parse_partition_properties(
-                desc_raw.partition_props,
-                desc_raw.exec_ctx_count_or_proxy_id,
-            );
-
-            let protocol_uuid =
-                Some(UuidHelper::from_bytes(desc_raw.protocol_uuid)).filter(|u| !u.is_nil());
-
-            let image_uuid =
-                Some(UuidHelper::from_bytes(desc_raw.image_uuid)).filter(|u| !u.is_nil());
-
-            let desc = PartitionInfo {
-                protocol_uuid,
-                image_uuid,
-                partition_ffa_version,
-                partition_id,
-                partition_id_type,
-                props,
-            };
-
-            return Some(Ok(desc));
-        }
-
-        None
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -556,7 +504,7 @@ mod tests {
         let mut buf = [0u8; 0xff];
         PartitionInfo::pack(&[desc1, desc2], &mut buf);
 
-        let mut descriptors = PartitionInfoIterator::new(&buf, 2).unwrap();
+        let mut descriptors = PartitionInfo::unpack(&buf, 2).unwrap();
         let desc1_check = descriptors.next().unwrap().unwrap();
         let desc2_check = descriptors.next().unwrap().unwrap();
 

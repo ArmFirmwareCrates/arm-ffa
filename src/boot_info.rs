@@ -19,7 +19,7 @@
 use core::ffi::CStr;
 use thiserror::Error;
 use uuid::Uuid;
-use zerocopy::{FromBytes, IntoBytes};
+use zerocopy::{FromBytes, IntoBytes, transmute_ref};
 
 use crate::{
     UuidHelper, Version,
@@ -242,7 +242,7 @@ pub struct BootInfo<'a> {
     pub contents: BootInfoContents<'a>,
 }
 
-impl BootInfo<'_> {
+impl<'a> BootInfo<'a> {
     /// Serialize a list of boot information descriptors into a buffer.
     ///
     /// If the `mapped_addr` parameter is None, the serialized descriptor will use the offset in
@@ -416,89 +416,53 @@ impl BootInfo<'_> {
 
         Ok(header_raw.boot_info_blob_size as usize)
     }
-}
 
-/// Iterator of boot information descriptors.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct BootInfoIterator<'a> {
-    buf: &'a [u8],
-    offset: usize,
-    desc_count: usize,
-    desc_size: usize,
-    blob_offset: usize,
-}
+    pub fn unpack(
+        buf: &'a [u8],
+    ) -> Result<impl ExactSizeIterator<Item = Result<Self, Error>> + 'a, Error> {
+        const DESC_SIZE: usize = size_of::<boot_info_descriptor>();
 
-impl<'a> BootInfoIterator<'a> {
-    /// Create an iterator of boot information descriptors from a buffer.
-    pub fn new(buf: &'a [u8]) -> Result<Self, Error> {
-        let header_raw = BootInfo::get_header(buf)?;
+        let header_raw = Self::get_header(buf)?;
 
-        let Some(buf) = buf.get(..header_raw.boot_info_blob_size as usize) else {
-            return Err(Error::InvalidBufferSize);
-        };
+        let buf = buf
+            .get(..header_raw.boot_info_blob_size as usize)
+            .ok_or(Error::InvalidBufferSize)?;
 
-        if header_raw.boot_info_desc_size as usize != size_of::<boot_info_descriptor>() {
+        if header_raw.boot_info_desc_size as usize != DESC_SIZE {
             return Err(Error::MalformedDescriptor);
         }
 
-        let Some(total_desc_size) = header_raw
-            .boot_info_desc_count
-            .checked_mul(header_raw.boot_info_desc_size)
-            .and_then(|x| x.checked_add(header_raw.boot_info_array_offset))
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_desc_size as usize {
-            return Err(Error::InvalidBufferSize);
+        let desc_offset = header_raw.boot_info_array_offset;
+        if (desc_offset as usize) < size_of::<boot_info_header>() || !desc_offset.is_multiple_of(8)
+        {
+            return Err(Error::MalformedDescriptor);
         }
 
-        Ok(Self {
-            buf,
-            offset: header_raw.boot_info_array_offset as usize,
-            desc_count: header_raw.boot_info_desc_count as usize,
-            desc_size: header_raw.boot_info_desc_size as usize,
-            blob_offset: total_desc_size as usize,
-        })
-    }
-}
+        let total_desc_size = header_raw
+            .boot_info_desc_count
+            .checked_mul(header_raw.boot_info_desc_size)
+            .and_then(|x| x.checked_add(desc_offset))
+            .ok_or(Error::InvalidBufferSize)?;
 
-impl<'a> Iterator for BootInfoIterator<'a> {
-    type Item = Result<BootInfo<'a>, Error>;
+        let desc_buf = buf
+            .get(desc_offset as usize..total_desc_size as usize)
+            .ok_or(Error::InvalidBufferSize)?;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.desc_count > 0 {
-            let desc_offset = self.offset;
-            self.offset += self.desc_size;
-            self.desc_count -= 1;
-
-            let Ok(desc_raw) = boot_info_descriptor::ref_from_bytes(
-                &self.buf[desc_offset..desc_offset + self.desc_size],
-            ) else {
-                return Some(Err(Error::MalformedDescriptor));
-            };
+        let mut blob_offset = total_desc_size as usize;
+        let map_fn = move |chunk: &'a [u8; DESC_SIZE]| {
+            let desc_raw: &boot_info_descriptor = transmute_ref!(chunk);
 
             if desc_raw.reserved != 0 {
-                return Some(Err(Error::MalformedDescriptor));
+                return Err(Error::MalformedDescriptor);
             }
 
-            let r#type: BootInfoType = match desc_raw.r#type.try_into() {
-                Ok(v) => v,
-                Err(e) => return Some(Err(e)),
-            };
-
-            let flags: BootInfoFlags = match desc_raw.flags.try_into() {
-                Ok(v) => v,
-                Err(e) => return Some(Err(e)),
-            };
+            let r#type = BootInfoType::try_from(desc_raw.r#type)?;
+            let flags = BootInfoFlags::try_from(desc_raw.flags)?;
 
             let name = match flags.name_format {
-                BootInfoNameFormat::String => {
-                    let Ok(name_str) = CStr::from_bytes_until_nul(desc_raw.name.as_bytes()) else {
-                        return Some(Err(Error::InvalidName));
-                    };
-                    BootInfoName::NullTermString(name_str)
-                }
+                BootInfoNameFormat::String => BootInfoName::NullTermString(
+                    CStr::from_bytes_until_nul(&desc_raw.name).map_err(|_| Error::InvalidName)?,
+                ),
                 BootInfoNameFormat::Uuid => {
                     BootInfoName::Uuid(UuidHelper::from_bytes(desc_raw.name))
                 }
@@ -510,28 +474,25 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                     let contents_size = desc_raw.size as usize;
 
                     let start = if flags.contents_format == BootInfoContentsFormat::Address {
-                        let Some(offset) = contents.checked_sub(self.buf.as_ptr() as usize) else {
-                            return Some(Err(Error::InvalidBufferSize));
-                        };
-                        offset
+                        contents
+                            .checked_sub(buf.as_ptr() as usize)
+                            .ok_or(Error::InvalidBufferSize)?
                     } else {
                         contents
                     };
 
                     // Make sure blobs aren't overlapping and come sequentially.
-                    if start < self.blob_offset {
-                        return Some(Err(Error::MalformedDescriptor));
+                    if start < blob_offset {
+                        return Err(Error::MalformedDescriptor);
                     }
 
-                    let Some(end) = start.checked_add(contents_size) else {
-                        return Some(Err(Error::InvalidBufferSize));
-                    };
+                    let end = start
+                        .checked_add(contents_size)
+                        .ok_or(Error::InvalidBufferSize)?;
 
-                    let Some(content_buf) = self.buf.get(start..end) else {
-                        return Some(Err(Error::InvalidBufferSize));
-                    };
+                    let content_buf = buf.get(start..end).ok_or(Error::InvalidBufferSize)?;
 
-                    self.blob_offset = end;
+                    blob_offset = end;
 
                     BootInfoContents::Buffer { content_buf }
                 }
@@ -544,19 +505,18 @@ impl<'a> Iterator for BootInfoIterator<'a> {
                             len,
                         }
                     } else {
-                        return Some(Err(Error::MalformedDescriptor));
+                        return Err(Error::MalformedDescriptor);
                     }
                 }
             };
 
-            return Some(Ok(BootInfo {
+            Ok(Self {
                 name,
                 r#type,
                 contents,
-            }));
-        }
-
-        None
+            })
+        };
+        Ok(desc_buf.as_chunks().0.iter().map(map_fn))
     }
 }
 
@@ -586,7 +546,7 @@ mod tests {
         let mut buf = [0u8; 0x1ff];
         let buf_addr = buf.as_ptr() as usize;
         BootInfo::pack(&[desc1.clone(), desc2.clone()], &mut buf, Some(buf_addr));
-        let mut descriptors = BootInfoIterator::new(&buf).unwrap();
+        let mut descriptors = BootInfo::unpack(&buf).unwrap();
         let desc1_check = descriptors.next().unwrap().unwrap();
         let desc2_check = descriptors.next().unwrap().unwrap();
 
@@ -630,19 +590,20 @@ mod tests {
 
     #[test]
     pub fn boot_info_iter_new_err1() {
-        assert_eq!(BootInfoIterator::new(&[0; 4]), Err(Error::InvalidHeader));
+        assert_eq!(BootInfo::unpack(&[0; 4]).err(), Some(Error::InvalidHeader));
     }
 
     #[test]
     pub fn boot_info_iter_new_err2() {
         // Empty boot info.
         assert_eq!(
-            BootInfoIterator::new(&[
+            BootInfo::unpack(&[
                 0xfa, 0x0f, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x5f, 0x01, 0x00, 0x00, 0x20, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00
-            ]),
-            Err(Error::InvalidBufferSize)
+            ])
+            .err(),
+            Some(Error::InvalidBufferSize)
         );
     }
 
@@ -650,14 +611,15 @@ mod tests {
     pub fn boot_info_iter_new_err3() {
         // Indicates two entries but array is one.
         assert_eq!(
-            BootInfoIterator::new(&[
+            BootInfo::unpack(&[
                 0xfa, 0x0f, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x5f, 0x01, 0x00, 0x00, 0x20, 0x00,
                 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x34, 0x74, 0x65,
                 0x73, 0x74, 0x31, 0x32, 0x33, 0x00, 0xab, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00,
                 0xef, 0xbe, 0xad, 0xde, 0x00, 0x00, 0x00, 0x00,
-            ]),
-            Err(Error::InvalidBufferSize)
+            ])
+            .err(),
+            Some(Error::InvalidBufferSize)
         );
     }
 
@@ -665,14 +627,15 @@ mod tests {
     pub fn boot_info_iter_new_err4() {
         // Invalid entry size.
         assert_eq!(
-            BootInfoIterator::new(&[
+            BootInfo::unpack(&[
                 0xfa, 0x0f, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x5f, 0x01, 0x00, 0x00, 0x10, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x34, 0x74, 0x65,
                 0x73, 0x74, 0x31, 0x32, 0x33, 0x00, 0xab, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00,
                 0xef, 0xbe, 0xad, 0xde, 0x00, 0x00, 0x00, 0x00,
-            ]),
-            Err(Error::InvalidBufferSize)
+            ])
+            .err(),
+            Some(Error::InvalidBufferSize)
         );
     }
 
@@ -680,14 +643,15 @@ mod tests {
     pub fn boot_info_iter_new_err5() {
         // Array offset out of range.
         assert_eq!(
-            BootInfoIterator::new(&[
+            BootInfo::unpack(&[
                 0xfa, 0x0f, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x5f, 0x01, 0x00, 0x00, 0x20, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x34, 0x74, 0x65,
                 0x73, 0x74, 0x31, 0x32, 0x33, 0x00, 0xab, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00,
                 0xef, 0xbe, 0xad, 0xde, 0x00, 0x00, 0x00, 0x00,
-            ]),
-            Err(Error::InvalidBufferSize)
+            ])
+            .err(),
+            Some(Error::InvalidBufferSize)
         );
     }
 }

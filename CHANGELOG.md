@@ -7,6 +7,7 @@
 - Replace `Interface::from_regs()` with a `TryFrom<&[u64]>` implementation.
 - Replace the public FF-A instance type with a component type.
 - Add an `FFA_SUCCESS` interface helper with arguments.
+- Refactor unpack functions to use `map` instead of making custom iterator classes by hand.
 
 ## 0.5.0
 

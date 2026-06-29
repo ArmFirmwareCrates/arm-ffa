@@ -354,167 +354,11 @@ pub struct MemAccessPerm {
     pub flags: u8, // TODO
 }
 
-/// Iterator of endpoint memory access permission descriptors.
-pub struct MemAccessPermIterator<'a> {
-    buf: &'a [u8],
-    offset: usize,
-    count: usize,
-}
-
-impl<'a> MemAccessPermIterator<'a> {
-    /// Create an iterator of endpoint memory access permission descriptors from a buffer.
-    fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
-        let Some(total_size) = count
-            .checked_mul(size_of::<endpoint_memory_access_descriptor>())
-            .and_then(|x| x.checked_add(offset))
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_size {
-            return Err(Error::InvalidBufferSize);
-        }
-
-        Ok(Self { buf, offset, count })
-    }
-}
-
-impl Iterator for MemAccessPermIterator<'_> {
-    type Item = Result<MemAccessPerm, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count > 0 {
-            let offset = self.offset;
-            self.offset += size_of::<endpoint_memory_access_descriptor>();
-            self.count -= 1;
-
-            let Ok(desc_raw) = endpoint_memory_access_descriptor::ref_from_bytes(
-                &self.buf[offset..offset + size_of::<endpoint_memory_access_descriptor>()],
-            ) else {
-                return Some(Err(Error::MalformedDescriptor));
-            };
-
-            let instr_access = match desc_raw
-                .access_perm_desc
-                .memory_access_permissions
-                .try_into()
-            {
-                Ok(v) => v,
-                Err(e) => return Some(Err(e)),
-            };
-
-            let data_access = match desc_raw
-                .access_perm_desc
-                .memory_access_permissions
-                .try_into()
-            {
-                Ok(v) => v,
-                Err(e) => return Some(Err(e)),
-            };
-
-            let desc = MemAccessPerm {
-                endpoint_id: desc_raw.access_perm_desc.endpoint_id,
-                instr_access,
-                data_access,
-                flags: desc_raw.access_perm_desc.flags,
-            };
-
-            return Some(Ok(desc));
-        }
-
-        None
-    }
-}
-
 /// Constituent memory region descriptor.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ConstituentMemRegion {
     pub address: u64,
     pub page_cnt: u32,
-}
-
-/// Iterator of constituent memory region descriptors.
-pub struct ConstituentMemRegionIterator<'a> {
-    buf: &'a [u8],
-    offset: usize,
-    count: usize,
-}
-
-impl<'a> ConstituentMemRegionIterator<'a> {
-    /// Create an iterator of constituent memory region descriptors from a buffer.
-    fn new(
-        buf: &'a [u8],
-        region_count: usize,
-        total_page_count: u32,
-        offset: usize,
-    ) -> Result<Self, Error> {
-        let descriptor_size = size_of::<constituent_memory_region_descriptor>();
-
-        let Some(total_size) = region_count
-            .checked_mul(descriptor_size)
-            .and_then(|x| x.checked_add(offset))
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_size {
-            return Err(Error::InvalidBufferSize);
-        }
-
-        // Check if the sum of of page counts in the constituent_memory_region_descriptors matches
-        // the total_page_count field of the composite_memory_region_descriptor.
-        let mut page_count_sum: u32 = 0;
-        for desc_offset in
-            (offset..offset + descriptor_size * region_count).step_by(descriptor_size)
-        {
-            let Ok(desc_raw) = constituent_memory_region_descriptor::ref_from_bytes(
-                &buf[desc_offset..desc_offset + descriptor_size],
-            ) else {
-                return Err(Error::MalformedDescriptor);
-            };
-
-            page_count_sum = page_count_sum
-                .checked_add(desc_raw.page_count)
-                .ok_or(Error::MalformedDescriptor)?;
-        }
-
-        if page_count_sum != total_page_count {
-            return Err(Error::MalformedDescriptor);
-        }
-
-        Ok(Self {
-            buf,
-            offset,
-            count: region_count,
-        })
-    }
-}
-
-impl Iterator for ConstituentMemRegionIterator<'_> {
-    type Item = Result<ConstituentMemRegion, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count > 0 {
-            let offset = self.offset;
-            self.offset += size_of::<constituent_memory_region_descriptor>();
-            self.count -= 1;
-
-            let Ok(desc_raw) = constituent_memory_region_descriptor::ref_from_bytes(
-                &self.buf[offset..offset + size_of::<constituent_memory_region_descriptor>()],
-            ) else {
-                return Some(Err(Error::MalformedDescriptor));
-            };
-
-            let desc = ConstituentMemRegion {
-                address: desc_raw.address,
-                page_cnt: desc_raw.page_count,
-            };
-
-            return Some(Ok(desc));
-        }
-
-        None
-    }
 }
 
 /// Flags of a memory management transaction.
@@ -643,56 +487,60 @@ impl MemTransactionDesc {
     /// Deserialize a memory transaction descriptor from a buffer and return an interator of the
     /// related endpoint memory access permission descriptors and constituent memory region
     /// descriptors, if any.
-    pub fn unpack(
-        buf: &[u8],
+    ///
+    /// Scenarios described by the spec:
+    /// - FFA_MEM_DONATE (sender, relayer):
+    ///   - endpoint_mem_access_desc_count == 1
+    ///   - composite_offset != 0
+    /// - FFA_MEM_LEND and FFA_MEM_SHARE (sender, relayer):
+    ///   - all values of composite_offset must be equal but != 0
+    /// - FFA_MEM_RETRIEVE_REQ (receiver, relayer):
+    ///   - each composite_offset may be different, including zero
+    /// - FFA_MEM_RETRIEVE_RESP (relayer):
+    ///   - as above
+    ///
+    /// In all cases, endpoint_mem_access_desc_count > 0
+    ///
+    /// TODO current implementation only covers the first case properly
+    pub fn unpack<'a>(
+        buf: &'a [u8],
     ) -> Result<
         (
             MemTransactionDesc,
-            MemAccessPermIterator<'_>,
-            Option<ConstituentMemRegionIterator<'_>>,
+            impl ExactSizeIterator<Item = Result<MemAccessPerm, Error>> + 'a,
+            Option<impl ExactSizeIterator<Item = ConstituentMemRegion> + 'a>,
         ),
         Error,
     > {
-        let Some(transaction_desc_bytes) = buf.get(0..size_of::<memory_transaction_descriptor>())
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
+        let (transaction_desc_raw, _) = memory_transaction_descriptor::ref_from_prefix(buf)
+            .map_err(|_| Error::InvalidBufferSize)?;
 
-        let Ok(transaction_desc_raw) =
-            memory_transaction_descriptor::ref_from_bytes(transaction_desc_bytes)
-        else {
-            return Err(Error::MalformedDescriptor);
-        };
-
-        if transaction_desc_raw.endpoint_mem_access_desc_array_offset % 16 != 0 {
-            return Err(Error::MalformedDescriptor);
-        }
-
-        if size_of::<endpoint_memory_access_descriptor>()
-            != transaction_desc_raw.endpoint_mem_access_desc_size as usize
+        let access_array_start = transaction_desc_raw.endpoint_mem_access_desc_array_offset;
+        if (access_array_start as usize) < size_of::<memory_transaction_descriptor>()
+            || !access_array_start.is_multiple_of(16)
+            || size_of::<endpoint_memory_access_descriptor>()
+                != transaction_desc_raw.endpoint_mem_access_desc_size as usize
+            || transaction_desc_raw.endpoint_mem_access_desc_count == 0
         {
             return Err(Error::MalformedDescriptor);
         }
 
-        if transaction_desc_raw.endpoint_mem_access_desc_count == 0 {
-            return Err(Error::MalformedDescriptor);
-        }
-
-        let Some(total_desc_size) = transaction_desc_raw
+        let access_array_end = transaction_desc_raw
             .endpoint_mem_access_desc_size
             .checked_mul(transaction_desc_raw.endpoint_mem_access_desc_count)
-            .and_then(|x| {
-                x.checked_add(transaction_desc_raw.endpoint_mem_access_desc_array_offset)
-            })
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
+            .and_then(|x| x.checked_add(access_array_start))
+            .ok_or(Error::InvalidBufferSize)?;
 
-        if buf.len() < total_desc_size as usize {
-            return Err(Error::InvalidBufferSize);
-        }
+        let access_array_buf = buf
+            .get(access_array_start as usize..access_array_end as usize)
+            .ok_or(Error::InvalidBufferSize)?;
+        let access_array = <[endpoint_memory_access_descriptor]>::ref_from_bytes_with_elems(
+            access_array_buf,
+            transaction_desc_raw.endpoint_mem_access_desc_count as usize,
+        )
+        .map_err(|_| Error::InvalidBufferSize)?;
 
-        let transaction_desc = MemTransactionDesc {
+        let transaction_desc = Self {
             sender_id: transaction_desc_raw.sender_endpoint_id,
             mem_region_attr: transaction_desc_raw.memory_region_attributes.try_into()?,
             flags: MemTransactionFlags(transaction_desc_raw.flags),
@@ -700,154 +548,98 @@ impl MemTransactionDesc {
             tag: transaction_desc_raw.tag,
         };
 
-        let mut offset = transaction_desc_raw.endpoint_mem_access_desc_array_offset as usize;
-
-        let access_desc_iter = MemAccessPermIterator::new(
-            buf,
-            transaction_desc_raw.endpoint_mem_access_desc_count as usize,
-            offset,
-        )?;
+        let access_desc_iter = access_array.iter().map(|desc_raw| {
+            let perm_raw = &desc_raw.access_perm_desc;
+            Ok(MemAccessPerm {
+                endpoint_id: desc_raw.access_perm_desc.endpoint_id,
+                instr_access: perm_raw.memory_access_permissions.try_into()?,
+                data_access: perm_raw.memory_access_permissions.try_into()?,
+                flags: desc_raw.access_perm_desc.flags,
+            })
+        });
 
         // We have to check the first endpoint memory access descriptor to get the composite offset
-        let Ok(desc_raw) = endpoint_memory_access_descriptor::ref_from_bytes(
-            &buf[offset..offset + size_of::<endpoint_memory_access_descriptor>()],
-        ) else {
-            return Err(Error::MalformedDescriptor);
-        };
-
-        offset = desc_raw.composite_offset as usize;
+        // Note that we checked earlier that endpoint_mem_access_desc_count != 0
+        let composite_offset = access_array[0].composite_offset;
 
         // An offset value of 0 indicates that the endpoint access permissions apply to a memory
         // region description identified by the Handle (i.e. there is no composite descriptor)
-        if offset == 0 {
+        if composite_offset == 0 {
             return Ok((transaction_desc, access_desc_iter, None));
         }
 
-        let Some(composite_desc_bytes) =
-            buf.get(offset..offset + size_of::<composite_memory_region_descriptor>())
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
+        let composite_desc_buf = buf
+            .get(composite_offset as usize..)
+            .ok_or(Error::InvalidBufferSize)?;
 
-        let Ok(composite_desc_raw) =
-            composite_memory_region_descriptor::ref_from_bytes(composite_desc_bytes)
-        else {
+        let (composite_desc_raw, constituent_buf) =
+            composite_memory_region_descriptor::ref_from_prefix(composite_desc_buf)
+                .map_err(|_| Error::InvalidBufferSize)?;
+
+        let (constituents, _) =
+            <[constituent_memory_region_descriptor]>::ref_from_prefix_with_elems(
+                constituent_buf,
+                composite_desc_raw.address_range_count as usize,
+            )
+            .map_err(|_| Error::InvalidBufferSize)?;
+
+        let page_count_sum = constituents
+            .iter()
+            .try_fold(0u32, |acc, desc| acc.checked_add(desc.page_count));
+        if page_count_sum != Some(composite_desc_raw.total_page_count) {
             return Err(Error::MalformedDescriptor);
-        };
+        }
 
-        let constituent_iter = ConstituentMemRegionIterator::new(
-            buf,
-            composite_desc_raw.address_range_count as usize,
-            composite_desc_raw.total_page_count,
-            offset + Self::CONSTITUENT_ARRAY_OFFSET,
-        )?;
+        let constituent_iter = constituents.iter().map(|desc| ConstituentMemRegion {
+            address: desc.address,
+            page_cnt: desc.page_count,
+        });
 
         Ok((transaction_desc, access_desc_iter, Some(constituent_iter)))
     }
 }
 
-/// Iterator of endpoint IDs.
-pub struct EndpointIterator<'a> {
-    buf: &'a [u8],
-    offset: usize,
-    count: usize,
-}
-
-impl<'a> EndpointIterator<'a> {
-    /// Create an iterator of endpoint IDs from a buffer.
-    fn new(buf: &'a [u8], count: usize, offset: usize) -> Result<Self, Error> {
-        let Some(total_size) = count.checked_mul(size_of::<u16>()) else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_size {
-            return Err(Error::InvalidBufferSize);
-        }
-
-        Ok(Self { buf, offset, count })
-    }
-}
-
-impl Iterator for EndpointIterator<'_> {
-    type Item = u16;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count > 0 {
-            let offset = self.offset;
-            self.offset += size_of::<Self::Item>();
-            self.count -= 1;
-
-            let endpoint = u16::from_le_bytes([self.buf[offset], self.buf[offset + 1]]);
-            return Some(endpoint);
-        }
-
-        None
-    }
-}
-
-/// Descriptor to relinquish a memory region. Currently only supports specifying a single endpoint.
+/// Descriptor to relinquish a memory region.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
-pub struct MemRelinquishDesc {
+pub struct MemRelinquishDesc<'a> {
     pub handle: Handle,
     pub flags: u32,
+    pub endpoints: &'a [u16],
 }
 
-impl MemRelinquishDesc {
+impl<'a> MemRelinquishDesc<'a> {
     const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
 
     /// Serialize memory relinquish descriptor and the endpoint IDs into a buffer.
-    pub fn pack(&self, endpoints: &[u16], buf: &mut [u8]) -> usize {
-        if let Ok((desc_raw, endpoint_area)) = memory_relinquish_descriptor::mut_from_prefix(buf) {
-            desc_raw.handle = self.handle.0;
-            desc_raw.flags = self.flags;
-            desc_raw.endpoint_count = endpoints.len().try_into().unwrap();
+    pub fn pack(&self, buf: &mut [u8]) -> usize {
+        let (desc_raw, endpoint_buf) = memory_relinquish_descriptor::mut_from_prefix(buf).unwrap();
+        desc_raw.handle = self.handle.0;
+        desc_raw.flags = self.flags;
+        desc_raw.endpoint_count = self.endpoints.len().try_into().unwrap();
 
-            for (endpoint, dest) in endpoints
-                .iter()
-                .zip(endpoint_area[..endpoints.len() * 2].chunks_exact_mut(2))
-            {
-                [dest[0], dest[1]] = u16::to_le_bytes(*endpoint);
-            }
-        }
+        <[u16]>::mut_from_prefix_with_elems(endpoint_buf, self.endpoints.len())
+            .unwrap()
+            .0
+            .copy_from_slice(self.endpoints);
 
-        Self::ENDPOINT_ARRAY_OFFSET + endpoints.len() * 2
+        Self::ENDPOINT_ARRAY_OFFSET + self.endpoints.len() * 2
     }
 
     /// Deserialize a memory relinquish descriptor from a buffer and return an iterator to the
     /// endpoint IDs.
-    pub fn unpack(buf: &[u8]) -> Result<(MemRelinquishDesc, EndpointIterator<'_>), Error> {
-        let Some(desc_bytes) = buf.get(0..size_of::<memory_relinquish_descriptor>()) else {
-            return Err(Error::InvalidBufferSize);
-        };
+    pub fn unpack(buf: &'a [u8]) -> Result<Self, Error> {
+        let (desc_raw, endpoint_buf) = memory_relinquish_descriptor::ref_from_prefix(buf)
+            .map_err(|_| Error::InvalidBufferSize)?;
 
-        let Ok(desc_raw) = memory_relinquish_descriptor::ref_from_bytes(desc_bytes) else {
-            return Err(Error::MalformedDescriptor);
-        };
+        let (endpoints, _) =
+            <[u16]>::ref_from_prefix_with_elems(endpoint_buf, desc_raw.endpoint_count as usize)
+                .map_err(|_| Error::InvalidBufferSize)?;
 
-        let Some(total_desc_size) = (desc_raw.endpoint_count as usize)
-            .checked_mul(size_of::<u16>())
-            .and_then(|x| x.checked_add(Self::ENDPOINT_ARRAY_OFFSET))
-        else {
-            return Err(Error::InvalidBufferSize);
-        };
-
-        if buf.len() < total_desc_size {
-            return Err(Error::InvalidBufferSize);
-        }
-
-        let iterator = EndpointIterator::new(
-            buf,
-            desc_raw.endpoint_count as usize,
-            Self::ENDPOINT_ARRAY_OFFSET,
-        )?;
-
-        Ok((
-            Self {
-                handle: Handle(desc_raw.handle),
-                flags: desc_raw.flags, // TODO: validate
-            },
-            iterator,
-        ))
+        Ok(Self {
+            handle: Handle(desc_raw.handle),
+            flags: desc_raw.flags, // TODO: validate
+            endpoints,
+        })
     }
 }
 
@@ -1066,7 +858,7 @@ mod tests {
             assert_eq!(perms, &$perms);
 
             let constituents = constituents.unwrap();
-            let constituents: Vec<_> = constituents.map(|c| c.unwrap()).collect();
+            let constituents: Vec<_> = constituents.collect();
             assert_eq!(constituents, &$constituents);
 
             // Non-null initial value to ensure that empty/reserved fields are set.
@@ -1277,20 +1069,19 @@ mod tests {
         let expected_desc = MemRelinquishDesc {
             handle: Handle(0x1234_5678),
             flags: MemTransactionFlags::ZERO_MEMORY | MemTransactionFlags::TIME_SLICING,
+            endpoints: &[0x13, 0x1234, 0xbeef],
         };
-        let expected_endpoints: &[u16] = &[0x13, 0x1234, 0xbeef];
 
         let expected_buf: &[u8] = &[
             0x78, 0x56, 0x34, 0x12, 0, 0, 0, 0, 0b11, 0, 0, 0, 0x3, 0, 0, 0, 0x13, 0, 0x34, 0x12,
             0xef, 0xbe,
         ];
 
-        let (actual_desc, actual_endpoints) = MemRelinquishDesc::unpack(expected_buf).unwrap();
+        let actual_desc = MemRelinquishDesc::unpack(expected_buf).unwrap();
         assert_eq!(actual_desc, expected_desc);
-        assert_eq!(actual_endpoints.collect::<Vec<_>>(), expected_endpoints);
 
         let mut buf = [0; 128];
-        let size = expected_desc.pack(expected_endpoints, &mut buf);
+        let size = expected_desc.pack(&mut buf);
 
         println!("{buf:x?}");
 

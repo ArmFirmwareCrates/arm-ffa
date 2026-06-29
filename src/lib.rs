@@ -298,12 +298,20 @@ impl UuidHelper {
         Uuid::from_bytes(value)
     }
 
+    pub fn from_bytes_nonnil(value: [u8; 16]) -> Option<Uuid> {
+        Some(Self::from_bytes(value)).filter(|u| !u.is_nil())
+    }
+
     /// Converts `Uuid` into byte array.
     /// Example:
     /// * Input: `a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8`
     /// * Output `[a1, a2, a3, a4, b1, b2, c1, c2, d1, d2, d3, d4, d5, d6, d7, d8]`
     pub fn to_bytes(value: Uuid) -> [u8; 16] {
         value.into_bytes()
+    }
+
+    pub fn to_bytes_or_nil(value: Option<Uuid>) -> [u8; 16] {
+        value.map_or_else(|| [0; _], Self::to_bytes)
     }
 
     /// Creates `Uuid` from four 32 bit register values.
