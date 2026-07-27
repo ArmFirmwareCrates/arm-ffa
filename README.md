@@ -74,14 +74,13 @@ convention as defined in FF-A v1.3, which might not be compatible with earlier v
 
 ## Fuzzing
 
-For running the fuzzers locally, make sure you have a nightly rust toolchain
-and `cargo-fuzz` installed. The `fuzzer_corpus` binary target is used to
-generate a seed corpus for fuzzing:
+For running the fuzzers locally, make sure you have a nightly rust toolchain and `cargo-fuzz`
+installed. The `fuzzer_corpus` example is used to generate a seed corpus for fuzzing:
 
 ```sh
 rustup install nightly
 cargo install cargo-fuzz
-cargo run --bin fuzzer_corpus
+cargo run --example fuzzer_corpus
 ```
 
 You can run individual fuzzers with `cargo +nightly fuzz run <fuzzer_name>`, or
