@@ -1396,6 +1396,14 @@ impl Interface {
     }
 }
 
+/// This exists only to instantiate <&mut Interface as Debug>::fmt, to work around a Rust / LLVM bug
+/// causing code duplication in RF-A.
+///
+/// See https://github.com/rust-lang/rust/issues/162544 for details.
+#[allow(dead_code)]
+static INSTANTIATE_MUT_INTERFACE_AS_DEBUG_FMT: fn(iface: &mut Interface) -> ! =
+    |iface| panic!("{:?}", iface);
+
 #[cfg(test)]
 mod tests {
     use super::*;
