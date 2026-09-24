@@ -132,13 +132,22 @@ pub(crate) struct partition_info_descriptor {
     /// Offset 24, length 16: A UUID uniquely identifying partition image. The Nil UUID is used if
     /// the partition has not specified the image UUID.
     pub(crate) image_uuid: [u8; 16],
-    /// Offset 40, length 4: Supported FF-A version.
+    /// Offset 40, length 4: Negotiated FF-A version.
     /// - Bit\[31\]: Reserved (MBZ).
     /// - Bits\[30:16\]: Major version number.
     /// - Bits\[15:0\]: Minor version number.
     pub(crate) partition_ffa_version: u32,
-    /// Offset 44, length 4: Reserved (MBZ).
-    pub(crate) reserved: u32,
+    /// Offset 44, length 1: Flags to specify inter-partition setup protocol message support for the
+    /// UUID described by this descriptor.
+    /// - If the protocol UUID described in this descriptor is the IPSP UUID, this field specifies
+    ///   the IPSP messages supported by the partition.
+    /// - If the protocol UUID described in this descriptor is another non-Nil UUID, this field
+    ///   specifies the IPSP messages used by the partition.
+    /// - If the protocol UUID described in this descriptor is the Nil UUID, this field is Reserved
+    ///   (SBZ).
+    pub(crate) inter_partition_messages: u8,
+    /// Offset 45, length 3: Reserved (SBZ).
+    pub(crate) reserved: [u8; 3],
 }
 
 /// Table 1.13: Composite memory region descriptor

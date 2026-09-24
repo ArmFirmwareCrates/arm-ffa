@@ -245,7 +245,49 @@ fn parse_partition_properties(
     (part_id_type, part_props)
 }
 
-/// Partition information descriptor, returned by the `FFA_PARTITION_INFO_GET` interface.
+/// Inter-partition setup protocol (IPSP) support descriptor
+///
+/// For the IPSP UUID, these flags identify messages supported by the partition. For another non-nil
+/// protocol UUID, they identify messages used by that protocol.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct IpspSupport {
+    /// Notification registration message support.
+    pub notification_registration: bool,
+    /// Notification unregistration message support.
+    pub notification_unregistration: bool,
+}
+
+impl IpspSupport {
+    const NOTIFICATION_REGISTRATION: u8 = 1 << 0;
+    const NOTIFICATION_UNREGISTRATION: u8 = 1 << 1;
+}
+
+impl From<u8> for IpspSupport {
+    fn from(bits: u8) -> Self {
+        Self {
+            notification_registration: bits & Self::NOTIFICATION_REGISTRATION != 0,
+            notification_unregistration: bits & Self::NOTIFICATION_UNREGISTRATION != 0,
+        }
+    }
+}
+
+impl From<IpspSupport> for u8 {
+    fn from(flags: IpspSupport) -> Self {
+        let mut bits = 0;
+
+        if flags.notification_registration {
+            bits |= IpspSupport::NOTIFICATION_REGISTRATION;
+        }
+        if flags.notification_unregistration {
+            bits |= IpspSupport::NOTIFICATION_UNREGISTRATION;
+        }
+
+        bits
+    }
+}
+
+/// Partition information descriptor, returned by the `FFA_PARTITION_INFO_GET` and
+/// `FFA_PARTITION_INFO_GET_REGS` interfaces.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PartitionInfo {
     pub protocol_uuid: Option<Uuid>,
@@ -254,6 +296,7 @@ pub struct PartitionInfo {
     pub partition_id: u16,
     pub partition_id_type: PartitionIdType,
     pub props: PartitionProperties,
+    pub ipsp_support: IpspSupport,
 }
 
 impl PartitionInfo {
@@ -279,7 +322,8 @@ impl PartitionInfo {
                 partition_ffa_version: desc.partition_ffa_version.into(),
                 exec_ctx_count_or_proxy_id,
                 partition_props,
-                reserved: 0,
+                inter_partition_messages: desc.ipsp_support.into(),
+                reserved: [0; 3],
             };
         }
     }
@@ -310,6 +354,7 @@ impl PartitionInfo {
                 partition_id: desc_raw.partition_id,
                 partition_id_type,
                 props,
+                ipsp_support: desc_raw.inter_partition_messages.into(),
             })
         }))
     }
@@ -460,8 +505,6 @@ mod tests {
     use super::*;
     use uuid::uuid;
 
-    // TODO: add tests with a known correct partition info blob
-
     #[test]
     fn part_info() {
         let desc1 = PartitionInfo {
@@ -486,6 +529,10 @@ mod tests {
                 require_cpu_rendezvous: false,
                 support_smc64_cpu_cycle_mgmt: false,
             },
+            ipsp_support: IpspSupport {
+                notification_registration: true,
+                notification_unregistration: true,
+            },
         };
 
         let desc2 = PartitionInfo {
@@ -508,6 +555,7 @@ mod tests {
                 require_cpu_rendezvous: false,
                 support_smc64_cpu_cycle_mgmt: false,
             },
+            ipsp_support: IpspSupport::default(),
         };
 
         let buf = &mut AlignedBuffer([0u8; 0xff]).0;
@@ -525,7 +573,7 @@ mod tests {
             0x01, 0x80, 0x01, 0x00, 0xc3, 0x07, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x12, 0x34,
             0x12, 0x34, 0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xaa, 0xbb, 0xcc, 0xdd,
             0xee, 0xff, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x03, 0x00,
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, // End of Desc1
+            0x01, 0x00, 0x03, 0x00, 0x00, 0x00, // End of Desc1
             // Desc2
             0x02, 0x80, 0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0xcd, 0xef, 0x00,

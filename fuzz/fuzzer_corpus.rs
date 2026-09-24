@@ -25,7 +25,7 @@ use arm_ffa::{
         SuccessArgsNotificationInfoGet64,
     },
     partition_info::{
-        PartitionIdType, PartitionInfo, PartitionInfoGetFlags, PartitionProperties,
+        IpspSupport, PartitionIdType, PartitionInfo, PartitionInfoGetFlags, PartitionProperties,
         SuccessArgsPartitionInfoGet, SuccessArgsPartitionInfoGetRegs,
     },
 };
@@ -622,6 +622,10 @@ fn partition_info() {
                 execution_ctx_count: 123,
             },
             props: props1,
+            ipsp_support: IpspSupport {
+                notification_registration: true,
+                notification_unregistration: false,
+            },
         },
         PartitionInfo {
             protocol_uuid: None,
@@ -630,6 +634,7 @@ fn partition_info() {
             partition_id: 1234,
             partition_id_type: PartitionIdType::SepidIndep,
             props: props2,
+            ipsp_support: IpspSupport::default(),
         },
         PartitionInfo {
             protocol_uuid: Some(uuid),
@@ -640,6 +645,10 @@ fn partition_info() {
                 proxy_endpoint_id: 5678,
             },
             props: props1,
+            ipsp_support: IpspSupport {
+                notification_registration: true,
+                notification_unregistration: true,
+            },
         },
         PartitionInfo {
             protocol_uuid: None,
@@ -648,6 +657,7 @@ fn partition_info() {
             partition_id: 1234,
             partition_id_type: PartitionIdType::Aux,
             props: props2,
+            ipsp_support: IpspSupport::default(),
         },
     ];
 
