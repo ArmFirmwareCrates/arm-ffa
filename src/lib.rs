@@ -287,6 +287,8 @@ pub enum FfaError {
     Aborted = -8,
     #[error("No data")]
     NoData = -9,
+    #[error("Not ready")]
+    NotReady = -10,
 }
 
 /// Collection of helper functions for converting between `Uuid` type and its representations in
