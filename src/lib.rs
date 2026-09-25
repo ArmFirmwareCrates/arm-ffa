@@ -37,20 +37,12 @@ pub enum Error {
     UnrecognisedErrorCode(i32),
     #[error("Unrecognised FF-A Framework Message {0}")]
     UnrecognisedFwkMsg(u32),
-    #[error("Invalid FF-A Msg Wait Flag {0}")]
-    InvalidMsgWaitFlag(u32),
-    #[error("Invalid FF-A Msg Send2 Flag {0}")]
-    InvalidMsgSend2Flag(u32),
     #[error("Unrecognised VM availability status {0}")]
     UnrecognisedVmAvailabilityStatus(i32),
     #[error("Unrecognised FF-A Warm Boot Type {0}")]
     UnrecognisedWarmBootType(u32),
     #[error("Invalid version {0}")]
     InvalidVersion(u32),
-    #[error("Invalid Information Tag {0}")]
-    InvalidInformationTag(u16),
-    #[error("Invalid Vm ID")]
-    InvalidVmId(u32),
     #[error("Invalid success argument variant")]
     InvalidSuccessArgsVariant,
     #[error("Invalid character count {0}")]
@@ -59,8 +51,6 @@ pub enum Error {
     InvalidRegisterCount { expected: usize, actual: usize },
     #[error("Invalid version query type {0}")]
     InvalidVersionQueryType(u8),
-    #[error("Invalid FF-A version flag {0}")]
-    InvalidVersionFlags(u32),
     #[error("Memory management error")]
     MemoryManagementError(#[from] memory_management::Error),
     #[error("Notification error")]
@@ -77,19 +67,14 @@ impl From<Error> for FfaError {
             Error::UnrecognisedFunctionId(_)
             | Error::UnrecognisedFeatureId(_)
             | Error::InvalidRegisterCount { .. } => Self::NotSupported,
-            Error::InvalidInformationTag(_) => Self::Retry,
             Error::UnrecognisedErrorCode(_)
             | Error::UnrecognisedFwkMsg(_)
             | Error::InvalidVersion(_)
-            | Error::InvalidMsgWaitFlag(_)
-            | Error::InvalidMsgSend2Flag(_)
             | Error::UnrecognisedVmAvailabilityStatus(_)
-            | Error::InvalidVmId(_)
             | Error::UnrecognisedWarmBootType(_)
             | Error::InvalidSuccessArgsVariant
             | Error::InvalidCharacterCount(_)
-            | Error::InvalidVersionQueryType(_)
-            | Error::InvalidVersionFlags(_) => Self::InvalidParameters,
+            | Error::InvalidVersionQueryType(_) => Self::InvalidParameters,
             Error::MemoryManagementError(error) => error.into(),
             Error::NotificationError(error) => error.into(),
             Error::PartitionInfoError(error) => error.into(),

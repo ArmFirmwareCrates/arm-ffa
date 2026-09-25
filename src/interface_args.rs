@@ -90,6 +90,17 @@ pub enum Feature {
     Unknown(u32),
 }
 
+impl Feature {
+    // Table 13.13: bits[30:8] are SBZ only for Feature ID queries (bit 31 clear).
+    fn normalize_id(value: u32) -> u32 {
+        if value & (1 << 31) == 0 {
+            value & 0xff
+        } else {
+            value
+        }
+    }
+}
+
 impl From<u32> for Feature {
     fn from(value: u32) -> Self {
         // Bit[31] is set for all valid FF-A function IDs so we don't have to check it separately
@@ -98,7 +109,7 @@ impl From<u32> for Feature {
         } else if let Ok(feat_id) = (value as u8).try_into() {
             Self::FeatureId(feat_id)
         } else {
-            Self::Unknown(value)
+            Self::Unknown(Self::normalize_id(value))
         }
     }
 }
@@ -108,7 +119,7 @@ impl From<Feature> for u32 {
         match value {
             Feature::FuncId(func_id) => (1 << 31) | func_id as u32,
             Feature::FeatureId(feature_id) => feature_id as u32,
-            Feature::Unknown(id) => id,
+            Feature::Unknown(id) => Feature::normalize_id(id),
         }
     }
 }
@@ -160,20 +171,32 @@ pub struct VersionFlags {
 
 impl VersionFlags {
     const QUERY_TYPE_MASK: u32 = 0b11;
-    const MBZ_BITS: u32 = 0xffff_fffc;
+
+    // Table 13.5: the input version is SBZ when querying the negotiated version.
+    pub(crate) fn unpack_version(self, value: u32) -> Result<Version, Error> {
+        if self.query_type == VersionQueryType::QueryNegotiated {
+            Ok(Version::NULL)
+        } else {
+            value.try_into()
+        }
+    }
+
+    pub(crate) fn pack_version(self, version: Version) -> u32 {
+        if self.query_type == VersionQueryType::QueryNegotiated {
+            0
+        } else {
+            version.into()
+        }
+    }
 }
 
 impl TryFrom<u32> for VersionFlags {
     type Error = Error;
 
     fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidVersionFlags(val))
-        } else {
-            Ok(Self {
-                query_type: VersionQueryType::try_from((val & Self::QUERY_TYPE_MASK) as u8)?,
-            })
-        }
+        Ok(Self {
+            query_type: VersionQueryType::try_from((val & Self::QUERY_TYPE_MASK) as u8)?,
+        })
     }
 }
 
@@ -240,19 +263,12 @@ pub struct MsgSend2Flags {
 
 impl MsgSend2Flags {
     const DELAY_SCHEDULE_RECEIVER: u32 = 1 << 1;
-    const MBZ_BITS: u32 = 0xffff_fffd;
 }
 
-impl TryFrom<u32> for MsgSend2Flags {
-    type Error = Error;
-
-    fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidMsgSend2Flag(val))
-        } else {
-            Ok(MsgSend2Flags {
-                delay_schedule_receiver: val & Self::DELAY_SCHEDULE_RECEIVER != 0,
-            })
+impl From<u32> for MsgSend2Flags {
+    fn from(flags: u32) -> Self {
+        MsgSend2Flags {
+            delay_schedule_receiver: flags & Self::DELAY_SCHEDULE_RECEIVER != 0,
         }
     }
 }
@@ -382,6 +398,8 @@ impl DirectMsgArgs {
     // Flags for the `FFA_MSG_SEND_DIRECT_{REQ,RESP}` interfaces.
 
     pub(crate) const FWK_MSG_BITS: u32 = 1 << 31;
+    // Bits[30:8] are SBZ; the low byte identifies the framework message.
+    pub(crate) const FWK_MSG_MASK: u32 = Self::FWK_MSG_BITS | 0xff;
     pub(crate) const VERSION_REQ: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b1000;
     pub(crate) const VERSION_RESP: u32 = DirectMsgArgs::FWK_MSG_BITS | 0b1001;
     pub(crate) const POWER_PSCI_REQ: u32 = DirectMsgArgs::FWK_MSG_BITS;
@@ -405,19 +423,12 @@ pub struct MsgWaitFlags {
 
 impl MsgWaitFlags {
     const RETAIN_RX_BUFFER: u32 = 0x01;
-    const MBZ_BITS: u32 = 0xfffe;
 }
 
-impl TryFrom<u32> for MsgWaitFlags {
-    type Error = Error;
-
-    fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidMsgWaitFlag(val))
-        } else {
-            Ok(MsgWaitFlags {
-                retain_rx_buffer: val & Self::RETAIN_RX_BUFFER != 0,
-            })
+impl From<u32> for MsgWaitFlags {
+    fn from(flags: u32) -> Self {
+        MsgWaitFlags {
+            retain_rx_buffer: flags & Self::RETAIN_RX_BUFFER != 0,
         }
     }
 }
@@ -482,6 +493,20 @@ where
     T: IntoBytes + FromBytes + Immutable,
 {
     pub(crate) const MAX_LENGTH: u8 = core::mem::size_of::<T>() as u8;
+
+    pub(crate) fn from_raw_parts(char_cnt: u8, mut char_lists: T) -> Result<Self, Error> {
+        if char_cnt > Self::MAX_LENGTH {
+            return Err(Error::InvalidCharacterCount(char_cnt));
+        }
+
+        // Only the counted characters are defined; do not retain the unused register bytes.
+        char_lists.as_mut_bytes()[usize::from(char_cnt)..].fill(0);
+
+        Ok(Self {
+            char_cnt,
+            char_lists,
+        })
+    }
 
     /// Returns true if there are no characters in the structure.
     pub fn empty(&self) -> bool {

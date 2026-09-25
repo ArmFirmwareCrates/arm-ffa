@@ -11,8 +11,6 @@ use zerocopy::transmute;
 /// with the `FFA_ERROR` interface.
 #[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
 pub enum Error {
-    #[error("Invalid Flag for Notification Set")]
-    InvalidNotificationSetFlag(u32),
     #[error("Invalid notification count")]
     InvalidNotificationCount,
 }
@@ -20,9 +18,7 @@ pub enum Error {
 impl From<Error> for crate::FfaError {
     fn from(value: Error) -> Self {
         match value {
-            Error::InvalidNotificationSetFlag(_) | Error::InvalidNotificationCount => {
-                Self::InvalidParameters
-            }
+            Error::InvalidNotificationCount => Self::InvalidParameters,
         }
     }
 }
@@ -66,8 +62,6 @@ impl NotificationSetFlags {
     const PER_VCP_NOTIFICATION: u32 = 1 << 0;
     const DELAY_SCHEDULE_RECEIVER: u32 = 1 << 1;
     const VCPU_ID_SHIFT: u32 = 16;
-
-    const MBZ_BITS: u32 = 0xfffc;
 }
 
 impl From<NotificationSetFlags> for u32 {
@@ -86,29 +80,15 @@ impl From<NotificationSetFlags> for u32 {
     }
 }
 
-impl TryFrom<u32> for NotificationSetFlags {
-    type Error = Error;
+impl From<u32> for NotificationSetFlags {
+    fn from(flags: u32) -> Self {
+        let vcpu_id = ((flags & Self::PER_VCP_NOTIFICATION) != 0)
+            .then_some((flags >> Self::VCPU_ID_SHIFT) as u16);
 
-    fn try_from(flags: u32) -> Result<Self, Self::Error> {
-        if (flags & Self::MBZ_BITS) != 0 {
-            return Err(Error::InvalidNotificationSetFlag(flags));
-        }
-
-        let tentative_vcpu_id = (flags >> Self::VCPU_ID_SHIFT) as u16;
-
-        let vcpu_id = if (flags & Self::PER_VCP_NOTIFICATION) != 0 {
-            Some(tentative_vcpu_id)
-        } else {
-            if tentative_vcpu_id != 0 {
-                return Err(Error::InvalidNotificationSetFlag(flags));
-            }
-            None
-        };
-
-        Ok(Self {
+        Self {
             delay_schedule_receiver: (flags & Self::DELAY_SCHEDULE_RECEIVER) != 0,
             vcpu_id,
-        })
+        }
     }
 }
 
@@ -318,7 +298,7 @@ impl<const MAX_COUNT: usize> SuccessArgsNotificationInfoGet<MAX_COUNT> {
     }
 
     /// Unpack flags field and IDs.
-    fn unpack(flags: u64, ids: [u16; MAX_COUNT]) -> Result<Self, Error> {
+    fn unpack(flags: u64, mut ids: [u16; MAX_COUNT]) -> Result<Self, Error> {
         let count_of_lists = ((flags >> Self::LIST_COUNT_SHIFT) & Self::LIST_COUNT_MASK) as usize;
 
         if count_of_lists > MAX_COUNT {
@@ -337,6 +317,8 @@ impl<const MAX_COUNT: usize> SuccessArgsNotificationInfoGet<MAX_COUNT> {
         if id_field_count > MAX_COUNT {
             return Err(Error::InvalidNotificationCount);
         }
+
+        ids[id_field_count..].fill(0);
 
         Ok(Self {
             more_pending_notifications: (flags & Self::MORE_PENDING_NOTIFICATIONS_FLAG) != 0,
@@ -368,7 +350,8 @@ impl TryFrom<SuccessArgs> for SuccessArgsNotificationInfoGet32 {
 
     fn try_from(value: SuccessArgs) -> Result<Self, Self::Error> {
         let args = value.try_get_args32()?;
-        let flags = args[0].into();
+        // Table 16.49: bit 11 of the list count is SBZ for SMC32 only.
+        let flags = (args[0] & !(1 << 11)).into();
         let id_regs: [u32; 5] = args[1..6].try_into().unwrap();
         Self::unpack(flags, transmute!(id_regs)).map_err(|e| e.into())
     }

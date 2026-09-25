@@ -40,8 +40,6 @@ pub enum Error {
     InvalidDataAccessPerm(u8),
     #[error("Invalid memory type {0}")]
     InvalidMemType(u16),
-    #[error("Invalid memory attributes {0}")]
-    InvalidMemAttributes(u16),
     #[error("Composite offset mismatch")]
     CompositeOffsetMismatch,
     #[error("Invalid endpoint count {0}")]
@@ -56,8 +54,6 @@ pub enum Error {
     InvalidDataAccessPermGetSet(u32),
     #[error("Invalid page count")]
     InvalidPageCount,
-    #[error("Invalid memory reclaim flags {0}")]
-    InvalidMemReclaimFlags(u32),
 }
 
 impl From<Error> for crate::FfaError {
@@ -265,15 +261,10 @@ impl TryFrom<u16> for MemRegionAttributes {
     type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        // bits[15:7]: Reserved (MBZ)
-        if value >> 7 == 0 {
-            Ok(Self {
-                security: value.into(),
-                mem_type: value.try_into()?,
-            })
-        } else {
-            Err(Error::InvalidMemAttributes(value))
-        }
+        Ok(Self {
+            security: value.into(),
+            mem_type: value.try_into()?,
+        })
     }
 }
 
@@ -665,20 +656,13 @@ pub struct MemReclaimFlags {
 impl MemReclaimFlags {
     pub const ZERO_MEMORY: u32 = 0b1 << 0;
     pub const TIME_SLICING: u32 = 0b1 << 1;
-    const MBZ_BITS: u32 = 0xffff_fffc;
 }
 
-impl TryFrom<u32> for MemReclaimFlags {
-    type Error = Error;
-
-    fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidMemReclaimFlags(val))
-        } else {
-            Ok(MemReclaimFlags {
-                zero_memory: val & Self::ZERO_MEMORY != 0,
-                time_slicing: val & Self::TIME_SLICING != 0,
-            })
+impl From<u32> for MemReclaimFlags {
+    fn from(flags: u32) -> Self {
+        MemReclaimFlags {
+            zero_memory: flags & Self::ZERO_MEMORY != 0,
+            time_slicing: flags & Self::TIME_SLICING != 0,
         }
     }
 }

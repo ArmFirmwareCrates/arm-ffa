@@ -23,11 +23,11 @@ pub(crate) struct boot_info_descriptor {
     ///   + Implementation defined identifiers (bit\[7\] = b'1).
     ///     * Identifier is defined by the implementation.
     pub(crate) r#type: u8,
-    /// Offset 17, length 1: Reserved (MBZ)
+    /// Offset 17, length 1: Reserved (SBZ)
     pub(crate) reserved: u8,
     /// Offset 18, length 2: Flags to describe properties of boot information associated with this
     /// descriptor.
-    /// - Bits\[15:4\]: Reserved (MBZ).
+    /// - Bits\[15:4\]: Reserved (SBZ).
     /// - Bits\[3:2\]: Format of Contents field.
     ///   + b'00: Address of boot information identified by the Name and Type fields.
     ///   + b'01: Value of boot information identified by the Name and Type fields.
@@ -75,7 +75,7 @@ pub(crate) struct boot_info_header {
     pub(crate) boot_info_desc_count: u32,
     /// Offset 20, length 4: Offset to array of boot information descriptors.
     pub(crate) boot_info_array_offset: u32,
-    /// Offset 24, length 8: Reserved (MBZ).
+    /// Offset 24, length 8: Reserved (SBZ).
     pub(crate) reserved: u64,
 }
 
@@ -90,10 +90,10 @@ pub(crate) struct partition_info_descriptor {
     ///   Partition properties field.
     /// - ID of the proxy endpoint for a dependent peripheral device if Bit\[5:4\] = b'10 in the
     ///   Partition properties field.
-    /// - Reserved (MBZ) for all other encodings of the Partition properties field.
+    /// - Reserved (SBZ) for all other encodings of the Partition properties field.
     pub(crate) exec_ctx_count_or_proxy_id: u16,
     /// Offset 4, length 4: Flags to determine partition properties (see Table 6.2).
-    /// - Bit\[3:0\] has the following encoding if Bit\[5:4\] = b'00. It is Reserved (MBZ) otherwise.
+    /// - Bit\[3:0\] has the following encoding if Bit\[5:4\] = b'00. It is Reserved (SBZ) otherwise.
     ///   + Bit\[0\]: Can receive Direct requests via the FFA_MSG_SEND_DIRECT_REQ ABI.
     ///   + Bit\[1\]: Can send Direct requests via the FFA_MSG_SEND_DIRECT_REQ ABI.
     ///   + Bit\[2\]: Can send and receive indirect messages.
@@ -104,36 +104,36 @@ pub(crate) struct partition_info_descriptor {
     ///   + b'10: SEPID for dependent peripheral device.
     ///   + b'11: Auxiliary ID.
     /// - Bit\[6\]: Partition must be informed about each VM that is created by the Hypervisor.
-    ///   + Bit\[6\] is used only if the following conditions are true. It is Reserved (MBZ) in all
+    ///   + Bit\[6\] is used only if the following conditions are true. It is Reserved (SBZ) in all
     ///     other scenarios.
     ///     * This ABI is invoked at the Non-secure physical FF-A instance.
     ///     * The partition is an SP that supports receipt of Direct requests i.e. Bit\[0\] = b'1.
     /// - Bit\[7\]: Partition must be informed about each VM that is destroyed by the Hypervisor.
-    ///   + Bit\[7\] is used only if the following conditions are true. It is Reserved (MBZ) in all
+    ///   + Bit\[7\] is used only if the following conditions are true. It is Reserved (SBZ) in all
     ///     other scenarios.
     ///     * This ABI is invoked at the Non-secure physical FF-A instance.
     ///     * The partition is an SP that supports receipt of Direct requests i.e. Bit\[0\] = b'1.
     /// - Bit\[8\]: Partition runs in the AArch64 execution state.
-    /// - Bit\[10:9\] has the following encoding if Bit\[5:4\] = b'00. Reserved (MBZ) otherwise.
+    /// - Bit\[10:9\] has the following encoding if Bit\[5:4\] = b'00. Reserved (SBZ) otherwise.
     ///   + Bit\[9\]: Can receive Direct requests via the FFA_MSG_SEND_DIRECT_REQ2 ABI.
     ///   + Bit\[10\]: Can send Direct requests via the FFA_MSG_SEND_DIRECT_REQ2 ABI.
-    /// - Bit\[11\]: has the following encoding if Bit\[5:4\] = b'00. Reserved (MBZ) otherwise.
+    /// - Bit\[11\]: has the following encoding if Bit\[5:4\] = b'00. Reserved (SBZ) otherwise.
     ///   + Partition can undergo live activation.
-    /// - Bit\[12\]: has the following encoding if Bit\[5:4\] = b'00. Reserved (MBZ) otherwise.
+    /// - Bit\[12\]: has the following encoding if Bit\[5:4\] = b'00. Reserved (SBZ) otherwise.
     ///   + Partition requires CPU rendezvous to undergo live activation.
-    /// - Bit\[13\]: has the following encoding if Bit\[8\] = b'1. Reserved (MBZ) otherwise.
+    /// - Bit\[13\]: has the following encoding if Bit\[8\] = b'1. Reserved (SBZ) otherwise.
     ///   + Partition supports SMC64 CPU cycle management FIDs.
-    /// - Bit\[31:14\]: Reserved (MBZ).
+    /// - Bit\[31:14\]: Reserved (SBZ).
     pub(crate) partition_props: u32,
     /// Offset 8, length 16: A UUID associated with the partition, stream or auxiliary endpoint if
     /// the Nil UUID or the image UUID was specified as the input parameter. This field is Reserved
-    /// (MBZ) if a protocol UUID was specified as an input parameter.
+    /// (SBZ) if a protocol UUID was specified as an input parameter.
     pub(crate) protocol_uuid: [u8; 16],
     /// Offset 24, length 16: A UUID uniquely identifying partition image. The Nil UUID is used if
     /// the partition has not specified the image UUID.
     pub(crate) image_uuid: [u8; 16],
     /// Offset 40, length 4: Negotiated FF-A version.
-    /// - Bit\[31\]: Reserved (MBZ).
+    /// - Bit\[31\]: Reserved (SBZ).
     /// - Bits\[30:16\]: Major version number.
     /// - Bits\[15:0\]: Minor version number.
     pub(crate) partition_ffa_version: u32,

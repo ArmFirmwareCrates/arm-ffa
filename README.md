@@ -44,6 +44,12 @@ support for using more registers for argument passing and also the standardisati
 version renegotiation. To avoid adding complexity this crate implements the register usage
 convention as defined in FF-A v1.3, which might not be compatible with earlier versions.
 
+Following FF-A v1.3's reserved-field policy, conversion helpers ignore undefined (SBZ) fields on
+input and zero them on output. Validation still rejects invalid encodings in defined fields and
+enforces conditional MBZ requirements where the helper has the necessary context. Raw ABI-specific
+payloads and flags require the caller to apply any rules that depend on the originating ABI or
+transaction state.
+
 ## Implemented features
 
   * Register ABI conversion for supported FF-A interfaces.

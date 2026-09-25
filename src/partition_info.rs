@@ -19,8 +19,6 @@ pub enum Error {
     InvalidBufferSize,
     #[error("Malformed descriptor")]
     MalformedDescriptor,
-    #[error("Invalid FF-A Partition Info Get Flag {0}")]
-    InvalidPartitionInfoGetFlag(u32),
     #[error("Invalid Partition Info Get Regs response")]
     InvalidPartitionInfoGetRegsResponse,
 }
@@ -346,11 +344,15 @@ impl PartitionInfo {
                 desc_raw.exec_ctx_count_or_proxy_id,
             );
 
+            // Table 6.1: bit 31 is SBZ here, unlike FFA_VERSION's input version.
+            let partition_ffa_version =
+                Version::try_from(desc_raw.partition_ffa_version & 0x7fff_ffff)
+                    .map_err(|_| Error::MalformedDescriptor)?;
+
             Ok(Self {
                 protocol_uuid: UuidHelper::from_bytes_nonnil(desc_raw.protocol_uuid),
                 image_uuid: UuidHelper::from_bytes_nonnil(desc_raw.image_uuid),
-                partition_ffa_version: Version::try_from(desc_raw.partition_ffa_version)
-                    .map_err(|_| Error::MalformedDescriptor)?,
+                partition_ffa_version,
                 partition_id: desc_raw.partition_id,
                 partition_id_type,
                 props,
@@ -368,19 +370,12 @@ pub struct PartitionInfoGetFlags {
 
 impl PartitionInfoGetFlags {
     const RETURN_INFORMATION_TYPE_FLAG: u32 = 1 << 0;
-    const MBZ_BITS: u32 = 0xffff_fffe;
 }
 
-impl TryFrom<u32> for PartitionInfoGetFlags {
-    type Error = Error;
-
-    fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidPartitionInfoGetFlag(val))
-        } else {
-            Ok(Self {
-                count_only: val & Self::RETURN_INFORMATION_TYPE_FLAG != 0,
-            })
+impl From<u32> for PartitionInfoGetFlags {
+    fn from(flags: u32) -> Self {
+        Self {
+            count_only: flags & Self::RETURN_INFORMATION_TYPE_FLAG != 0,
         }
     }
 }

@@ -40,8 +40,6 @@ pub enum Error {
     InvalidNameFormat(u16),
     #[error("Invalid name")]
     InvalidName,
-    #[error("Invalid flags {0}")]
-    InvalidFlags(u16),
     #[error("Invalid header size or alignment")]
     InvalidHeader,
     #[error("Invalid buffer size")]
@@ -216,15 +214,10 @@ impl TryFrom<u16> for BootInfoFlags {
     type Error = Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        // bits[15:4]: Reserved (MBZ)
-        if value >> 4 == 0 {
-            Ok(Self {
-                contents_format: BootInfoContentsFormat::try_from(value)?,
-                name_format: BootInfoNameFormat::try_from(value)?,
-            })
-        } else {
-            Err(Error::InvalidFlags(value))
-        }
+        Ok(Self {
+            contents_format: BootInfoContentsFormat::try_from(value)?,
+            name_format: BootInfoNameFormat::try_from(value)?,
+        })
     }
 }
 

@@ -38,6 +38,7 @@ pub enum Interface {
         is_32bit: bool,
     },
     Version {
+        /// Ignored when querying the negotiated version; encoded as zero in that case.
         input_version: Version,
         flags: VersionFlags,
     },
@@ -46,6 +47,7 @@ pub enum Interface {
     },
     Features {
         feat_id: Feature,
+        /// Defined for function ID queries only; ignored and encoded as zero for Feature IDs.
         input_properties: u32,
     },
     RxAcquire {
@@ -56,6 +58,7 @@ pub enum Interface {
     },
     RxTxMap {
         addr: RxTxAddr,
+        /// Number of pages in bits\[5:0\]; upper bits are ignored and encoded as zero.
         page_cnt: u32,
     },
     RxTxUnmap {
@@ -68,6 +71,7 @@ pub enum Interface {
     PartitionInfoGetRegs {
         uuid: Uuid,
         start_index: u16,
+        /// Ignored and encoded as zero when `start_index` is zero.
         info_tag: u16,
     },
     IdGet,
@@ -406,13 +410,21 @@ impl Interface {
                 target_info: (regs[1] as u32).into(),
                 interrupt_id: regs[2] as u32,
             },
-            FuncId::Version => Self::Version {
-                input_version: (regs[1] as u32).try_into()?,
-                flags: (regs[2] as u32).try_into()?,
-            },
+            FuncId::Version => {
+                let flags = VersionFlags::try_from(regs[2] as u32)?;
+
+                Self::Version {
+                    input_version: flags.unpack_version(regs[1] as u32)?,
+                    flags,
+                }
+            }
             FuncId::Features => Self::Features {
                 feat_id: (regs[1] as u32).into(),
-                input_properties: regs[2] as u32,
+                input_properties: if regs[1] & (1 << 31) != 0 {
+                    regs[2] as u32
+                } else {
+                    0
+                },
             },
             FuncId::RxAcquire => Self::RxAcquire {
                 vm_id: regs[1] as u16,
@@ -425,7 +437,7 @@ impl Interface {
                     rx: regs[2] as u32,
                     tx: regs[1] as u32,
                 };
-                let page_cnt = regs[3] as u32;
+                let page_cnt = regs[3] as u32 & 0x3f;
 
                 Self::RxTxMap { addr, page_cnt }
             }
@@ -434,7 +446,7 @@ impl Interface {
                     rx: regs[2],
                     tx: regs[1],
                 };
-                let page_cnt = regs[3] as u32;
+                let page_cnt = regs[3] as u32 & 0x3f;
 
                 Self::RxTxMap { addr, page_cnt }
             }
@@ -451,7 +463,7 @@ impl Interface {
 
                 Self::PartitionInfoGet {
                     uuid: UuidHelper::from_u32_regs(uuid_words),
-                    flags: PartitionInfoGetFlags::try_from(regs[5] as u32)?,
+                    flags: PartitionInfoGetFlags::from(regs[5] as u32),
                 }
             }
             FuncId::PartitionInfoGetRegs => {
@@ -461,18 +473,14 @@ impl Interface {
                 Self::PartitionInfoGetRegs {
                     uuid: UuidHelper::from_u64_regs([regs[1], regs[2]]),
                     start_index,
-                    info_tag: if start_index == 0 && info_tag != 0 {
-                        return Err(Error::InvalidInformationTag(info_tag));
-                    } else {
-                        info_tag
-                    },
+                    info_tag: if start_index == 0 { 0 } else { info_tag },
                 }
             }
             FuncId::IdGet => Self::IdGet,
             FuncId::SpmIdGet => Self::SpmIdGet,
             FuncId::MsgWait32 | FuncId::MsgWait64 => Self::MsgWait {
                 is_32bit: matches!(func_id, FuncId::MsgWait32),
-                flags: MsgWaitFlags::try_from(regs[2] as u32)?,
+                flags: MsgWaitFlags::from(regs[2] as u32),
             },
             FuncId::Yield32 | FuncId::Yield64 => Self::Yield {
                 is_32bit: matches!(func_id, FuncId::Yield32),
@@ -492,17 +500,21 @@ impl Interface {
             },
             FuncId::MsgSend2 => Self::MsgSend2 {
                 sender_vm_id: (regs[1] >> 16) as u16,
-                flags: (regs[2] as u32).try_into()?,
+                flags: (regs[2] as u32).into(),
             },
             FuncId::MsgSendDirectReq32 => Self::MsgSendDirectReq {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
-                    match regs[2] as u32 {
-                        DirectMsgArgs::VERSION_REQ => DirectMsgArgs::VersionReq {
-                            version: Version::try_from(regs[3] as u32)?,
-                            flags: VersionFlags::try_from(regs[4] as u32)?,
-                        },
+                    match regs[2] as u32 & DirectMsgArgs::FWK_MSG_MASK {
+                        DirectMsgArgs::VERSION_REQ => {
+                            let flags = VersionFlags::try_from(regs[4] as u32)?;
+
+                            DirectMsgArgs::VersionReq {
+                                version: flags.unpack_version(regs[3] as u32)?,
+                                flags,
+                            }
+                        }
                         DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq32 {
                             params: [
                                 regs[3] as u32,
@@ -512,7 +524,7 @@ impl Interface {
                             ],
                         },
                         DirectMsgArgs::POWER_WARM_BOOT_REQ => DirectMsgArgs::PowerWarmBootReq {
-                            boot_type: WarmBootType::try_from(regs[3] as u32)?,
+                            boot_type: WarmBootType::try_from(regs[3] as u32 & 1)?,
                         },
                         DirectMsgArgs::VM_CREATED => DirectMsgArgs::VmCreated {
                             handle: memory_management::Handle::from([
@@ -544,7 +556,7 @@ impl Interface {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
-                    match regs[2] as u32 {
+                    match regs[2] as u32 & DirectMsgArgs::FWK_MSG_MASK {
                         DirectMsgArgs::VERSION_RESP => {
                             if regs[3] as i32 == VersionOut::SMCCC_NOT_SUPPORTED {
                                 DirectMsgArgs::VersionResp { version: None }
@@ -678,7 +690,7 @@ impl Interface {
             FuncId::MemRelinquish => Self::MemRelinquish,
             FuncId::MemReclaim => Self::MemReclaim {
                 handle: memory_management::Handle::from([regs[1] as u32, regs[2] as u32]),
-                flags: (regs[3] as u32).try_into()?,
+                flags: (regs[3] as u32).into(),
             },
             FuncId::MemPermGet32 => {
                 if (regs[2] as u32).checked_add(1).is_none() {
@@ -730,45 +742,26 @@ impl Interface {
                 frag_len: regs[3] as u32,
                 endpoint_id: (regs[4] >> 16) as u16,
             },
-            FuncId::ConsoleLog32 => {
-                let char_cnt = regs[1] as u8;
-                if char_cnt > ConsoleLogChars32::MAX_LENGTH {
-                    return Err(Error::InvalidCharacterCount(char_cnt));
-                }
-
-                Self::ConsoleLog {
-                    chars: ConsoleLogChars::Chars32(ConsoleLogChars32 {
-                        char_cnt,
-                        char_lists: [
-                            regs[2] as u32,
-                            regs[3] as u32,
-                            regs[4] as u32,
-                            regs[5] as u32,
-                            regs[6] as u32,
-                            regs[7] as u32,
-                        ],
-                    }),
-                }
-            }
-            FuncId::NotificationBitmapCreate => {
-                let tentative_vm_id = regs[1] as u32;
-                if (tentative_vm_id >> 16) != 0 {
-                    return Err(Error::InvalidVmId(tentative_vm_id));
-                }
-                Self::NotificationBitmapCreate {
-                    vm_id: tentative_vm_id as u16,
-                    vcpu_cnt: regs[2] as u32,
-                }
-            }
-            FuncId::NotificationBitmapDestroy => {
-                let tentative_vm_id = regs[1] as u32;
-                if (tentative_vm_id >> 16) != 0 {
-                    return Err(Error::InvalidVmId(tentative_vm_id));
-                }
-                Self::NotificationBitmapDestroy {
-                    vm_id: tentative_vm_id as u16,
-                }
-            }
+            FuncId::ConsoleLog32 => Self::ConsoleLog {
+                chars: ConsoleLogChars::Chars32(ConsoleLogChars32::from_raw_parts(
+                    regs[1] as u8,
+                    [
+                        regs[2] as u32,
+                        regs[3] as u32,
+                        regs[4] as u32,
+                        regs[5] as u32,
+                        regs[6] as u32,
+                        regs[7] as u32,
+                    ],
+                )?),
+            },
+            FuncId::NotificationBitmapCreate => Self::NotificationBitmapCreate {
+                vm_id: regs[1] as u16,
+                vcpu_cnt: regs[2] as u32,
+            },
+            FuncId::NotificationBitmapDestroy => Self::NotificationBitmapDestroy {
+                vm_id: regs[1] as u16,
+            },
             FuncId::NotificationBind => Self::NotificationBind {
                 sender_id: (regs[1] >> 16) as u16,
                 receiver_id: regs[1] as u16,
@@ -783,7 +776,7 @@ impl Interface {
             FuncId::NotificationSet => Self::NotificationSet {
                 sender_id: (regs[1] >> 16) as u16,
                 receiver_id: regs[1] as u16,
-                flags: (regs[2] as u32).try_into()?,
+                flags: (regs[2] as u32).into(),
                 bitmap: (regs[4] << 32) | (regs[3] & 0xffff_ffff),
             },
             FuncId::NotificationGet => Self::NotificationGet {
@@ -813,7 +806,7 @@ impl Interface {
                 src_id: (regs[1] >> 16) as u16,
                 dst_id: regs[1] as u16,
                 args: if (regs[2] & DirectMsgArgs::FWK_MSG_BITS as u64) != 0 {
-                    match regs[2] as u32 {
+                    match regs[2] as u32 & DirectMsgArgs::FWK_MSG_MASK {
                         DirectMsgArgs::POWER_PSCI_REQ => DirectMsgArgs::PowerPsciReq64 {
                             params: regs[3..7].try_into().unwrap(),
                         },
@@ -843,19 +836,12 @@ impl Interface {
                 dst_id: regs[1] as u16,
                 args: DirectMsg2Args(regs[4..18].try_into().unwrap()),
             },
-            FuncId::ConsoleLog64 => {
-                let char_cnt = regs[1] as u8;
-                if char_cnt > ConsoleLogChars64::MAX_LENGTH {
-                    return Err(Error::InvalidCharacterCount(char_cnt));
-                }
-
-                Self::ConsoleLog {
-                    chars: ConsoleLogChars::Chars64(ConsoleLogChars64 {
-                        char_cnt,
-                        char_lists: regs[2..18].try_into().unwrap(),
-                    }),
-                }
-            }
+            FuncId::ConsoleLog64 => Self::ConsoleLog {
+                chars: ConsoleLogChars::Chars64(ConsoleLogChars64::from_raw_parts(
+                    regs[1] as u8,
+                    regs[2..18].try_into().unwrap(),
+                )?),
+            },
 
             _ => panic!(
                 "Invalid number of registers (18) for function {:#x?}",
@@ -943,7 +929,7 @@ impl Interface {
                 input_version,
                 flags,
             } => {
-                a[1] = u32::from(*input_version).into();
+                a[1] = flags.pack_version(*input_version).into();
                 a[2] = u32::from(*flags).into();
             }
             Interface::VersionOut { output_version } => {
@@ -954,7 +940,9 @@ impl Interface {
                 input_properties,
             } => {
                 a[1] = u32::from(*feat_id).into();
-                a[2] = (*input_properties).into();
+                if a[1] & (1 << 31) != 0 {
+                    a[2] = (*input_properties).into();
+                }
             }
             Interface::RxAcquire { vm_id } | Interface::RxRelease { vm_id } => {
                 a[1] = (*vm_id).into();
@@ -970,7 +958,7 @@ impl Interface {
                         a[2] = *rx;
                     }
                 }
-                a[3] = (*page_cnt).into();
+                a[3] = (*page_cnt & 0x3f).into();
             }
             Interface::RxTxUnmap { id } => {
                 a[1] = (u32::from(*id) << 16).into();
@@ -989,11 +977,9 @@ impl Interface {
                 start_index,
                 info_tag,
             } => {
-                if *start_index == 0 && *info_tag != 0 {
-                    panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
-                }
                 [a[1], a[2]] = UuidHelper::to_u64_regs(*uuid);
-                a[3] = (u64::from(*info_tag) << 16) | u64::from(*start_index);
+                let info_tag = if *start_index == 0 { 0 } else { *info_tag };
+                a[3] = (u64::from(info_tag) << 16) | u64::from(*start_index);
             }
             Interface::MsgWait { flags, .. } => {
                 a[2] = u32::from(*flags).into();
@@ -1030,7 +1016,7 @@ impl Interface {
                     }
                     DirectMsgArgs::VersionReq { version, flags } => {
                         a[2] = DirectMsgArgs::VERSION_REQ.into();
-                        a[3] = u32::from(*version).into();
+                        a[3] = flags.pack_version(*version).into();
                         a[4] = u32::from(*flags).into();
                     }
                     DirectMsgArgs::PowerPsciReq32 { params } => {
@@ -1413,7 +1399,7 @@ mod tests {
             | ((uuid_bytes[9] as u64) << 8)
             | (uuid_bytes[8] as u64);
 
-        // First, test for wrong tag:
+        // An initial request ignores the SBZ information tag.
         {
             let mut regs = [0u64; 18];
             regs[0] = FuncId::PartitionInfoGetRegs as u64;
@@ -1421,9 +1407,17 @@ mod tests {
             regs[2] = reg_x2;
             regs[3] = test_info_tag << 16;
 
-            assert!(Interface::try_from(&regs[..]).is_err_and(
-                |e| e == Error::InvalidInformationTag(test_info_tag.try_into().unwrap())
+            let interface = Interface::try_from(&regs[..]).unwrap();
+            assert!(matches!(
+                interface,
+                Interface::PartitionInfoGetRegs {
+                    start_index: 0,
+                    info_tag: 0,
+                    ..
+                }
             ));
+            interface.to_regs(&mut regs);
+            assert_eq!(regs[3], 0);
         }
 
         // Test for regs -> Interface -> regs
@@ -1791,9 +1785,9 @@ mod tests {
                     rx: 0xbeef,
                     tx: 0xfeed_dead
                 },
-                page_cnt: 0x1234_abcd
+                page_cnt: 0x0d
             },
-            [0x84000066, 0xfeed_dead, 0xbeef, 0x1234_abcd]
+            [0x84000066, 0xfeed_dead, 0xbeef, 0x0d]
         );
         test_regs_serde!(
             Interface::RxTxMap {
@@ -1801,14 +1795,9 @@ mod tests {
                     rx: 0xdead_1234_beef,
                     tx: 0xaaaa_bbbb_feed_dead
                 },
-                page_cnt: 0x1234_abcd
+                page_cnt: 0x0d
             },
-            [
-                0xC4000066,
-                0xaaaa_bbbb_feed_dead,
-                0xdead_1234_beef,
-                0x1234_abcd
-            ]
+            [0xC4000066, 0xaaaa_bbbb_feed_dead, 0xdead_1234_beef, 0x0d]
         );
     }
 
