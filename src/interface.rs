@@ -42,6 +42,10 @@ pub enum Interface {
         input_version: Version,
         flags: VersionFlags,
     },
+    /// Response to `FFA_VERSION`, with a version or SMCCC error code in w0.
+    ///
+    /// This response has no function ID, so [`Interface::try_from`] cannot decode it.
+    /// Decode w0 using [`VersionOut::try_from`] instead.
     VersionOut {
         output_version: VersionOut,
     },
@@ -210,6 +214,9 @@ pub enum Interface {
     El3IntrHandle,
 }
 
+/// Decodes an interface whose first register contains a function ID.
+///
+/// `FFA_VERSION` responses have no function ID; decode their w0 with [`VersionOut::try_from`].
 impl TryFrom<&[u64]> for Interface {
     type Error = crate::Error;
 
@@ -557,15 +564,9 @@ impl Interface {
                 dst_id: regs[1] as u16,
                 args: if (regs[2] as u32 & DirectMsgArgs::FWK_MSG_BITS) != 0 {
                     match regs[2] as u32 & DirectMsgArgs::FWK_MSG_MASK {
-                        DirectMsgArgs::VERSION_RESP => {
-                            if regs[3] as i32 == VersionOut::SMCCC_NOT_SUPPORTED {
-                                DirectMsgArgs::VersionResp { version: None }
-                            } else {
-                                DirectMsgArgs::VersionResp {
-                                    version: Some(Version::try_from(regs[3] as u32)?),
-                                }
-                            }
-                        }
+                        DirectMsgArgs::VERSION_RESP => DirectMsgArgs::VersionResp {
+                            version: VersionOut::try_from(regs[3] as u32)?,
+                        },
                         DirectMsgArgs::POWER_PSCI_RESP => DirectMsgArgs::PowerPsciResp {
                             psci_status: regs[3] as i32,
                         },
@@ -1070,10 +1071,7 @@ impl Interface {
                     }
                     DirectMsgArgs::VersionResp { version } => {
                         a[2] = DirectMsgArgs::VERSION_RESP.into();
-                        match version {
-                            None => a[3] = (i32::from(FfaError::NotSupported) as u32).into(),
-                            Some(ver) => a[3] = u32::from(*ver).into(),
-                        }
+                        a[3] = u32::from(*version).into();
                     }
                     DirectMsgArgs::PowerPsciResp { psci_status } => {
                         a[2] = DirectMsgArgs::POWER_PSCI_RESP.into();
@@ -1720,15 +1718,100 @@ mod tests {
 
     #[test]
     fn ffa_version_serde() {
-        test_regs_serde!(
-            Interface::Version {
-                input_version: Version::V1_3,
-                flags: VersionFlags {
-                    query_type: VersionQueryType::QueryCompatibility
-                }
-            },
-            [0x84000063, 0x0001_0003, 0x0000_0001]
-        );
+        for (query_type, flags, input_version, raw_version) in [
+            (VersionQueryType::Negotiate, 0, Version::V1_3, 0x0001_0003),
+            (VersionQueryType::Negotiate, 0, Version::NULL, 0),
+            (
+                VersionQueryType::QueryCompatibility,
+                1,
+                Version::V1_3,
+                0x0001_0003,
+            ),
+            (VersionQueryType::QueryNegotiated, 2, Version::NULL, 0),
+        ] {
+            test_regs_serde!(
+                Interface::Version {
+                    input_version,
+                    flags: VersionFlags { query_type }
+                },
+                [0x84000063, raw_version, flags]
+            );
+            test_regs_serde!(
+                Interface::MsgSendDirectReq {
+                    src_id: 0xdead,
+                    dst_id: 0xbeef,
+                    args: DirectMsgArgs::VersionReq {
+                        version: input_version,
+                        flags: VersionFlags { query_type }
+                    }
+                },
+                [0x8400006f, 0xdead_beef, 0x8000_0008, raw_version, flags]
+            );
+        }
+    }
+
+    #[test]
+    fn ffa_version_query_validation() {
+        for (mut regs, version_reg, flags_reg) in [
+            ([0x84000063, 0, 0, 0, 0, 0, 0, 0], 1, 2),
+            ([0x8400006f, 0xdead_beef, 0x8000_0008, 0, 0, 0, 0, 0], 3, 4),
+        ] {
+            // Bit 31 is MBZ for negotiation and compatibility queries.
+            for flags in [0, 1] {
+                regs[flags_reg] = flags;
+                regs[version_reg] = 0x8001_0003;
+                assert_eq!(
+                    Interface::try_from(&regs[..]),
+                    Err(Error::InvalidVersion(0x8001_0003))
+                );
+            }
+
+            // Query type 3 is invalid even with an otherwise valid input version.
+            regs[flags_reg] = 3;
+            regs[version_reg] = 0x0001_0003;
+            assert_eq!(
+                Interface::try_from(&regs[..]),
+                Err(Error::InvalidVersionQueryType(3))
+            );
+
+            // Table 13.5 makes the entire input version SBZ for QueryNegotiated.
+            // Both it and the undefined flag bits must be ignored and zeroed.
+            regs[flags_reg] = 0xffff_ffff_ffff_fffe;
+            regs[version_reg] = u64::MAX;
+            let interface = Interface::try_from(&regs[..]).unwrap();
+            let input_version = match interface {
+                Interface::Version { input_version, .. } => input_version,
+                Interface::MsgSendDirectReq {
+                    args: DirectMsgArgs::VersionReq { version, .. },
+                    ..
+                } => version,
+                _ => panic!("Expected a version request"),
+            };
+            assert_eq!(input_version, Version::NULL);
+
+            let mut encoded = [u64::MAX; 8];
+            interface.to_regs(&mut encoded);
+            regs[flags_reg] = 2;
+            regs[version_reg] = 0;
+            assert_eq!(encoded, regs);
+        }
+    }
+
+    #[test]
+    fn ffa_version_out() {
+        for (output_version, raw) in [
+            (VersionOut::Version(Version::NULL), 0),
+            (VersionOut::Version(Version::V1_3), 0x0001_0003),
+            (VersionOut::NotSupported, 0xffff_ffff),
+            (VersionOut::InvalidParameter, 0xffff_fffd),
+        ] {
+            let interface = Interface::VersionOut { output_version };
+            let mut regs = [u64::MAX; 8];
+            interface.to_regs(&mut regs);
+            assert_eq!(regs, [raw, 0, 0, 0, 0, 0, 0, 0]);
+            // Version replies have no FID: decode w0 directly.
+            assert_eq!(VersionOut::try_from(regs[0] as u32), Ok(output_version));
+        }
     }
 
     #[test]
@@ -2201,48 +2284,44 @@ mod tests {
     }
 
     #[test]
-    fn ffa_version_req() {
-        test_regs_serde!(
-            Interface::MsgSendDirectReq {
+    fn ffa_version_resp() {
+        for (version, raw) in [
+            (VersionOut::Version(Version::NULL), 0),
+            (VersionOut::Version(Version::V1_3), 0x0001_0003),
+            (VersionOut::NotSupported, 0xffff_ffff),
+            (VersionOut::InvalidParameter, 0xffff_fffd),
+        ] {
+            let interface = Interface::MsgSendDirectResp {
                 src_id: 0xdead,
                 dst_id: 0xbeef,
-                args: DirectMsgArgs::VersionReq {
-                    version: Version::V1_3,
-                    flags: VersionFlags {
-                        query_type: VersionQueryType::QueryCompatibility
-                    }
-                }
-            },
-            [
-                0x8400006F,
+                args: DirectMsgArgs::VersionResp { version },
+            };
+            test_regs_serde!(interface, [0x84000070, 0xdead_beef, 0x8000_0009, raw]);
+
+            // Only w3 is meaningful, irrespective of the high bits of x3.
+            let regs = [
+                0x84000070,
                 0xdead_beef,
-                0x8000_0008,
-                0x0001_0003,
-                0x0000_0001
-            ]
-        );
+                0x8000_0009,
+                0xffff_ffff_0000_0000 | raw,
+                0,
+                0,
+                0,
+                0,
+            ];
+            assert_eq!(Interface::try_from(&regs[..]), Ok(interface));
+        }
     }
 
     #[test]
-    fn ffa_version_resp() {
-        test_regs_serde!(
-            Interface::MsgSendDirectResp {
-                src_id: 0xdead,
-                dst_id: 0xbeef,
-                args: DirectMsgArgs::VersionResp {
-                    version: Some(Version::V1_2)
-                }
-            },
-            [0x84000070, 0xdead_beef, 0x8000_0009, 0x0001_0002]
-        );
-        test_regs_serde!(
-            Interface::MsgSendDirectResp {
-                src_id: 0xdead,
-                dst_id: 0xbeef,
-                args: DirectMsgArgs::VersionResp { version: None }
-            },
-            [0x84000070, 0xdead_beef, 0x8000_0009, u32::MAX as u64]
-        );
+    fn ffa_version_resp_rejects_invalid_encodings() {
+        for raw in [0xffff_fffe, 0xffff_fffc, 0x8000_0000, 0x8001_0003] {
+            let regs = [0x84000070, 0xdead_beef, 0x8000_0009, raw, 0, 0, 0, 0];
+            assert_eq!(
+                Interface::try_from(&regs[..]),
+                Err(Error::InvalidVersion(raw as u32))
+            );
+        }
     }
 
     #[test]

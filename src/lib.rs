@@ -416,12 +416,17 @@ impl Display for Version {
     }
 }
 
-/// Enum for storing the response of an FFA_VERSION request. It can either contain a `Version` or
-/// a `NOT_SUPPORTED` error code.
+/// Response to an `FFA_VERSION` request or its forwarded framework message.
+///
+/// FF-A v1.3 BET0 Tables 13.6-13.7 and 13.10 define the response encodings; errors use
+/// SMCCC codes rather than [`FfaError`] codes.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum VersionOut {
+    /// A returned version, including [`Version::NULL`] if no version is negotiated.
     Version(Version),
+    /// SMCCC `NOT_SUPPORTED` (-1).
     NotSupported,
+    /// SMCCC `INVALID_PARAMETER` (-3), distinct from FF-A `INVALID_PARAMETERS` (-2).
     InvalidParameter,
 }
 
@@ -436,10 +441,10 @@ impl TryFrom<u32> for VersionOut {
     type Error = Error;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value == i32::from(FfaError::NotSupported) as u32 {
-            Ok(Self::NotSupported)
-        } else {
-            Ok(Self::Version(Version::try_from(value)?))
+        match value as i32 {
+            Self::SMCCC_NOT_SUPPORTED => Ok(Self::NotSupported),
+            Self::SMCCC_INVALID_PARAMETER => Ok(Self::InvalidParameter),
+            _ => Ok(Self::Version(Version::try_from(value)?)),
         }
     }
 }
@@ -490,6 +495,32 @@ pub(crate) mod tests {
 
     #[repr(align(8))]
     pub(crate) struct AlignedBuffer<const N: usize>(pub [u8; N]);
+
+    #[test]
+    fn version_out_serde() {
+        for (version, raw) in [
+            (VersionOut::Version(Version::NULL), 0),
+            (VersionOut::Version(Version::V1_3), 0x0001_0003),
+            (
+                VersionOut::Version(Version::new(0x7fff, 0xffff).unwrap()),
+                0x7fff_ffff,
+            ),
+            (VersionOut::NotSupported, 0xffff_ffff),
+            (VersionOut::InvalidParameter, 0xffff_fffd),
+        ] {
+            assert_eq!(VersionOut::try_from(raw), Ok(version));
+            assert_eq!(u32::from(version), raw);
+        }
+    }
+
+    #[test]
+    fn version_out_rejects_invalid_encodings() {
+        // FF-A error codes (e.g. INVALID_PARAMETERS: -2, BUSY: -4) are not valid FFA_VERSION result
+        // encodings, and should be rejected. Also, bit 31 must be zero for valid version encodings.
+        for raw in [0xffff_fffe, 0xffff_fffc, 0x8000_0000, 0x8001_0003] {
+            assert_eq!(VersionOut::try_from(raw), Err(Error::InvalidVersion(raw)));
+        }
+    }
 
     #[test]
     fn ffa_uuid_helpers() {

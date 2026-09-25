@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use arm_ffa::{
-    FfaError, FuncId, Interface, Version,
+    FfaError, FuncId, Interface, Version, VersionOut,
     boot_info::{
         BootInfo, BootInfoContents, BootInfoImpdefId, BootInfoName, BootInfoStdId, BootInfoType,
     },
@@ -260,7 +260,21 @@ fn interface() {
             src_id,
             dst_id,
             args: DirectMsgArgs::VersionResp {
-                version: Some(Version::V1_2),
+                version: VersionOut::Version(Version::V1_2),
+            },
+        },
+        Interface::MsgSendDirectResp {
+            src_id,
+            dst_id,
+            args: DirectMsgArgs::VersionResp {
+                version: VersionOut::NotSupported,
+            },
+        },
+        Interface::MsgSendDirectResp {
+            src_id,
+            dst_id,
+            args: DirectMsgArgs::VersionResp {
+                version: VersionOut::InvalidParameter,
             },
         },
         Interface::MsgSendDirectReq {

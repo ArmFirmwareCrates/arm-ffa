@@ -3,7 +3,7 @@
 
 //! Data structures for describing the parameters of the various FF-A interfaces.
 
-use crate::{Error, FfaError, FuncId, Version, memory_management};
+use crate::{Error, FfaError, FuncId, Version, VersionOut, memory_management};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
@@ -336,13 +336,14 @@ pub enum DirectMsgArgs {
     Args64([u64; 15]),
     /// Message for forwarding FFA_VERSION call from Normal world to the SPMC
     VersionReq {
+        /// Ignored when querying the negotiated version; encoded as zero in that case.
         version: Version,
         flags: VersionFlags,
     },
-    /// Response message to forwarded FFA_VERSION call from the Normal world
-    /// Contains the version returned by the SPMC or None
+    /// Response to a forwarded FFA_VERSION call from the Normal world (Table 13.10).
+    /// Contains the version or SMCCC error code returned by the SPMC.
     VersionResp {
-        version: Option<Version>,
+        version: VersionOut,
     },
     /// Message for a power management operation initiated by a PSCI function
     PowerPsciReq32 {

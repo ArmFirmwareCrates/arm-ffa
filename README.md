@@ -50,6 +50,12 @@ enforces conditional MBZ requirements where the helper has the necessary context
 payloads and flags require the caller to apply any rules that depend on the originating ABI or
 transaction state.
 
+`FFA_VERSION` responses return a version or SMCCC error code directly in `w0`, without a function
+ID. Decode them with `VersionOut::try_from(regs[0] as u32)`; `Interface::try_from` expects a function
+ID. Forwarded framework version responses use `DirectMsgArgs::VersionResp { version: VersionOut }`
+and can be decoded through `Interface::try_from`. Both response forms support `NOT_SUPPORTED` (-1)
+and `INVALID_PARAMETER` (-3), which are SMCCC codes rather than FF-A error codes.
+
 ## Implemented features
 
   * Register ABI conversion for supported FF-A interfaces.
