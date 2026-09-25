@@ -342,7 +342,13 @@ pub struct MemAccessPerm {
     pub endpoint_id: u16,
     pub instr_access: InstuctionAccessPerm,
     pub data_access: DataAccessPerm,
-    pub flags: u8, // TODO
+    /// ABI-specific flags. Only bit 0 is defined; other bits are ignored and encoded as zero.
+    pub flags: u8,
+}
+
+impl MemAccessPerm {
+    // Table 1.17: non-retrieval Borrower flag. Its conditional MBZ rules depend on the ABI.
+    const FLAGS_MASK: u8 = 1;
 }
 
 /// Constituent memory region descriptor.
@@ -352,11 +358,17 @@ pub struct ConstituentMemRegion {
     pub page_cnt: u32,
 }
 
-/// Flags of a memory management transaction.
+/// ABI-specific memory transaction flags.
+///
+/// Descriptor conversion ignores and clears bits undefined in every supported ABI. The caller
+/// must apply the rules specific to the ABI and transaction, including conditional SBZ/MBZ fields.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MemTransactionFlags(pub u32);
 
 impl MemTransactionFlags {
+    // Union of defined bits in Tables 1.21-1.23, including retrieve request bit 10.
+    const DEFINED_BITS: u32 = 0x7ff;
+
     pub const MEM_SHARE_MASK: u32 = 0b11;
     pub const MEM_RETRIEVE_REQ_MASK: u32 = 0b11_1111_1111;
     pub const MEM_RETRIEVE_RESP_MASK: u32 = 0b1_1111;
@@ -409,7 +421,7 @@ impl MemTransactionDesc {
         let transaction_desc_raw = memory_transaction_descriptor {
             sender_endpoint_id: self.sender_id,
             memory_region_attributes: self.mem_region_attr.into(),
-            flags: self.flags.0,
+            flags: self.flags.0 & MemTransactionFlags::DEFINED_BITS,
             handle: self.handle.0,
             tag: self.tag,
             endpoint_mem_access_desc_size: mem_access_desc_size as u32,
@@ -436,7 +448,7 @@ impl MemTransactionDesc {
                 access_perm_desc: memory_access_permission_descriptor {
                     endpoint_id: desc.endpoint_id,
                     memory_access_permissions: desc.data_access as u8 | desc.instr_access as u8,
-                    flags: desc.flags,
+                    flags: desc.flags & MemAccessPerm::FLAGS_MASK,
                 },
                 composite_offset: composite_offset as u32,
                 impdef_info: [0; 16],
@@ -540,7 +552,9 @@ impl MemTransactionDesc {
         let transaction_desc = Self {
             sender_id: transaction_desc_raw.sender_endpoint_id,
             mem_region_attr: transaction_desc_raw.memory_region_attributes.try_into()?,
-            flags: MemTransactionFlags(transaction_desc_raw.flags),
+            flags: MemTransactionFlags(
+                transaction_desc_raw.flags & MemTransactionFlags::DEFINED_BITS,
+            ),
             handle: Handle(transaction_desc_raw.handle),
             tag: transaction_desc_raw.tag,
         };
@@ -551,7 +565,7 @@ impl MemTransactionDesc {
                 endpoint_id: desc_raw.access_perm_desc.endpoint_id,
                 instr_access: perm_raw.memory_access_permissions.try_into()?,
                 data_access: perm_raw.memory_access_permissions.try_into()?,
-                flags: desc_raw.access_perm_desc.flags,
+                flags: desc_raw.access_perm_desc.flags & MemAccessPerm::FLAGS_MASK,
             })
         });
 
@@ -600,12 +614,16 @@ impl MemTransactionDesc {
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct MemRelinquishDesc<'a> {
     pub handle: Handle,
+    /// Zero-memory and time-slicing flags in bits\[1:0\]; upper bits are ignored and encoded as
+    /// zero.
     pub flags: u32,
     pub endpoints: &'a [u16],
 }
 
 impl<'a> MemRelinquishDesc<'a> {
     const ENDPOINT_ARRAY_OFFSET: usize = size_of::<memory_relinquish_descriptor>();
+    // Table 2.25: zero-memory and operation time-slicing flags.
+    const FLAGS_MASK: u32 = 0b11;
 
     /// Serialize memory relinquish descriptor and the endpoint IDs into a buffer.
     ///
@@ -614,7 +632,7 @@ impl<'a> MemRelinquishDesc<'a> {
         debug_assert!(buf.as_ptr().addr().is_multiple_of(8));
         let (desc_raw, endpoint_buf) = memory_relinquish_descriptor::mut_from_prefix(buf).unwrap();
         desc_raw.handle = self.handle.0;
-        desc_raw.flags = self.flags;
+        desc_raw.flags = self.flags & Self::FLAGS_MASK;
         desc_raw.endpoint_count = self.endpoints.len().try_into().unwrap();
 
         <[u16]>::mut_from_prefix_with_elems(endpoint_buf, self.endpoints.len())
@@ -640,7 +658,7 @@ impl<'a> MemRelinquishDesc<'a> {
 
         Ok(Self {
             handle: Handle(desc_raw.handle),
-            flags: desc_raw.flags, // TODO: validate
+            flags: desc_raw.flags & Self::FLAGS_MASK,
             endpoints,
         })
     }
