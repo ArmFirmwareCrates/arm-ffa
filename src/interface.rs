@@ -1851,6 +1851,20 @@ mod tests {
     }
 
     #[test]
+    fn ffa_features_unknown_function_id_serde() {
+        // Bit 31 selects a function ID even when its low byte matches a known feature ID.
+        for func_id in [0x84000101, 0x84000102, 0x84000103] {
+            test_regs_serde!(
+                Interface::Features {
+                    feat_id: Feature::Unknown(func_id),
+                    input_properties: 32
+                },
+                [0x84000064, u64::from(func_id), 32]
+            );
+        }
+    }
+
+    #[test]
     fn ffa_rx_acquire_serde() {
         test_regs_serde!(Interface::RxAcquire { vm_id: 0xbeef }, [0x84000084, 0xbeef]);
     }

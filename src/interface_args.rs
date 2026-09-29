@@ -103,13 +103,11 @@ impl Feature {
 
 impl From<u32> for Feature {
     fn from(value: u32) -> Self {
-        // Bit[31] is set for all valid FF-A function IDs so we don't have to check it separately
-        if let Ok(func_id) = value.try_into() {
-            Self::FuncId(func_id)
-        } else if let Ok(feat_id) = (value as u8).try_into() {
-            Self::FeatureId(feat_id)
+        if value & (1 << 31) != 0 {
+            FuncId::try_from(value).map_or(Self::Unknown(value), Self::FuncId)
         } else {
-            Self::Unknown(Self::normalize_id(value))
+            FeatureId::try_from(value as u8)
+                .map_or(Self::Unknown(Self::normalize_id(value)), Self::FeatureId)
         }
     }
 }
