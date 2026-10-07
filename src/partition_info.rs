@@ -260,7 +260,10 @@ impl PartitionInfo {
     pub const DESC_SIZE: usize = size_of::<partition_info_descriptor>();
 
     /// Serialize a list of partition information descriptors into a buffer.
+    ///
+    /// `buf` must be at least 8 byte aligned.
     pub fn pack(descriptors: &[PartitionInfo], buf: &mut [u8]) {
+        debug_assert!(buf.as_ptr().addr().is_multiple_of(8));
         let (out_descriptors, _) =
             <[partition_info_descriptor]>::mut_from_prefix_with_elems(buf, descriptors.len())
                 .unwrap();
@@ -281,10 +284,14 @@ impl PartitionInfo {
         }
     }
 
+    /// Deserialize a list of partition information descriptors from a buffer.
+    ///
+    /// `buf` must be at least 8 byte aligned.
     pub fn unpack<'a>(
         buf: &'a [u8],
         count: usize,
     ) -> Result<impl ExactSizeIterator<Item = Result<Self, Error>> + 'a, Error> {
+        debug_assert!(buf.as_ptr().addr().is_multiple_of(8));
         let (descriptors, _) =
             <[partition_info_descriptor]>::ref_from_prefix_with_elems(buf, count)
                 .map_err(|_| Error::InvalidBufferSize)?;
@@ -448,6 +455,8 @@ impl TryFrom<SuccessArgs> for SuccessArgsPartitionInfoGetRegs {
 
 #[cfg(test)]
 mod tests {
+    use crate::tests::AlignedBuffer;
+
     use super::*;
     use uuid::uuid;
 
@@ -501,10 +510,10 @@ mod tests {
             },
         };
 
-        let mut buf = [0u8; 0xff];
-        PartitionInfo::pack(&[desc1, desc2], &mut buf);
+        let buf = &mut AlignedBuffer([0u8; 0xff]).0;
+        PartitionInfo::pack(&[desc1, desc2], buf);
 
-        let mut descriptors = PartitionInfo::unpack(&buf, 2).unwrap();
+        let mut descriptors = PartitionInfo::unpack(buf, 2).unwrap();
         let desc1_check = descriptors.next().unwrap().unwrap();
         let desc2_check = descriptors.next().unwrap().unwrap();
 

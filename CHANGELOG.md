@@ -9,6 +9,7 @@
 - Add an `FFA_SUCCESS` interface helper with arguments.
 - Refactor unpack functions to use `map` instead of making custom iterator classes by hand.
 - Add fuzzers for serializer/deserializer functions.
+- Serializer/deserializer functions now assume provided buffers are at least 8 byte aligned.
 
 ## 0.5.0
 

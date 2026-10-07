@@ -7,7 +7,7 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
 
 /// Table 5.8: Boot information descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct boot_info_descriptor {
     /// Offset 0, length 16: Name of boot information passed to the consumer.
     pub(crate) name: [u8; 16],
@@ -61,7 +61,7 @@ pub(crate) struct boot_info_descriptor {
 
 /// Table 5.9: Boot information header
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct boot_info_header {
     /// Offset 0, length 4: Hexadecimal value 0x0FFA to identify the header.
     pub(crate) signature: u32,
@@ -81,7 +81,7 @@ pub(crate) struct boot_info_header {
 
 /// Table 6.1: Partition information descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct partition_info_descriptor {
     /// Offset 0, length 2: 16-bit ID of the partition, stream or auxiliary endpoint.
     pub(crate) partition_id: u16,
@@ -143,7 +143,7 @@ pub(crate) struct partition_info_descriptor {
 
 /// Table 1.13: Composite memory region descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct composite_memory_region_descriptor {
     /// Offset 0, length 4: Size of the memory region described as the count of 4K pages. Must be
     /// equal to the sum of page counts specified in each constituent memory region descriptor.
@@ -157,7 +157,7 @@ pub(crate) struct composite_memory_region_descriptor {
 
 /// Table 1.14: Constituent memory region descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct constituent_memory_region_descriptor {
     /// Offset 0, length 8: Base VA, PA or IPA of constituent memory region aligned to the page size
     /// (4K) granularity.
@@ -170,7 +170,7 @@ pub(crate) struct constituent_memory_region_descriptor {
 
 /// Table 1.15: Memory access permissions descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct memory_access_permission_descriptor {
     /// Offset 0, length 2: 16-bit ID of endpoint to which the memory access permissions apply.
     pub(crate) endpoint_id: u16,
@@ -193,7 +193,7 @@ pub(crate) struct memory_access_permission_descriptor {
 
 /// Table 1.16: Endpoint memory access descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct endpoint_memory_access_descriptor {
     /// Offset 0, length 4: Memory access permissions descriptor as specified in Table 1.15.
     pub(crate) access_perm_desc: memory_access_permission_descriptor,
@@ -211,7 +211,7 @@ pub(crate) struct endpoint_memory_access_descriptor {
 
 /// Table 1.20: Memory transaction descriptor
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct memory_transaction_descriptor {
     /// Offset 0, length 2: ID of the Owner endpoint.
     pub(crate) sender_endpoint_id: u16,
@@ -236,7 +236,7 @@ pub(crate) struct memory_transaction_descriptor {
 
 /// Table 2.25: Descriptor to relinquish a memory region
 #[derive(Default, FromBytes, Immutable, IntoBytes, KnownLayout)]
-#[repr(C, packed)]
+#[repr(C)]
 pub(crate) struct memory_relinquish_descriptor {
     /// Offset 0, length 8: Globally unique Handle to identify a memory region.
     pub(crate) handle: u64,

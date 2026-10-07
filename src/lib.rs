@@ -482,6 +482,9 @@ pub(crate) mod tests {
     }
     pub(crate) use test_args_serde;
 
+    #[repr(align(8))]
+    pub(crate) struct AlignedBuffer<const N: usize>(pub [u8; N]);
+
     #[test]
     fn ffa_uuid_helpers() {
         const UUID: Uuid = uuid!("a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8");
