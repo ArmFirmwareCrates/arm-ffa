@@ -29,7 +29,11 @@ use arm_ffa::{
         SuccessArgsPartitionInfoGet, SuccessArgsPartitionInfoGetRegs,
     },
 };
-use std::path::PathBuf;
+use std::{
+    fs::{create_dir_all, read_dir},
+    path::PathBuf,
+    process::Command,
+};
 use uuid::uuid;
 use zerocopy::transmute_ref;
 
@@ -462,6 +466,33 @@ fn interface() {
     }
 }
 
+fn manifest() {
+    let project_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let src_dir = project_dir.join("fuzz/corpus-src");
+    let dst_dir = project_dir.join("fuzz/corpus/manifest");
+
+    create_dir_all(&dst_dir).unwrap();
+
+    for entry in read_dir(src_dir).unwrap() {
+        let path = entry.unwrap().path();
+
+        if path.extension().is_none_or(|ext| ext != "dts") {
+            continue;
+        }
+
+        let output = dst_dir
+            .join(path.file_name().unwrap())
+            .with_extension("dtb");
+
+        Command::new("dtc")
+            .args(["-I", "dts", "-O", "dtb", "-o"])
+            .arg(&output)
+            .arg(&path)
+            .status()
+            .unwrap();
+    }
+}
+
 /// Generates seed corpus for the `mem_relinquish_desc` fuzz target.
 fn mem_relinquish() {
     let mut writer = make_corpus_writer("mem_relinquish_desc");
@@ -694,6 +725,7 @@ fn success_args() {
 fn main() {
     boot_info();
     interface();
+    manifest();
     mem_relinquish();
     mem_transaction();
     partition_info();

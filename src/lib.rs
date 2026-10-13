@@ -27,7 +27,7 @@ pub const FFA_PAGE_SIZE_4K: usize = 4096;
 
 /// Rich error types returned by this module. Should be converted to [`crate::FfaError`] when used
 /// with the `FFA_ERROR` interface.
-#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("Unrecognised FF-A function ID {0}")]
     UnrecognisedFunctionId(u32),
@@ -67,6 +67,8 @@ pub enum Error {
     NotificationError(#[from] notification::Error),
     #[error("Partition info error")]
     PartitionInfoError(#[from] partition_info::Error),
+    #[error("Manifest error")]
+    ManifestError(#[from] manifest::Error),
 }
 
 impl From<Error> for FfaError {
@@ -91,6 +93,7 @@ impl From<Error> for FfaError {
             Error::MemoryManagementError(error) => error.into(),
             Error::NotificationError(error) => error.into(),
             Error::PartitionInfoError(error) => error.into(),
+            Error::ManifestError(error) => error.into(),
         }
     }
 }

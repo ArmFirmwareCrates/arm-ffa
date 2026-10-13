@@ -1,0 +1,21 @@
+// SPDX-FileCopyrightText: Copyright The arm-ffa Contributors.
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
+/dts-v1/;
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	compatible = "arm,ffa-core-manifest-1.0";
+
+	attribute {
+		spmc_id = <0x8000>;
+		maj_ver = <0x1>;
+		min_ver = <0x3>;
+		exec_state = <0x0>;
+		load_address = <0x0 0x6000000>;
+		entrypoint = <0x0 0x6000000>;
+		binary_size = <0x80000>;
+	};
+};

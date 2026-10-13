@@ -12,6 +12,7 @@ checksum = "c3d036a3c4ab069c7b410a2ce876bd74808d2d0888a82667669f8e783a898bf1"
 name = "arm-ffa"
 version = "0.5.0"
 dependencies = [
+ "dtoolkit",
  "num_enum",
  "thiserror",
  "uuid",
@@ -49,6 +50,17 @@ name = "cfg-if"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
+
+[[package]]
+name = "dtoolkit"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92bf83b2e0ec7e0c267f6fea4f49c1beab10d65f9c04532edcebeb7a4a0cc1d6"
+dependencies = [
+ "thiserror",
+ "zerocopy",
+ "zerocopy-derive",
+]
 
 [[package]]
 name = "getrandom"

@@ -1,12 +1,34 @@
 // SPDX-FileCopyrightText: Copyright The arm-ffa Contributors.
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! FF-A manifest data structures.
+//! FF-A manifest data structures and parsing.
 //!
 //! This module defines the data structures used to represent FF-A partition and SPMC manifests.
+//! Optionally, it provides a parser for manifests in the flattened device tree (FDT) format.
+
+#[cfg(feature = "manifest-fdt")]
+pub mod fdt;
 
 use crate::Version;
+use thiserror::Error;
 use uuid::Uuid;
+
+/// Error type for manifest parsing and validation.
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[cfg(feature = "manifest-fdt")]
+    #[error("Error parsing manifest from FDT")]
+    FdtError(#[from] fdt::Error),
+}
+
+impl From<Error> for crate::FfaError {
+    fn from(value: Error) -> Self {
+        match value {
+            #[cfg(feature = "manifest-fdt")]
+            Error::FdtError(_) => Self::InvalidParameters,
+        }
+    }
+}
 
 /// Messaging methods supported by a partition.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

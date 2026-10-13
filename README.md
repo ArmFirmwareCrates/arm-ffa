@@ -64,6 +64,8 @@ convention as defined in FF-A v1.3, which might not be compatible with earlier v
   * Memory management descriptor helpers for memory region attributes, memory access permissions,
     endpoint memory access descriptors, composite/constituent memory region descriptors, memory
     transaction descriptors and memory relinquish descriptors.
+  * SPMC manifest parsing from a flattened device tree (enable the `manifest-fdt` feature).
+    This parser uses the [Trusted Firmware-A manifest bindings](https://trustedfirmware-a.readthedocs.io/en/latest/components/ffa-manifest-binding.html).
 
 ## Future plans
 
@@ -75,7 +77,8 @@ convention as defined in FF-A v1.3, which might not be compatible with earlier v
 ## Fuzzing
 
 For running the fuzzers locally, make sure you have a nightly rust toolchain and `cargo-fuzz`
-installed. The `fuzzer_corpus` example is used to generate a seed corpus for fuzzing:
+installed. The `fuzzer_corpus` example generates seed corpora and requires the Device Tree Compiler
+(`dtc`) on `PATH`:
 
 ```sh
 rustup install nightly

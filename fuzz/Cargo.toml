@@ -16,6 +16,7 @@ zerocopy = "0.8"
 
 [dependencies.arm-ffa]
 path = ".."
+features = ["manifest-fdt"]
 
 [[bin]]
 name = "boot_info"
@@ -27,6 +28,13 @@ bench = false
 [[bin]]
 name = "interface"
 path = "fuzz_targets/interface.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest"
+path = "fuzz_targets/manifest.rs"
 test = false
 doc = false
 bench = false
