@@ -918,19 +918,19 @@ impl Interface {
             a[0] = function_id as u64;
         }
 
-        match *self {
+        match self {
             Interface::Error {
                 target_info,
                 error_code,
                 error_arg,
                 ..
             } => {
-                a[1] = u32::from(target_info).into();
-                a[2] = (error_code as u32).into();
-                a[3] = error_arg.into();
+                a[1] = u32::from(*target_info).into();
+                a[2] = (*error_code as u32).into();
+                a[3] = (*error_arg).into();
             }
             Interface::Success { target_info, args } => {
-                a[1] = u32::from(target_info).into();
+                a[1] = u32::from(*target_info).into();
                 match args {
                     SuccessArgs::Args32(regs) => {
                         a[2] = regs[0].into();
@@ -948,93 +948,90 @@ impl Interface {
                 interrupt_id,
                 ..
             } => {
-                a[1] = u32::from(target_info).into();
-                a[2] = interrupt_id.into();
+                a[1] = u32::from(*target_info).into();
+                a[2] = (*interrupt_id).into();
             }
             Interface::Version {
                 input_version,
                 flags,
             } => {
-                a[1] = u32::from(input_version).into();
-                a[2] = u32::from(flags).into();
+                a[1] = u32::from(*input_version).into();
+                a[2] = u32::from(*flags).into();
             }
             Interface::VersionOut { output_version } => {
-                a[0] = u32::from(output_version).into();
+                a[0] = u32::from(*output_version).into();
             }
             Interface::Features {
                 feat_id,
                 input_properties,
             } => {
-                a[1] = u32::from(feat_id).into();
-                a[2] = input_properties.into();
+                a[1] = u32::from(*feat_id).into();
+                a[2] = (*input_properties).into();
             }
-            Interface::RxAcquire { vm_id } => {
-                a[1] = vm_id.into();
-            }
-            Interface::RxRelease { vm_id } => {
-                a[1] = vm_id.into();
+            Interface::RxAcquire { vm_id } | Interface::RxRelease { vm_id } => {
+                a[1] = (*vm_id).into();
             }
             Interface::RxTxMap { addr, page_cnt } => {
                 match addr {
                     RxTxAddr::Addr32 { rx, tx } => {
-                        a[1] = tx.into();
-                        a[2] = rx.into();
+                        a[1] = (*tx).into();
+                        a[2] = (*rx).into();
                     }
                     RxTxAddr::Addr64 { rx, tx } => {
-                        a[1] = tx;
-                        a[2] = rx;
+                        a[1] = *tx;
+                        a[2] = *rx;
                     }
                 }
-                a[3] = page_cnt.into();
+                a[3] = (*page_cnt).into();
             }
             Interface::RxTxUnmap { id } => {
-                a[1] = (u32::from(id) << 16).into();
+                a[1] = (u32::from(*id) << 16).into();
             }
             Interface::PartitionInfoGet { uuid, flags } => {
-                let uuid_words: [u32; 4] = UuidHelper::to_u32_regs(uuid);
+                let uuid_words: [u32; 4] = UuidHelper::to_u32_regs(*uuid);
 
                 a[1] = uuid_words[0].into();
                 a[2] = uuid_words[1].into();
                 a[3] = uuid_words[2].into();
                 a[4] = uuid_words[3].into();
-                a[5] = u32::from(flags).into();
+                a[5] = u32::from(*flags).into();
             }
             Interface::PartitionInfoGetRegs {
                 uuid,
                 start_index,
                 info_tag,
             } => {
-                if start_index == 0 && info_tag != 0 {
+                if *start_index == 0 && *info_tag != 0 {
                     panic!("Information Tag MBZ if start index is 0: {:#x?}", self);
                 }
-                [a[1], a[2]] = UuidHelper::to_u64_regs(uuid);
-                a[3] = (u64::from(info_tag) << 16) | u64::from(start_index);
+                [a[1], a[2]] = UuidHelper::to_u64_regs(*uuid);
+                a[3] = (u64::from(*info_tag) << 16) | u64::from(*start_index);
             }
             Interface::MsgWait { flags, .. } => {
-                a[2] = u32::from(flags).into();
+                a[2] = u32::from(*flags).into();
             }
             Interface::IdGet | Interface::SpmIdGet | Interface::Yield { .. } => {}
             Interface::Run { target_info, .. } => {
-                a[1] = u32::from(target_info).into();
+                a[1] = u32::from(*target_info).into();
             }
             Interface::NormalWorldResume { .. } => {}
             Interface::SecondaryEpRegister { entrypoint } => match entrypoint {
-                SecondaryEpRegisterAddr::Addr32(addr) => a[1] = addr as u64,
-                SecondaryEpRegisterAddr::Addr64(addr) => a[1] = addr,
+                SecondaryEpRegisterAddr::Addr32(addr) => a[1] = *addr as u64,
+                SecondaryEpRegisterAddr::Addr64(addr) => a[1] = *addr,
             },
             Interface::MsgSend2 {
                 sender_vm_id,
                 flags,
             } => {
-                a[1] = (sender_vm_id as u64) << 16;
-                a[2] = u32::from(flags).into();
+                a[1] = (*sender_vm_id as u64) << 16;
+                a[2] = u32::from(*flags).into();
             }
             Interface::MsgSendDirectReq {
                 src_id,
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = ((*src_id as u64) << 16) | *dst_id as u64;
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -1045,8 +1042,8 @@ impl Interface {
                     }
                     DirectMsgArgs::VersionReq { version, flags } => {
                         a[2] = DirectMsgArgs::VERSION_REQ.into();
-                        a[3] = u32::from(version).into();
-                        a[4] = u32::from(flags).into();
+                        a[3] = u32::from(*version).into();
+                        a[4] = u32::from(*flags).into();
                     }
                     DirectMsgArgs::PowerPsciReq32 { params } => {
                         a[2] = DirectMsgArgs::POWER_PSCI_REQ.into();
@@ -1064,21 +1061,21 @@ impl Interface {
                     }
                     DirectMsgArgs::PowerWarmBootReq { boot_type } => {
                         a[2] = DirectMsgArgs::POWER_WARM_BOOT_REQ.into();
-                        a[3] = u32::from(boot_type).into();
+                        a[3] = u32::from(*boot_type).into();
                     }
                     DirectMsgArgs::VmCreated { handle, vm_id } => {
                         a[2] = DirectMsgArgs::VM_CREATED.into();
-                        let handle_regs: [u32; 2] = handle.into();
+                        let handle_regs: [u32; 2] = (*handle).into();
                         a[3] = handle_regs[0].into();
                         a[4] = handle_regs[1].into();
-                        a[5] = vm_id.into();
+                        a[5] = (*vm_id).into();
                     }
                     DirectMsgArgs::VmDestructed { handle, vm_id } => {
                         a[2] = DirectMsgArgs::VM_DESTRUCTED.into();
-                        let handle_regs: [u32; 2] = handle.into();
+                        let handle_regs: [u32; 2] = (*handle).into();
                         a[3] = handle_regs[0].into();
                         a[4] = handle_regs[1].into();
-                        a[5] = vm_id.into();
+                        a[5] = (*vm_id).into();
                     }
                     _ => panic!("Malformed MsgSendDirectReq interface"),
                 }
@@ -1088,7 +1085,7 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = ((*src_id as u64) << 16) | *dst_id as u64;
                 match args {
                     DirectMsgArgs::Args32(args) => {
                         a[3] = args[0].into();
@@ -1101,20 +1098,20 @@ impl Interface {
                         a[2] = DirectMsgArgs::VERSION_RESP.into();
                         match version {
                             None => a[3] = (i32::from(FfaError::NotSupported) as u32).into(),
-                            Some(ver) => a[3] = u32::from(ver).into(),
+                            Some(ver) => a[3] = u32::from(*ver).into(),
                         }
                     }
                     DirectMsgArgs::PowerPsciResp { psci_status } => {
                         a[2] = DirectMsgArgs::POWER_PSCI_RESP.into();
-                        a[3] = (psci_status as u32).into();
+                        a[3] = (*psci_status as u32).into();
                     }
                     DirectMsgArgs::VmCreatedAck { sp_status } => {
                         a[2] = DirectMsgArgs::VM_CREATED_ACK.into();
-                        a[3] = (i32::from(sp_status) as u32).into();
+                        a[3] = (i32::from(*sp_status) as u32).into();
                     }
                     DirectMsgArgs::VmDestructedAck { sp_status } => {
                         a[2] = DirectMsgArgs::VM_DESTRUCTED_ACK.into();
-                        a[3] = (i32::from(sp_status) as u32).into();
+                        a[3] = (i32::from(*sp_status) as u32).into();
                     }
                     _ => panic!("Malformed MsgSendDirectResp interface"),
                 }
@@ -1123,51 +1120,29 @@ impl Interface {
                 total_len,
                 frag_len,
                 buf,
-            } => {
-                a[1] = total_len.into();
-                a[2] = frag_len.into();
-                (a[3], a[4]) = match buf {
-                    Some(MemOpBuf::Buf32 { addr, page_cnt }) => (addr.into(), page_cnt.into()),
-                    Some(MemOpBuf::Buf64 { addr, page_cnt }) => (addr, page_cnt.into()),
-                    None => (0, 0),
-                };
             }
-            Interface::MemLend {
+            | Interface::MemLend {
+                total_len,
+                frag_len,
+                buf,
+            }
+            | Interface::MemShare {
+                total_len,
+                frag_len,
+                buf,
+            }
+            | Interface::MemRetrieveReq {
                 total_len,
                 frag_len,
                 buf,
             } => {
-                a[1] = total_len.into();
-                a[2] = frag_len.into();
+                a[1] = (*total_len).into();
+                a[2] = (*frag_len).into();
                 (a[3], a[4]) = match buf {
-                    Some(MemOpBuf::Buf32 { addr, page_cnt }) => (addr.into(), page_cnt.into()),
-                    Some(MemOpBuf::Buf64 { addr, page_cnt }) => (addr, page_cnt.into()),
-                    None => (0, 0),
-                };
-            }
-            Interface::MemShare {
-                total_len,
-                frag_len,
-                buf,
-            } => {
-                a[1] = total_len.into();
-                a[2] = frag_len.into();
-                (a[3], a[4]) = match buf {
-                    Some(MemOpBuf::Buf32 { addr, page_cnt }) => (addr.into(), page_cnt.into()),
-                    Some(MemOpBuf::Buf64 { addr, page_cnt }) => (addr, page_cnt.into()),
-                    None => (0, 0),
-                };
-            }
-            Interface::MemRetrieveReq {
-                total_len,
-                frag_len,
-                buf,
-            } => {
-                a[1] = total_len.into();
-                a[2] = frag_len.into();
-                (a[3], a[4]) = match buf {
-                    Some(MemOpBuf::Buf32 { addr, page_cnt }) => (addr.into(), page_cnt.into()),
-                    Some(MemOpBuf::Buf64 { addr, page_cnt }) => (addr, page_cnt.into()),
+                    Some(MemOpBuf::Buf32 { addr, page_cnt }) => {
+                        ((*addr).into(), (*page_cnt).into())
+                    }
+                    Some(MemOpBuf::Buf64 { addr, page_cnt }) => (*addr, (*page_cnt).into()),
                     None => (0, 0),
                 };
             }
@@ -1175,20 +1150,20 @@ impl Interface {
                 total_len,
                 frag_len,
             } => {
-                a[1] = total_len.into();
-                a[2] = frag_len.into();
+                a[1] = (*total_len).into();
+                a[2] = (*frag_len).into();
             }
             Interface::MemRelinquish => {}
             Interface::MemReclaim { handle, flags } => {
-                let handle_regs: [u32; 2] = handle.into();
+                let handle_regs: [u32; 2] = (*handle).into();
                 a[1] = handle_regs[0].into();
                 a[2] = handle_regs[1].into();
-                a[3] = u32::from(flags).into();
+                a[3] = u32::from(*flags).into();
             }
             Interface::MemPermGet { addr, page_cnt } => {
                 a[1] = match addr {
-                    MemAddr::Addr32(addr) => addr.into(),
-                    MemAddr::Addr64(addr) => addr,
+                    MemAddr::Addr32(addr) => (*addr).into(),
+                    MemAddr::Addr64(addr) => *addr,
                 };
                 a[2] = page_cnt.checked_sub(1).unwrap().into();
             }
@@ -1198,19 +1173,14 @@ impl Interface {
                 mem_perm,
             } => {
                 a[1] = match addr {
-                    MemAddr::Addr32(addr) => addr.into(),
-                    MemAddr::Addr64(addr) => addr,
+                    MemAddr::Addr32(addr) => (*addr).into(),
+                    MemAddr::Addr64(addr) => *addr,
                 };
-                a[2] = page_cnt.into();
-                a[3] = u32::from(mem_perm).into();
+                a[2] = (*page_cnt).into();
+                a[3] = u32::from(*mem_perm).into();
             }
-            Interface::MemOpPause { handle } => {
-                let handle_regs: [u32; 2] = handle.into();
-                a[1] = handle_regs[0].into();
-                a[2] = handle_regs[1].into();
-            }
-            Interface::MemOpResume { handle } => {
-                let handle_regs: [u32; 2] = handle.into();
+            Interface::MemOpPause { handle } | Interface::MemOpResume { handle } => {
+                let handle_regs: [u32; 2] = (*handle).into();
                 a[1] = handle_regs[0].into();
                 a[2] = handle_regs[1].into();
             }
@@ -1219,29 +1189,29 @@ impl Interface {
                 frag_offset,
                 endpoint_id,
             } => {
-                let handle_regs: [u32; 2] = handle.into();
+                let handle_regs: [u32; 2] = (*handle).into();
                 a[1] = handle_regs[0].into();
                 a[2] = handle_regs[1].into();
-                a[3] = frag_offset.into();
-                a[4] = (u32::from(endpoint_id) << 16).into();
+                a[3] = (*frag_offset).into();
+                a[4] = (u32::from(*endpoint_id) << 16).into();
             }
             Interface::MemFragTx {
                 handle,
                 frag_len,
                 endpoint_id,
             } => {
-                let handle_regs: [u32; 2] = handle.into();
+                let handle_regs: [u32; 2] = (*handle).into();
                 a[1] = handle_regs[0].into();
                 a[2] = handle_regs[1].into();
-                a[3] = frag_len.into();
-                a[4] = (u32::from(endpoint_id) << 16).into();
+                a[3] = (*frag_len).into();
+                a[4] = (u32::from(*endpoint_id) << 16).into();
             }
             Interface::ConsoleLog { chars } => match chars {
                 ConsoleLogChars::Chars32(ConsoleLogChars32 {
                     char_cnt,
                     char_lists,
                 }) => {
-                    a[1] = char_cnt.into();
+                    a[1] = (*char_cnt).into();
                     a[2] = char_lists[0].into();
                     a[3] = char_lists[1].into();
                     a[4] = char_lists[2].into();
@@ -1252,11 +1222,11 @@ impl Interface {
                 _ => panic!("{:#x?} requires 18 registers", chars),
             },
             Interface::NotificationBitmapCreate { vm_id, vcpu_cnt } => {
-                a[1] = vm_id.into();
-                a[2] = vcpu_cnt.into();
+                a[1] = (*vm_id).into();
+                a[2] = (*vcpu_cnt).into();
             }
             Interface::NotificationBitmapDestroy { vm_id } => {
-                a[1] = vm_id.into();
+                a[1] = (*vm_id).into();
             }
             Interface::NotificationBind {
                 sender_id,
@@ -1264,8 +1234,8 @@ impl Interface {
                 flags,
                 bitmap,
             } => {
-                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
-                a[2] = u32::from(flags).into();
+                a[1] = (u64::from(*sender_id) << 16) | u64::from(*receiver_id);
+                a[2] = u32::from(*flags).into();
                 a[3] = bitmap & 0xffff_ffff;
                 a[4] = bitmap >> 32;
             }
@@ -1274,7 +1244,7 @@ impl Interface {
                 receiver_id,
                 bitmap,
             } => {
-                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
+                a[1] = (u64::from(*sender_id) << 16) | u64::from(*receiver_id);
                 a[3] = bitmap & 0xffff_ffff;
                 a[4] = bitmap >> 32;
             }
@@ -1284,8 +1254,8 @@ impl Interface {
                 flags,
                 bitmap,
             } => {
-                a[1] = (u64::from(sender_id) << 16) | u64::from(receiver_id);
-                a[2] = u32::from(flags).into();
+                a[1] = (u64::from(*sender_id) << 16) | u64::from(*receiver_id);
+                a[2] = u32::from(*flags).into();
                 a[3] = bitmap & 0xffff_ffff;
                 a[4] = bitmap >> 32;
             }
@@ -1294,8 +1264,8 @@ impl Interface {
                 endpoint_id,
                 flags,
             } => {
-                a[1] = (u64::from(vcpu_id) << 16) | u64::from(endpoint_id);
-                a[2] = u32::from(flags).into();
+                a[1] = (u64::from(*vcpu_id) << 16) | u64::from(*endpoint_id);
+                a[2] = u32::from(*flags).into();
             }
             Interface::NotificationInfoGet { .. } => {}
             Interface::El3IntrHandle => {}
@@ -1310,9 +1280,9 @@ impl Interface {
             a[0] = function_id as u64;
         }
 
-        match *self {
+        match self {
             Interface::Success { target_info, args } => {
-                a[1] = u32::from(target_info).into();
+                a[1] = u32::from(*target_info).into();
                 match args {
                     SuccessArgs::Args64(regs) => a[2..18].copy_from_slice(&regs[..16]),
                     _ => panic!("{:#x?} requires 8 registers", args),
@@ -1328,9 +1298,9 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = ((*src_id as u64) << 16) | *dst_id as u64;
                 match args {
-                    DirectMsgArgs::Args64(args) => a[3..18].copy_from_slice(&args.map(u64::from)),
+                    DirectMsgArgs::Args64(args) => a[3..18].copy_from_slice(args),
                     _ => panic!("Malformed MsgSendDirectReq/Resp interface"),
                 }
             }
@@ -1341,8 +1311,8 @@ impl Interface {
                 uuid,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
-                [a[2], a[3]] = UuidHelper::to_u64_regs(uuid);
+                a[1] = ((*src_id as u64) << 16) | *dst_id as u64;
+                [a[2], a[3]] = UuidHelper::to_u64_regs(*uuid);
                 a[4..18].copy_from_slice(&args.0[..14]);
             }
             Interface::MsgSendDirectResp2 {
@@ -1350,7 +1320,7 @@ impl Interface {
                 dst_id,
                 args,
             } => {
-                a[1] = ((src_id as u64) << 16) | dst_id as u64;
+                a[1] = ((*src_id as u64) << 16) | *dst_id as u64;
                 a[2] = 0;
                 a[3] = 0;
                 a[4..18].copy_from_slice(&args.0[..14]);
@@ -1360,7 +1330,7 @@ impl Interface {
                     char_cnt,
                     char_lists,
                 }) => {
-                    a[1] = char_cnt.into();
+                    a[1] = (*char_cnt).into();
                     a[2..18].copy_from_slice(&char_lists[..16])
                 }
                 _ => panic!("{:#x?} requires 8 registers", char_lists),
