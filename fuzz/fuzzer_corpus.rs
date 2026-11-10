@@ -98,7 +98,7 @@ fn interface() {
         endpoint_id: 0x8001,
         vcpu_id: 0x1234,
     };
-    let version = Version(1, 2);
+    let version = Version::V1_2;
     let src_id = 0x1234;
     let dst_id = 0x5678;
     let sender_id = 0x1234;
@@ -246,7 +246,7 @@ fn interface() {
             src_id,
             dst_id,
             args: DirectMsgArgs::VersionReq {
-                version: Version(1, 2),
+                version: Version::V1_2,
                 flags: VersionFlags {
                     query_type: VersionQueryType::Negotiate,
                 },
@@ -256,7 +256,7 @@ fn interface() {
             src_id,
             dst_id,
             args: DirectMsgArgs::VersionResp {
-                version: Some(Version(1, 2)),
+                version: Some(Version::V1_2),
             },
         },
         Interface::MsgSendDirectReq {
@@ -585,7 +585,7 @@ fn partition_info() {
         PartitionInfo {
             protocol_uuid: Some(uuid),
             image_uuid: Some(uuid),
-            partition_ffa_version: Version(1, 2),
+            partition_ffa_version: Version::V1_2,
             partition_id: 1234,
             partition_id_type: PartitionIdType::PeEndpoint {
                 execution_ctx_count: 123,
@@ -595,7 +595,7 @@ fn partition_info() {
         PartitionInfo {
             protocol_uuid: None,
             image_uuid: None,
-            partition_ffa_version: Version(1, 1),
+            partition_ffa_version: Version::V1_1,
             partition_id: 1234,
             partition_id_type: PartitionIdType::SepidIndep,
             props: props2,
@@ -603,7 +603,7 @@ fn partition_info() {
         PartitionInfo {
             protocol_uuid: Some(uuid),
             image_uuid: None,
-            partition_ffa_version: Version(1, 3),
+            partition_ffa_version: Version::V1_3,
             partition_id: 1234,
             partition_id_type: PartitionIdType::SepidDep {
                 proxy_endpoint_id: 5678,
@@ -613,7 +613,7 @@ fn partition_info() {
         PartitionInfo {
             protocol_uuid: None,
             image_uuid: Some(uuid),
-            partition_ffa_version: Version(1, 3),
+            partition_ffa_version: Version::V1_3,
             partition_id: 1234,
             partition_id_type: PartitionIdType::Aux,
             props: props2,

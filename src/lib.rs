@@ -223,7 +223,7 @@ impl FuncId {
             | FuncId::MemOpPause
             | FuncId::MemOpResume
             | FuncId::MemFragRx
-            | FuncId::MemFragTx => Version(1, 0),
+            | FuncId::MemFragTx => Version::V1_0,
 
             FuncId::RxAcquire
             | FuncId::SpmIdGet
@@ -241,21 +241,21 @@ impl FuncId {
             | FuncId::NotificationInfoGet32
             | FuncId::NotificationInfoGet64
             | FuncId::SecondaryEpRegister32
-            | FuncId::SecondaryEpRegister64 => Version(1, 1),
+            | FuncId::SecondaryEpRegister64 => Version::V1_1,
 
             FuncId::PartitionInfoGetRegs
             | FuncId::ConsoleLog32
             | FuncId::ConsoleLog64
             | FuncId::MsgSendDirectReq64_2
             | FuncId::MsgSendDirectResp64_2
-            | FuncId::El3IntrHandle => Version(1, 2),
+            | FuncId::El3IntrHandle => Version::V1_2,
 
             FuncId::Error64
             | FuncId::Interrupt64
             | FuncId::MsgWait64
             | FuncId::Yield64
             | FuncId::Run64
-            | FuncId::NormalWorldResume64 => Version(1, 3),
+            | FuncId::NormalWorldResume64 => Version::V1_3,
         }
     }
 }
@@ -360,53 +360,68 @@ impl UuidHelper {
     }
 }
 
-/// Version number of the FF-A implementation, `.0` is the major, `.1` is minor the version.
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Version(pub u16, pub u16);
+/// Version number of the FF-A implementation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub struct Version {
+    major: u16,
+    minor: u16,
+}
 
 impl Version {
-    // The FF-A spec mandates that bit[31] of a version number must be 0
-    const MBZ_BITS: u32 = 1 << 31;
-
     /// The encoding used if no version is negotiated between a caller and the callee.
-    pub const NULL: Version = Version(0, 0);
+    pub const NULL: Version = Version { major: 0, minor: 0 };
+    /// FF-A version 1.0
+    pub const V1_0: Version = Version { major: 1, minor: 0 };
+    /// FF-A version 1.1
+    pub const V1_1: Version = Version { major: 1, minor: 1 };
+    /// FF-A version 1.2
+    pub const V1_2: Version = Version { major: 1, minor: 2 };
+    /// FF-A version 1.3
+    pub const V1_3: Version = Version { major: 1, minor: 3 };
+
+    /// Creates a new `Version` if the provided major version is valid.
+    pub const fn new(major: u16, minor: u16) -> Option<Self> {
+        if major > 0x7fff {
+            None
+        } else {
+            Some(Self { major, minor })
+        }
+    }
+
+    /// Returns the major version number.
+    pub const fn major(&self) -> u16 {
+        self.major
+    }
+
+    /// Returns the minor version number.
+    pub const fn minor(&self) -> u16 {
+        self.minor
+    }
 
     /// Returns whether the caller's version (self) is compatible with the callee's version (input
     /// parameter)
     pub fn is_compatible_to(&self, callee_version: Version) -> bool {
-        self.0 == callee_version.0 && self.1 <= callee_version.1
+        self.major == callee_version.major && self.minor <= callee_version.minor
     }
 }
 
 impl TryFrom<u32> for Version {
     type Error = Error;
 
-    fn try_from(val: u32) -> Result<Self, Self::Error> {
-        if (val & Self::MBZ_BITS) != 0 {
-            Err(Error::InvalidVersion(val))
-        } else {
-            Ok(Self((val >> 16) as u16, val as u16))
-        }
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Self::new((value >> 16) as u16, value as u16).ok_or(Error::InvalidVersion(value))
     }
 }
 
 impl From<Version> for u32 {
-    fn from(v: Version) -> Self {
-        let v_u32 = ((v.0 as u32) << 16) | v.1 as u32;
-        assert!(v_u32 & Version::MBZ_BITS == 0);
-        v_u32
+    fn from(version: Version) -> Self {
+        ((version.major as u32) << 16) | version.minor as u32
     }
 }
 
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.0, self.1)
-    }
-}
-
-impl Debug for Version {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(self, f)
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }
 

@@ -467,7 +467,7 @@ mod tests {
         let desc1 = PartitionInfo {
             protocol_uuid: Some(uuid!("12345678-1234-1234-1234-123456789abc")),
             image_uuid: Some(uuid!("aabbccdd-eeff-0011-2233-445566778899")),
-            partition_ffa_version: Version(1, 3),
+            partition_ffa_version: Version::V1_3,
             partition_id: 0x8001,
             partition_id_type: PartitionIdType::PeEndpoint {
                 execution_ctx_count: 1,
@@ -491,7 +491,7 @@ mod tests {
         let desc2 = PartitionInfo {
             protocol_uuid: None,
             image_uuid: Some(uuid!("abcdef00-abcd-dcba-1234-abcdef012345")),
-            partition_ffa_version: Version(1, 3),
+            partition_ffa_version: Version::V1_3,
             partition_id: 0x8002,
             partition_id_type: PartitionIdType::SepidIndep,
             props: PartitionProperties {

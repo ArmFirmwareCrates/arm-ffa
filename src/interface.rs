@@ -376,7 +376,7 @@ impl Interface {
     /// Returns the FF-A version that has introduced the function ID.
     pub fn minimum_ffa_version(&self) -> Version {
         if matches!(self, Self::VersionOut { .. }) {
-            return Version(1, 0);
+            return Version::V1_0;
         }
 
         self.function_id().unwrap().minimum_ffa_version()
@@ -1728,7 +1728,7 @@ mod tests {
     fn ffa_version_serde() {
         test_regs_serde!(
             Interface::Version {
-                input_version: Version(1, 3),
+                input_version: Version::V1_3,
                 flags: VersionFlags {
                     query_type: VersionQueryType::QueryCompatibility
                 }
@@ -2218,7 +2218,7 @@ mod tests {
                 src_id: 0xdead,
                 dst_id: 0xbeef,
                 args: DirectMsgArgs::VersionReq {
-                    version: Version(1, 3),
+                    version: Version::V1_3,
                     flags: VersionFlags {
                         query_type: VersionQueryType::QueryCompatibility
                     }
@@ -2241,7 +2241,7 @@ mod tests {
                 src_id: 0xdead,
                 dst_id: 0xbeef,
                 args: DirectMsgArgs::VersionResp {
-                    version: Some(Version(1, 2))
+                    version: Some(Version::V1_2)
                 }
             },
             [0x84000070, 0xdead_beef, 0x8000_0009, 0x0001_0002]

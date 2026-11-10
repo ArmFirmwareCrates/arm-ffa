@@ -379,7 +379,7 @@ impl<'a> BootInfo<'a> {
 
         let header_raw = boot_info_header {
             signature: 0x0ffa,
-            version: Version(1, 3).into(),
+            version: Version::V1_3.into(),
             boot_info_blob_size: total_offset as u32,
             boot_info_desc_size: DESC_SIZE as u32,
             boot_info_desc_count: desc_cnt as u32,
@@ -403,7 +403,7 @@ impl<'a> BootInfo<'a> {
             .version
             .try_into()
             .map_err(|_| Error::InvalidHeader)?;
-        if header_version != Version(1, 3) {
+        if header_version != Version::V1_3 {
             return Err(Error::InvalidVersion(header_version));
         }
 
@@ -598,7 +598,7 @@ mod tests {
                 ])
                 .0
             ),
-            Err(Error::InvalidVersion(Version(1, 1)))
+            Err(Error::InvalidVersion(Version::V1_1))
         );
     }
 
