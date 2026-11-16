@@ -87,9 +87,9 @@ impl From<Error> for FfaError {
             | Error::InvalidCharacterCount(_)
             | Error::InvalidVersionQueryType(_)
             | Error::InvalidVersionFlags(_) => Self::InvalidParameters,
-            Error::MemoryManagementError(_)
-            | Error::NotificationError(_)
-            | Error::PartitionInfoError(_) => value.into(),
+            Error::MemoryManagementError(error) => error.into(),
+            Error::NotificationError(error) => error.into(),
+            Error::PartitionInfoError(error) => error.into(),
         }
     }
 }

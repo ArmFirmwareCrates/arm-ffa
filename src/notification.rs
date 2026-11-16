@@ -17,6 +17,16 @@ pub enum Error {
     InvalidNotificationCount,
 }
 
+impl From<Error> for crate::FfaError {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::InvalidNotificationSetFlag(_) | Error::InvalidNotificationCount => {
+                Self::InvalidParameters
+            }
+        }
+    }
+}
+
 /// Flags field of the `FFA_NOTIFICATION_BIND` interface.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NotificationBindFlags {
