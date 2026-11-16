@@ -1,15 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - Remove explicit FF-A version arguments from interface and descriptor conversion helpers.
-- Update boot info and partition info handling for FF-A v1.3 ALP4 descriptor formats.
+- Update boot info and partition info handling for FF-A v1.3 BET0 descriptor formats, including
+  IPSP support and boot information offsets.
 - Replace `Interface::from_regs()` with a `TryFrom<&[u64]>` implementation.
 - Replace the public FF-A instance type with a component type.
 - Add an `FFA_SUCCESS` interface helper with arguments.
 - Refactor unpack functions to use `map` instead of making custom iterator classes by hand.
-- Add fuzzers for serializer/deserializer functions.
+- Add fuzzers for serializer/deserializer functions, a seed-corpus generator, and coverage scripts.
 - Serializer/deserializer functions now assume provided buffers are at least 8 byte aligned.
+- Add partition and SPMC manifest types and optional SPMC parsing from FDTs (`manifest-fdt` feature).
+- Add checked `Version` construction, accessors, and version constants.
+- Add the `FfaError::NotReady` variant.
+- Apply FF-A v1.3 reserved-field rules to registers and descriptors.
+- Fix `FFA_VERSION` error responses and forwarded replies.
+- Fix unknown function ID parsing in `FFA_FEATURES`.
+- Fix recursive conversion of nested errors to `FfaError`.
+- Validate boot information payload bounds, ordering, and non-overlap.
+- Reduce register-packing stack usage.
+- Add workaround for `Interface` debug formatting code to fix a [Rust compiler issue](https://github.com/rust-lang/rust/issues/162544).
 
 ## 0.5.0
 

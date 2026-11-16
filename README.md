@@ -28,6 +28,8 @@ have been moved to a separate document (link above).
       the spec (i.e. Table x.y or chapter x.y.z)
     * The data structures should derive the necessary `zerocopy` traits.
 
+Descriptor packing and parsing helpers require buffers aligned to at least 8 bytes.
+
 ## FF-A version handling
 
 The FF-A specification allows different components of a system to use different versions of the
@@ -100,8 +102,9 @@ cargo run --example fuzzer_corpus
 
 You can run individual fuzzers with `cargo +nightly fuzz run <fuzzer_name>`, or
 run them all with `fuzz/run_all.sh`. A coverage report can be generated with
-`fuzz/get_coverage.sh`, this requires `cargo-binutils` and `lcov` to be
-installed. The report will be placed in `fuzz/lcov/index.html`.
+`fuzz/get_coverage.sh`. Coverage generation requires `cargo-binutils`, `lcov`, and the nightly
+`llvm-tools` component (`rustup component add llvm-tools --toolchain nightly`). The report will be
+placed in `fuzz/lcov/index.html`.
 
 ## License
 
