@@ -212,36 +212,26 @@ impl TryFrom<&[u64]> for Interface {
     fn try_from(value: &[u64]) -> Result<Self, crate::Error> {
         let func_id = FuncId::try_from(value[0] as u32)?;
 
-        if func_id.is_32bit() {
-            if value.len() < 8 {
-                return Err(Error::InvalidRegisterCount {
-                    expected: 8,
-                    actual: value.len(),
-                });
-            }
+        let need_regs = if func_id.is_32bit() { 8 } else { 18 };
+        if value.len() < need_regs {
+            return Err(Error::InvalidRegisterCount {
+                expected: need_regs,
+                actual: value.len(),
+            });
+        }
 
-            Interface::unpack_regs8(func_id, value.first_chunk().unwrap())
-        } else {
-            if value.len() < 18 {
-                return Err(Error::InvalidRegisterCount {
-                    expected: 18,
-                    actual: value.len(),
-                });
+        // The list of function IDs that are passed to `unpack_regs18()` must match the list of
+        // function IDs that the function handles.
+        match func_id {
+            FuncId::ConsoleLog64
+            | FuncId::Success64
+            | FuncId::MsgSendDirectReq64
+            | FuncId::MsgSendDirectResp64
+            | FuncId::MsgSendDirectReq64_2
+            | FuncId::MsgSendDirectResp64_2 => {
+                Interface::unpack_regs18(func_id, value.first_chunk().unwrap())
             }
-
-            // The list of function IDs that are passed to `unpack_regs18()` must match the list of
-            // function IDs that the function handles.
-            match func_id {
-                FuncId::ConsoleLog64
-                | FuncId::Success64
-                | FuncId::MsgSendDirectReq64
-                | FuncId::MsgSendDirectResp64
-                | FuncId::MsgSendDirectReq64_2
-                | FuncId::MsgSendDirectResp64_2 => {
-                    Interface::unpack_regs18(func_id, value.first_chunk().unwrap())
-                }
-                _ => Interface::unpack_regs8(func_id, value.first_chunk().unwrap()),
-            }
+            _ => Interface::unpack_regs8(func_id, value.first_chunk().unwrap()),
         }
     }
 }
@@ -879,32 +869,30 @@ impl Interface {
     /// Create register contents for an interface. The caller must ensure that the `regs` argument
     /// has the correct length: at least 8 registers for SMC32 calls and at least 18 for SMC64 calls
     pub fn to_regs(&self, regs: &mut [u64]) {
-        if self.is_32bit() {
-            self.pack_regs8(regs.first_chunk_mut::<8>().unwrap());
-        } else {
-            match self {
-                Interface::ConsoleLog {
-                    chars: ConsoleLogChars::Chars64(_),
-                    ..
-                }
-                | Interface::Success {
-                    args: SuccessArgs::Args64(_),
-                    ..
-                }
-                | Interface::MsgSendDirectReq {
-                    args: DirectMsgArgs::Args64(_),
-                    ..
-                }
-                | Interface::MsgSendDirectResp {
-                    args: DirectMsgArgs::Args64(_),
-                    ..
-                }
-                | Interface::MsgSendDirectReq2 { .. }
-                | Interface::MsgSendDirectResp2 { .. } => {
-                    self.pack_regs18(regs.first_chunk_mut::<18>().unwrap());
-                }
-                _ => {
-                    self.pack_regs8(regs.first_chunk_mut::<8>().unwrap());
+        match self {
+            Interface::ConsoleLog {
+                chars: ConsoleLogChars::Chars64(_),
+                ..
+            }
+            | Interface::Success {
+                args: SuccessArgs::Args64(_),
+                ..
+            }
+            | Interface::MsgSendDirectReq {
+                args: DirectMsgArgs::Args64(_),
+                ..
+            }
+            | Interface::MsgSendDirectResp {
+                args: DirectMsgArgs::Args64(_),
+                ..
+            }
+            | Interface::MsgSendDirectReq2 { .. }
+            | Interface::MsgSendDirectResp2 { .. } => {
+                self.pack_regs18(regs.first_chunk_mut().unwrap());
+            }
+            _ => {
+                self.pack_regs8(regs.first_chunk_mut().unwrap());
+                if !self.is_32bit() {
                     regs[8..18].fill(0);
                 }
             }
