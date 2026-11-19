@@ -33,6 +33,9 @@ use std::path::PathBuf;
 use uuid::uuid;
 use zerocopy::transmute_ref;
 
+#[repr(align(8))]
+struct AlignedBuffer<const N: usize>([u8; N]);
+
 /// Creates a closure that can write sequentially numbered corpus files in the provided fuzz
 /// target's corpus directory.
 fn make_corpus_writer(target: &str) -> impl FnMut(&[u8]) {
@@ -75,9 +78,9 @@ fn boot_info() {
 
     let mut writer = make_corpus_writer("boot_info");
     let mut write_boot_info = |descriptors: &[BootInfo]| {
-        let mut buf = [0u8; 1024];
-        BootInfo::pack(descriptors, &mut buf, None);
-        writer(&buf);
+        let buf = &mut AlignedBuffer([0u8; 1024]).0;
+        BootInfo::pack(descriptors, buf, None);
+        writer(buf);
     };
 
     write_boot_info(&[boot_info0.clone()]);
@@ -468,9 +471,9 @@ fn mem_relinquish() {
             flags: 0x1234_5678,
             endpoints,
         };
-        let mut buf = [0u8; 1024];
-        desc.pack(&mut buf);
-        writer(&buf);
+        let buf = &mut AlignedBuffer([0u8; 1024]).0;
+        desc.pack(buf);
+        writer(buf);
     };
 
     write_mem_relinquish_desc(&[]);
@@ -527,8 +530,8 @@ fn mem_transaction() {
     let mut writer = make_corpus_writer("mem_transaction_desc");
     let mut write_mem_transaction =
         |desc: &MemTransactionDesc, regions: &[ConstituentMemRegion], perms: &[MemAccessPerm]| {
-            let mut buf = [0; 1024];
-            let len = desc.pack(regions, perms, &mut buf);
+            let buf = &mut AlignedBuffer([0; 1024]).0;
+            let len = desc.pack(regions, perms, buf);
             writer(&buf[..len]);
         };
 
@@ -619,9 +622,9 @@ fn partition_info() {
 
     let mut writer = make_corpus_writer("partition_info");
     for descriptors in partition_infos {
-        let mut buf = [0; PartitionInfo::DESC_SIZE];
-        PartitionInfo::pack(&[descriptors], &mut buf);
-        writer(&buf);
+        let buf = &mut AlignedBuffer([0; PartitionInfo::DESC_SIZE]).0;
+        PartitionInfo::pack(&[descriptors], buf);
+        writer(buf);
     }
 }
 
