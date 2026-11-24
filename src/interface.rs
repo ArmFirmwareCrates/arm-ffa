@@ -85,6 +85,13 @@ pub enum Interface {
         is_32bit: bool,
     },
     Yield {
+        /// Endpoint and vCPU IDs of the yielding endpoint, set when a partition manager or the
+        /// SPMD forwards the call. Zero when invoked directly by an endpoint.
+        target_info: TargetInfo,
+        /// Interval in nanoseconds after which the vCPU in `target_info` must be run. Only used
+        /// by a Hypervisor at the Non-secure virtual FF-A instance with the ERET conduit; Reserved
+        /// (SBZ)otherwise.
+        timeout: u64,
         is_32bit: bool,
     },
     Run {
@@ -284,7 +291,7 @@ impl Interface {
             } else {
                 FuncId::MsgWait64
             }),
-            Interface::Yield { is_32bit } => Some(if *is_32bit {
+            Interface::Yield { is_32bit, .. } => Some(if *is_32bit {
                 FuncId::Yield32
             } else {
                 FuncId::Yield64
@@ -491,6 +498,8 @@ impl Interface {
             },
             FuncId::Yield32 | FuncId::Yield64 => Self::Yield {
                 is_32bit: matches!(func_id, FuncId::Yield32),
+                target_info: (regs[1] as u32).into(),
+                timeout: (regs[3] << 32) | (regs[2] & 0xffff_ffff),
             },
             FuncId::Run32 | FuncId::Run64 => Self::Run {
                 is_32bit: matches!(func_id, FuncId::Run32),
@@ -985,7 +994,16 @@ impl Interface {
             Interface::MsgWait { flags, .. } => {
                 a[2] = u32::from(*flags).into();
             }
-            Interface::IdGet | Interface::SpmIdGet | Interface::Yield { .. } => {}
+            Interface::IdGet | Interface::SpmIdGet => {}
+            Interface::Yield {
+                target_info,
+                timeout,
+                ..
+            } => {
+                a[1] = u32::from(*target_info).into();
+                a[2] = timeout & 0xffff_ffff;
+                a[3] = timeout >> 32;
+            }
             Interface::Run { target_info, .. } => {
                 a[1] = u32::from(*target_info).into();
             }
@@ -2416,7 +2434,46 @@ mod tests {
 
     #[test]
     fn ffa_yield_serde() {
-        test_regs_serde!(Interface::Yield { is_32bit: true }, [0x8400006C]);
+        test_regs_serde!(
+            Interface::Yield {
+                target_info: TargetInfo::default(),
+                timeout: 0,
+                is_32bit: true,
+            },
+            [0x8400006C]
+        );
+        test_regs_serde!(
+            Interface::Yield {
+                target_info: TargetInfo {
+                    endpoint_id: 0x8002,
+                    vcpu_id: 0x0003
+                },
+                timeout: 0x1234_5678_9abc_def0,
+                is_32bit: true,
+            },
+            [0x8400006C, 0x8002_0003, 0x9abc_def0, 0x1234_5678]
+        );
+    }
+
+    #[test]
+    fn ffa_yield_ignores_upper_register_bits() {
+        let mut regs = [0u64; 8];
+        regs[0] = 0x8400006C;
+        regs[1] = 0xffff_ffff_8002_0003;
+        regs[2] = 0xffff_ffff_0000_0123;
+        regs[3] = 0xffff_ffff_0000_0456;
+
+        assert_eq!(
+            Interface::try_from(&regs[..]),
+            Ok(Interface::Yield {
+                target_info: TargetInfo {
+                    endpoint_id: 0x8002,
+                    vcpu_id: 0x0003
+                },
+                timeout: 0x456_0000_0123,
+                is_32bit: true,
+            })
+        );
     }
 
     #[test]

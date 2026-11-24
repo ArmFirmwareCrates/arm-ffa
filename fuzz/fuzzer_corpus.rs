@@ -206,8 +206,16 @@ fn interface() {
             },
             is_32bit: false,
         },
-        Interface::Yield { is_32bit: false },
-        Interface::Yield { is_32bit: true },
+        Interface::Yield {
+            target_info,
+            timeout: 0,
+            is_32bit: false,
+        },
+        Interface::Yield {
+            target_info,
+            timeout: 0x1234_5678_9abc_def0,
+            is_32bit: true,
+        },
         Interface::Run {
             target_info,
             is_32bit: true,
